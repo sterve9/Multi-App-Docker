@@ -1,0 +1,14 @@
+# Données persistantes des apps
+**/n8n_data/
+**/letsencrypt/
+
+# Logs et fichiers temporaires
+*.log
+*.tmp
+
+# Fichiers Python (__pycache__)
+**/__pycache__/
+*.pyc
+
+# Override docker-compose si présent
+**/docker-compose.override.yml

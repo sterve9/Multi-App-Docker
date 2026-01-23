@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+ traefik:
+ image: traefik:v2.11
+ container_name: traefik
+ restart: always
+ command:
+ - "--providers.docker=true"
+ - "--providers.docker.exposedbydefault=false"
+ - "--entrypoints.web.address=:80"
+ - "--entrypoints.websecure.address=:443"
+ - "--certificatesresolvers.mytlschallenge.acme.httpchallenge=true"
+ - "--certificatesresolvers.mytlschallenge.acme.httpchallenge.entrypoint=web"
+ - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
+ - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+ - "--log.level=INFO"
+ ports:
+ - "80:80"
+ - "443:443"
+ volumes:
+ - "/var/run/docker.sock:/var/run/docker.sock:ro"
+ - "./letsencrypt:/letsencrypt"
+ networks:
+ - traefik
+
+ n8n:
+ image: docker.n8n.io/n8nio/n8n
+ container_name: n8n
+ restart: always
+ environment:
+ - GENERIC_TIMEZONE=Europe/Paris
+ - N8N_HOST=automation.sterveshop.cloud
+ - N8N_PORT=5678
+ - N8N_PROTOCOL=https
+ - WEBHOOK_URL=https://automation.sterveshop.cloud/
+ - N8N_SECURE_COOKIE=false
+ labels:
+ - traefik.enable=true
+ - traefik.http.routers.n8n.rule=Host(`automation.sterveshop.cloud`)
+ - traefik.http.routers.n8n.entrypoints=websecure
+ - traefik.http.routers.n8n.tls.certresolver=mytlschallenge
+ - traefik.http.services.n8n.loadbalancer.server.port=5678
+ networks:
+ - traefik
+
+networks:
+ traefik:
+ external: false

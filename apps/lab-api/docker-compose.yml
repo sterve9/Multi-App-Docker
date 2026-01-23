@@ -1,0 +1,26 @@
+version: "3.9"
+
+services:
+  lab-api:
+    container_name: lab-api
+    build: .
+    restart: unless-stopped
+
+    labels:
+      - "traefik.enable=true"
+
+      # Router HTTPS
+      - "traefik.http.routers.lab-api.rule=Host(`lab.sterveshop.cloud`)"
+      - "traefik.http.routers.lab-api.entrypoints=websecure"
+      - "traefik.http.routers.lab-api.tls=true"
+      - "traefik.http.routers.lab-api.tls.certresolver=letsencrypt"
+
+      # Service interne FastAPI
+      - "traefik.http.services.lab-api.loadbalancer.server.port=8000"
+
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
