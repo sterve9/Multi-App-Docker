@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Frontend - Site vitrine
+  frontend:
+    build: ./frontend
+    container_name: site-vitrine-frontend
+    restart: unless-stopped
+    networks:
+      - traefik-network
+    labels:
+      # Activer Traefik
+      - "traefik.enable=true"
+      
+      # Router HTTP
+      - "traefik.http.routers.site-vitrine.rule=Host(`vitrine.sterveshop.cloud`)"
+      - "traefik.http.routers.site-vitrine.entrypoints=web"
+      
+      # Redirection HTTPS
+      - "traefik.http.routers.site-vitrine.middlewares=redirect-to-https"
+      
+      # Router HTTPS
+      - "traefik.http.routers.site-vitrine-secure.rule=Host(`vitrine.sterveshop.cloud`)"
+      - "traefik.http.routers.site-vitrine-secure.entrypoints=websecure"
+      - "traefik.http.routers.site-vitrine-secure.tls=true"
+      - "traefik.http.routers.site-vitrine-secure.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.site-vitrine.loadbalancer.server.port=80"
+
+# Réseau Traefik (doit déjà exister)
+networks:
+  traefik-network:
+    external: true
