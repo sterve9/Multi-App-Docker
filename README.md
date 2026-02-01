@@ -1,73 +1,68 @@
-# Multi-app Docker avec Traefik
+# 🧱 Sterve Platform – Docker & Traefik
 
-Ce projet est un environnement personnel que j’ai mis en place pour apprendre
-à structurer et sécuriser plusieurs applications Docker derrière un reverse-proxy Traefik.
-
-Il s’agit d’un projet d’apprentissage, basé sur des cas réels
-(n8n, API FastAPI), avec une volonté de faire les choses proprement et sans stress.
+## 🎯 Objectif
+Infrastructure **modulaire, scalable et clé en main** pour héberger plusieurs apps derrière **Traefik**, avec HTTPS automatique.
 
 ---
 
-## 🎯 Objectif du projet
-
-- Comprendre Docker et Docker Compose
-- Apprendre à structurer un serveur multi-applications
-- Centraliser l’accès HTTPS avec Traefik
-- Éviter l’exposition directe des ports applicatifs
-- Construire une base saine pour ajouter d’autres applications plus tard
-
----
-
-## 🧱 Ce qui a été mis en place
-
-- Traefik comme reverse-proxy unique (ports 80 / 443)
-- HTTPS automatique avec Let’s Encrypt
-- Une application n8n accessible uniquement via Traefik
-- Une API FastAPI (lab-api) accessible via un sous-domaine
-- Un réseau Docker commun (`traefik`) pour relier les applications
-- Données persistantes séparées des configurations
-- Versionnage Git pour suivre l’évolution du projet
-
----
-
-## 📁 Structure du projet
+## 🗂 Structure (simplifiée)
 
 /docker
-├── traefik/
-│   └── docker-compose.yml
+├── traefik/ # Reverse-proxy unique
 ├── apps/
-│   ├── n8n/
-│   │   ├── docker-compose.yml
-│   │   └── n8n_data/
-│   └── lab-api/
-│       ├── Dockerfile
-│       ├── docker-compose.yml
-│       └── app/
-│           └── main.py
+│ ├── site-vitrine/
+│ ├── n8n/
+│ ├── lab-api/
+│ └── builder/
 
 
 ---
 
-## 🧠 Ce que j’ai appris
+## 🌐 Architecture & Routage
 
-- Comprendre le rôle d’un reverse-proxy
-- Utiliser les labels Traefik pour le routage
-- Gérer les réseaux Docker partagés
-- Séparer configuration, données et code
-- Déboguer des problèmes réels (ports, réseaux, certificats)
-- Versionner un projet technique avec Git et GitHub
+             ┌─────────────┐
+             │   Traefik   │
+             │  HTTPS/ACME │
+             └─────┬───────┘
+                   │
+   ┌───────────────┼─────────────────┐
+   │               │                 │
+┌─────────────┐ ┌─────────────┐ ┌─────────────┐
+│ site-vitrine│ │ n8n │ │ lab-api │
+│ (Nginx) │ │ │ │ (FastAPI) │
+└─────────────┘ └─────────────┘ └─────────────┘
+│
+┌──────────┐
+│ builder │
+│ (internal│
+│ tools) │
+└──────────┘
+
+
+- **Traefik** : point d’entrée unique, HTTPS automatique, routage via labels Docker  
+- **site-vitrine** : frontend statique, accessible publiquement  
+- **n8n** : automatisation, exposé uniquement via Traefik  
+- **lab-api** : API interne, évolutive  
+- **builder** : outil interne, non exposé par défaut  
 
 ---
 
-## 🚧 État actuel
-
-Le projet est fonctionnel et sert de base d’apprentissage.
-Il est destiné à évoluer avec l’ajout de nouvelles applications
-et une meilleure maîtrise des outils Docker et Traefik.
+## 🔧 Réseau & Sécurité
+- Tous les containers sur le réseau externe `traefik-network`  
+- Aucune exposition directe de ports applicatifs  
+- HTTPS automatique via Let’s Encrypt  
+- Middlewares optionnels pour chaque app  
 
 ---
 
-## 📝 Notes
+## 🚀 Philosophie
+- Une app = un dossier = un docker-compose  
+- Traefik = point d’entrée unique  
+- Simplicité > sur-configuration  
 
-Ce projet est volontairement simple et pédagogique.
-L’objectif est de progresser étape par étape, sans chercher la perfection immédiate.
+---
+
+## 🛠 Maintenance
+- Redémarrage indépendant de chaque app  
+- Traefik ne doit jamais être dupliqué  
+- Nouvelle app : rejoindre `traefik-network`, définir labels Traefik, exposer un port interne uniquement  
