@@ -16,8 +16,8 @@ services:
     volumes:
       - ./public:/usr/share/nginx/html:ro
     networks:
-      - traefik
+      - traefik-network
 
 networks:
-  traefik:
+  traefik-network:
     external: true
