@@ -19,8 +19,8 @@ services:
       - "traefik.http.services.lab-api.loadbalancer.server.port=8000"
 
     networks:
-      - traefik
+      - traefik-network
 
 networks:
-  traefik:
+  traefik-network:
     external: true

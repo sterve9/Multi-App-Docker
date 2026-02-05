@@ -1,32 +1,21 @@
-version: "3.9"
-
 services:
   traefik:
-    container_name: traefik
     image: traefik:v2.11
+    container_name: traefik
     restart: unless-stopped
 
     command:
-      # Providers
+      - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
 
-      # EntryPoints
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
 
-      # HTTP → HTTPS redirection
-      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
-
-      # ACME / Let's Encrypt
-      - "--certificatesresolvers.letsencrypt.acme.email=admin@sterveshop.cloud"
-      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
-
-      # Logs (optionnel mais recommandé)
-      - "--log.level=INFO"
+      - "--certificatesresolvers.letsencrypt.acme.email=admin@sterveshop.cloud"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
 
     ports:
       - "80:80"
@@ -37,8 +26,8 @@ services:
       - "./letsencrypt:/letsencrypt"
 
     networks:
-      - traefik
+      - traefik-network
 
 networks:
-  traefik:
-    name: traefik
+  traefik-network:
+    external: true
