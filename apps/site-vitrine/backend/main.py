@@ -6,35 +6,23 @@ from dotenv import load_dotenv
 import anthropic
 import json
 
-# ---------------------------------------------
-# Chargement des variables d'environnement
-# ---------------------------------------------
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
-# ---------------------------------------------
-# Initialisation FastAPI
-# ---------------------------------------------
 app = FastAPI(
     title="Site Vitrine API",
     version="0.1.0",
     description="Backend intelligent avec Claude + n8n"
 )
 
-# ---------------------------------------------
-# Middleware CORS (frontend → backend)
-# ---------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # ⚠️ à restreindre en production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ---------------------------------------------
-# Routes de base
-# ---------------------------------------------
 @app.get("/")
 def root():
     return {"success": True, "message": "API is running"}
@@ -43,26 +31,33 @@ def root():
 def health_check():
     return {"status": "ok"}
 
-# ---------------------------------------------
-# FONCTION : Analyse avec Claude (JSON strict)
-# ---------------------------------------------
+def extract_json_from_text(text: str) -> dict:
+    """Extrait le JSON même si entouré de markdown"""
+    text = text.strip()
+    
+    # Supprimer backticks
+    text = text.replace("```json", "").replace("```", "")
+    
+    # Trouver le JSON
+    start = text.find("{")
+    end = text.rfind("}") + 1
+    
+    if start == -1 or end == 0:
+        raise ValueError("Aucun JSON trouvé")
+    
+    json_str = text[start:end]
+    return json.loads(json_str)
+
 async def analyze_with_claude(contact: ContactRequest):
-    """
-    Analyse le message client et renvoie un JSON strict
-    exploitable par n8n.
-    """
+    """Analyse avec Claude - JSON strict"""
     if not ANTHROPIC_API_KEY:
         raise RuntimeError("Clé API Claude manquante")
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    # Prompt strict (contrat JSON)
-    prompt = f"""
-Tu es un moteur backend de classification de demandes clients.
+    prompt = f"""Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après, sans backticks.
 
-Tu dois répondre UNIQUEMENT avec un JSON valide
-respectant EXACTEMENT ce schéma :
-
+Schéma JSON :
 {{
   "category": "automation | website | ai | consulting | unknown",
   "intent": "string",
@@ -71,54 +66,52 @@ respectant EXACTEMENT ce schéma :
   "summary": "string"
 }}
 
-Règles strictes :
-- Aucun texte en dehors du JSON
-- Aucun markdown
-- Aucune explication
-- Si une information est incertaine, utilise "unknown"
-
 Message client :
 Nom : {contact.name}
 Email : {contact.email}
 Message : {contact.message}
-"""
+
+Réponds UNIQUEMENT avec le JSON."""
 
     try:
         message = client.messages.create(
             model="claude-sonnet-4-5-20250929",
             max_tokens=1024,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+            messages=[{"role": "user", "content": prompt}]
         )
 
-        # Claude renvoie du texte → on parse le JSON
-        raw_text = message.content[0].text
-        parsed_json = json.loads(raw_text)
-
+        raw_text = message.content[0].text.strip()
+        
+        # Debug
+        print("🔍 Claude a renvoyé :")
+        print(raw_text)
+        print("=" * 50)
+        
+        # Parser avec fonction robuste
+        parsed_json = extract_json_from_text(raw_text)
+        
+        # Valider
+        required_keys = ["category", "intent", "tools", "priority", "summary"]
+        for key in required_keys:
+            if key not in parsed_json:
+                raise ValueError(f"Clé manquante : {key}")
+        
         return parsed_json
 
-    except json.JSONDecodeError:
-        print("❌ JSON invalide renvoyé par Claude :", raw_text)
-        raise RuntimeError("Réponse Claude non conforme au JSON attendu")
+    except (json.JSONDecodeError, ValueError) as e:
+        print("❌ Erreur parsing JSON :")
+        print(f"Texte reçu : {raw_text}")
+        print(f"Erreur : {str(e)}")
+        raise RuntimeError(f"Réponse Claude non conforme : {str(e)}")
 
     except Exception as e:
         print("❌ Erreur Claude :", str(e))
         raise RuntimeError(f"Claude API error: {str(e)}")
 
-# ---------------------------------------------
-# ROUTE PRINCIPALE : /api/contact
-# ---------------------------------------------
 @app.post("/api/contact")
 async def receive_contact(contact: ContactRequest):
-    """
-    Reçoit le formulaire frontend,
-    analyse avec Claude,
-    renvoie un JSON structuré.
-    """
     try:
         analysis = await analyze_with_claude(contact)
-
         return {
             "success": True,
             "client": {
@@ -127,13 +120,9 @@ async def receive_contact(contact: ContactRequest):
             },
             "analysis": analysis
         }
-
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# ---------------------------------------------
-# DEBUG ENV
-# ---------------------------------------------
 @app.get("/debug/env")
 def debug_env():
     return {
