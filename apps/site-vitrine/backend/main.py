@@ -6,6 +6,10 @@ from dotenv import load_dotenv
 import anthropic
 import json
 
+# 🔹 NOUVEL IMPORT : service webhook n8n
+from services.n8n_webhook import trigger_n8n_webhook
+from datetime import datetime
+
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
@@ -108,20 +112,54 @@ Réponds UNIQUEMENT avec le JSON."""
         print("❌ Erreur Claude :", str(e))
         raise RuntimeError(f"Claude API error: {str(e)}")
 
+
+# 🔹 MODIFICATION : route /api/contact pour déclencher le workflow n8n
 @app.post("/api/contact")
 async def receive_contact(contact: ContactRequest):
+    """
+    Reçoit le formulaire de contact,
+    analyse avec Claude,
+    et déclenche un workflow n8n via webhook
+    """
     try:
+        # 1️⃣ Analyse avec Claude
         analysis = await analyze_with_claude(contact)
+
+        # 2️⃣ Préparer les données pour n8n
+        webhook_data = {
+            "client": {
+                "name": contact.name,
+                "email": contact.email,
+                "message": contact.message
+            },
+            "analysis": analysis,
+            "timestamp": datetime.now().isoformat()
+        }
+
+        # 3️⃣ Déclencher le workflow n8n
+        try:
+            n8n_response = await trigger_n8n_webhook(webhook_data)
+            n8n_triggered = True
+        except Exception as e:
+            # Si n8n échoue, on continue quand même
+            print(f"⚠️ n8n webhook failed: {e}")
+            n8n_triggered = False
+            n8n_response = None
+
+        # 4️⃣ Retourner la réponse complète
         return {
             "success": True,
             "client": {
                 "name": contact.name,
                 "email": contact.email
             },
-            "analysis": analysis
+            "analysis": analysis,
+            "n8n_triggered": n8n_triggered
         }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/debug/env")
 def debug_env():
