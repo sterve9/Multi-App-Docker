@@ -1,17 +1,10 @@
-
 /**
  * ==================== CONFIGURATION ====================
  * Configuration centrale pour le site
  */
 const CONFIG = {
-    // URL du webhook n8n (à remplacer par votre webhook réel)
-    // ⚠️ NOTE : Plus utilisé (appel backend direct maintenant)
     N8N_WEBHOOK_URL: 'https://your-n8n-instance.com/webhook/contact',
-    
-    // Temps d'affichage des messages (en millisecondes)
     MESSAGE_DISPLAY_TIME: 5000,
-    
-    // Sélecteurs DOM
     SELECTORS: {
         header: '#header',
         navMenu: '#nav-menu',
@@ -153,10 +146,6 @@ class FormValidator {
             errors.push('L\'email n\'est pas valide');
         }
 
-        if (formData.phone && !this.validatePhone(formData.phone)) {
-            errors.push('Le numéro de téléphone n\'est pas valide');
-        }
-
         if (!this.validateRequired(formData.subject)) {
             errors.push('Le sujet est requis');
         }
@@ -199,12 +188,7 @@ class ContactForm {
         return {
             name: document.getElementById('name')?.value || '',
             email: document.getElementById('email')?.value || '',
-            phone: document.getElementById('phone')?.value || '',
-            subject: document.getElementById('subject')?.value || '',
-            message: document.getElementById('message')?.value || '',
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            language: navigator.language
+            message: document.getElementById('message')?.value || ''
         };
     }
 
@@ -236,28 +220,31 @@ class ContactForm {
         }
     }
 
-    // ✅ MODIFICATION : Appel backend API au lieu de n8n direct
+    // ✅ VERSION CORRIGÉE
     async sendToWebhook(data) {
         try {
+            const payload = {
+                name: data.name,
+                email: data.email,
+                message: data.message
+            };
+
             const response = await fetch('https://api.sterveshop.cloud/api/contact', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(payload)
             });
 
-            if (response.ok) {
-                const result = await response.json();
-
-                if (result.success) {
-                    return { success: true, data: result };
-                } else {
-                    return { success: false, error: result.message };
-                }
-            } else {
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error("Erreur serveur:", errorText);
                 return { success: false, error: `Erreur serveur: ${response.status}` };
             }
+
+            const result = await response.json();
+            return { success: true, data: result };
 
         } catch (error) {
             console.error('Erreur lors de l\'envoi vers le backend:', error);
@@ -279,11 +266,10 @@ class ContactForm {
         const result = await this.sendToWebhook(formData);
 
         if (result.success) {
-            // ✅ MODIFICATION message
             this.showMessage('✅ Message envoyé avec succès ! Nous analysons votre demande.', 'success');
             this.form.reset();
         } else {
-            this.showMessage('❌ Une erreur est survenue. Veuillez réessayer ou nous contacter directement par email.', 'error');
+            this.showMessage('❌ Une erreur est survenue. Veuillez réessayer.', 'error');
         }
 
         this.setLoading(false);
