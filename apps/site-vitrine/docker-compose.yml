@@ -1,4 +1,7 @@
+version: '3.8'
+
 services:
+  # Frontend - Site Vitrine
   frontend:
     build: ./frontend
     container_name: site-vitrine-frontend
@@ -7,19 +10,42 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-
-      # HTTP
+      - "traefik.docker.network=traefik-network"
+      
+      # Router HTTPS
       - "traefik.http.routers.site-vitrine.rule=Host(`vitrine.sterveshop.cloud`)"
-      - "traefik.http.routers.site-vitrine.entrypoints=web"
-
-      # HTTPS
-      - "traefik.http.routers.site-vitrine-secure.rule=Host(`vitrine.sterveshop.cloud`)"
-      - "traefik.http.routers.site-vitrine-secure.entrypoints=websecure"
-      - "traefik.http.routers.site-vitrine-secure.tls=true"
-      - "traefik.http.routers.site-vitrine-secure.tls.certresolver=letsencrypt"
-
+      - "traefik.http.routers.site-vitrine.entrypoints=websecure"
+      - "traefik.http.routers.site-vitrine.tls=true"
+      - "traefik.http.routers.site-vitrine.tls.certresolver=letsencrypt"
+      
       # Service
       - "traefik.http.services.site-vitrine.loadbalancer.server.port=80"
+
+  # Backend - API FastAPI
+  backend:
+    build: ./backend
+    container_name: site-vitrine-backend
+    restart: unless-stopped
+    
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+    
+    networks:
+      - traefik-network
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      
+      # Router HTTPS
+      - "traefik.http.routers.site-vitrine-api.rule=Host(`api.sterveshop.cloud`)"
+      - "traefik.http.routers.site-vitrine-api.entrypoints=websecure"
+      - "traefik.http.routers.site-vitrine-api.tls=true"
+      - "traefik.http.routers.site-vitrine-api.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.site-vitrine-api.loadbalancer.server.port=8000"
 
 networks:
   traefik-network:
