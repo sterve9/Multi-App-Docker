@@ -18,10 +18,14 @@ app = FastAPI(
     version="0.1.0",
     description="Backend intelligent avec Claude + n8n"
 )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://vitrine.sterveshop.cloud",  # Frontend production
+        "http://localhost:5500",              # Dev local
+        "http://127.0.0.1:5500",              # Dev local
+        "http://localhost:8000",              # Backend local
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
