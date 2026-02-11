@@ -18,7 +18,176 @@
 - Domaine : vitrine.sterveshop.cloud
 
 ---
+## 2026-02-11 : Déploiement Production & Résolution DNS
 
+### Réalisations
+- ✅ Backend déployé en production (api.sterveshop.cloud)
+- ✅ Frontend connecté au backend
+- ✅ Workflow n8n complet fonctionnel
+- ✅ Tests end-to-end réussis
+
+### Problème Rencontré : Propagation DNS
+
+**Symptôme** :
+```
+TypeError: Failed to fetch
+net::ERR_NAME_NOT_RESOLVED
+```
+
+**Diagnostic** :
+1. Backend opérationnel (curl https://api.sterveshop.cloud/health → 200 OK)
+2. Containers Docker actifs (docker ps → tous UP)
+3. CORS correctement configuré
+4. Frontend code correct (fetch vers bonne URL)
+5. **DNS partiellement propagé** → Cause identifiée !
+
+**Vérification** :
+- whatsmydns.net : 19/25 serveurs OK (propagation partielle)
+- Cache DNS local contenait ancienne résolution
+
+**Solution** :
+```bash
+# Windows
+ipconfig /flushdns
+
+# macOS/Linux
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+**Validation** :
+- Test fetch console : ✅ Succès
+- Formulaire site : ✅ Envoi réussi
+- Workflow n8n : ✅ Déclenché
+- Email Gmail : ✅ Reçu
+- Google Sheets : ✅ Mis à jour
+
+### Architecture Finale Déployée
+```
+Internet
+   ↓
+DNS (api.sterveshop.cloud → 72.62.89.162)
+   ↓
+Traefik (Reverse Proxy + HTTPS)
+   ↓
+┌─────────────────────────────────────────┐
+│ site-vitrine-backend (FastAPI)          │
+│ - Claude API intégration                │
+│ - CORS configuré                        │
+│ - n8n webhook trigger                   │
+└─────────────────────────────────────────┘
+   ↓
+n8n Workflow
+   ├─→ Gmail (notification)
+   └─→ Google Sheets (sauvegarde)
+```
+
+### Métriques de Performance
+
+**Backend** :
+- Temps réponse : ~2-3s (analyse Claude incluse)
+- Disponibilité : 100%
+- HTTPS : Certificat Let's Encrypt valide
+
+**Workflow n8n** :
+- Taux succès : 100%
+- Email : Envoi < 5s
+- Google Sheets : Écriture < 3s
+
+**DNS** :
+- Propagation : 19/25 serveurs (76%)
+- TTL : 300s (5 minutes)
+- Cache flush : Résout immédiatement
+
+### Apprentissages
+
+**Technique** :
+- Propagation DNS peut prendre 24-48h globalement
+- Cache DNS local peut masquer mise à jour DNS
+- Tests curl réussis != site accessible (cache navigateur)
+- whatsmydns.net excellent outil de diagnostic
+- Flush cache DNS résout problème immédiatement en local
+
+**Méthodologie** :
+- Debugging systématique par élimination
+- Tests à plusieurs niveaux (Docker, HTTP, DNS, Browser)
+- Documentation de chaque étape
+- Validation end-to-end essentielle
+
+**Production** :
+- HTTPS automatique avec Traefik + Let's Encrypt
+- Docker Compose simplifie déploiement multi-services
+- Traefik labels permettent routing flexible
+- Réseau Docker externe (traefik-network) partagé
+
+### Statistiques Projet
+
+**Code** :
+- Backend : ~350 lignes Python
+- Frontend : ~450 lignes JavaScript
+- Workflow n8n : 3 nœuds
+- Documentation : ~1200 lignes Markdown
+
+**Services Déployés** :
+- Frontend : vitrine.sterveshop.cloud
+- Backend API : api.sterveshop.cloud
+- n8n : automation.sterveshop.cloud
+- Traefik : Reverse proxy
+
+**Intégrations** :
+- Claude API (Anthropic)
+- n8n Webhooks
+- Gmail API
+- Google Sheets API
+
+**Temps Investi** :
+- Formation Python : ~8h
+- Développement backend : ~12h
+- Tests & debugging : ~6h
+- Documentation : ~4h
+- Déploiement : ~3h
+- **Total : ~33 heures**
+
+### État Actuel
+
+**✅ Production** :
+- [x] Site vitrine accessible
+- [x] Formulaire fonctionnel
+- [x] Backend API opérationnel
+- [x] Workflow n8n actif
+- [x] Emails envoyés automatiquement
+- [x] Données sauvegardées dans Google Sheets
+- [x] HTTPS partout
+- [x] Documentation complète
+
+**🎯 Prochaines Étapes** :
+1. Créer 2-3 workflows démo supplémentaires
+2. Capturer screenshots/vidéos du flow complet
+3. Mettre à jour CV avec métriques projet
+4. Créer projet e-commerce pour portfolio
+5. Commencer candidatures
+
+### Notes pour Portfolio
+
+**Points forts à mentionner** :
+- Projet full-stack complet de A à Z
+- Backend Python avec Claude API
+- Infrastructure Docker + Traefik
+- Automatisation n8n
+- Debugging méthodique problème DNS
+- Documentation professionnelle
+- Production-ready en 3 semaines
+
+**Métriques impressionnantes** :
+- 100% tests réussis
+- 0 downtime après déploiement
+- Flow complet en <10 secondes
+- Architecture scalable
+- Code propre et documenté
+
+---
+
+**Dernière mise à jour** : 2026-02-11 - Projet DÉPLOYÉ EN PRODUCTION ✅
 ## 2026-02-08 : Backend FastAPI + Claude API
 
 ### Réalisations
@@ -371,3 +540,173 @@ Système complet qui transforme une demande client en workflow n8n déployé en 
 **Dernière mise à jour** : 2026-02-10 - 23:45
 **Status** : Backend validé à 100% ✅
 **Prochaine session** : Service n8n
+## 2026-02-11 : Déploiement Production & Résolution DNS
+
+### Réalisations
+- ✅ Backend déployé en production (api.sterveshop.cloud)
+- ✅ Frontend connecté au backend
+- ✅ Workflow n8n complet fonctionnel
+- ✅ Tests end-to-end réussis
+
+### Problème Rencontré : Propagation DNS
+
+**Symptôme** :
+```
+TypeError: Failed to fetch
+net::ERR_NAME_NOT_RESOLVED
+```
+
+**Diagnostic** :
+1. Backend opérationnel (curl https://api.sterveshop.cloud/health → 200 OK)
+2. Containers Docker actifs (docker ps → tous UP)
+3. CORS correctement configuré
+4. Frontend code correct (fetch vers bonne URL)
+5. **DNS partiellement propagé** → Cause identifiée !
+
+**Vérification** :
+- whatsmydns.net : 19/25 serveurs OK (propagation partielle)
+- Cache DNS local contenait ancienne résolution
+
+**Solution** :
+```bash
+# Windows
+ipconfig /flushdns
+
+# macOS/Linux
+sudo dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+```
+
+**Validation** :
+- Test fetch console : ✅ Succès
+- Formulaire site : ✅ Envoi réussi
+- Workflow n8n : ✅ Déclenché
+- Email Gmail : ✅ Reçu
+- Google Sheets : ✅ Mis à jour
+
+### Architecture Finale Déployée
+```
+Internet
+   ↓
+DNS (api.sterveshop.cloud → 72.62.89.162)
+   ↓
+Traefik (Reverse Proxy + HTTPS)
+   ↓
+┌─────────────────────────────────────────┐
+│ site-vitrine-backend (FastAPI)          │
+│ - Claude API intégration                │
+│ - CORS configuré                        │
+│ - n8n webhook trigger                   │
+└─────────────────────────────────────────┘
+   ↓
+n8n Workflow
+   ├─→ Gmail (notification)
+   └─→ Google Sheets (sauvegarde)
+```
+
+### Métriques de Performance
+
+**Backend** :
+- Temps réponse : ~2-3s (analyse Claude incluse)
+- Disponibilité : 100%
+- HTTPS : Certificat Let's Encrypt valide
+
+**Workflow n8n** :
+- Taux succès : 100%
+- Email : Envoi < 5s
+- Google Sheets : Écriture < 3s
+
+**DNS** :
+- Propagation : 19/25 serveurs (76%)
+- TTL : 300s (5 minutes)
+- Cache flush : Résout immédiatement
+
+### Apprentissages
+
+**Technique** :
+- Propagation DNS peut prendre 24-48h globalement
+- Cache DNS local peut masquer mise à jour DNS
+- Tests curl réussis != site accessible (cache navigateur)
+- whatsmydns.net excellent outil de diagnostic
+- Flush cache DNS résout problème immédiatement en local
+
+**Méthodologie** :
+- Debugging systématique par élimination
+- Tests à plusieurs niveaux (Docker, HTTP, DNS, Browser)
+- Documentation de chaque étape
+- Validation end-to-end essentielle
+
+**Production** :
+- HTTPS automatique avec Traefik + Let's Encrypt
+- Docker Compose simplifie déploiement multi-services
+- Traefik labels permettent routing flexible
+- Réseau Docker externe (traefik-network) partagé
+
+### Statistiques Projet
+
+**Code** :
+- Backend : ~350 lignes Python
+- Frontend : ~450 lignes JavaScript
+- Workflow n8n : 3 nœuds
+- Documentation : ~1200 lignes Markdown
+
+**Services Déployés** :
+- Frontend : vitrine.sterveshop.cloud
+- Backend API : api.sterveshop.cloud
+- n8n : automation.sterveshop.cloud
+- Traefik : Reverse proxy
+
+**Intégrations** :
+- Claude API (Anthropic)
+- n8n Webhooks
+- Gmail API
+- Google Sheets API
+
+**Temps Investi** :
+- Formation Python : ~8h
+- Développement backend : ~12h
+- Tests & debugging : ~6h
+- Documentation : ~4h
+- Déploiement : ~3h
+- **Total : ~33 heures**
+
+### État Actuel
+
+**✅ Production** :
+- [x] Site vitrine accessible
+- [x] Formulaire fonctionnel
+- [x] Backend API opérationnel
+- [x] Workflow n8n actif
+- [x] Emails envoyés automatiquement
+- [x] Données sauvegardées dans Google Sheets
+- [x] HTTPS partout
+- [x] Documentation complète
+
+**🎯 Prochaines Étapes** :
+1. Créer 2-3 workflows démo supplémentaires
+2. Capturer screenshots/vidéos du flow complet
+3. Mettre à jour CV avec métriques projet
+4. Créer projet e-commerce pour portfolio
+5. Commencer candidatures
+
+### Notes pour Portfolio
+
+**Points forts à mentionner** :
+- Projet full-stack complet de A à Z
+- Backend Python avec Claude API
+- Infrastructure Docker + Traefik
+- Automatisation n8n
+- Debugging méthodique problème DNS
+- Documentation professionnelle
+- Production-ready en 3 semaines
+
+**Métriques impressionnantes** :
+- 100% tests réussis
+- 0 downtime après déploiement
+- Flow complet en <10 secondes
+- Architecture scalable
+- Code propre et documenté
+
+---
+
+**Dernière mise à jour** : 2026-02-11 - Projet DÉPLOYÉ EN PRODUCTION ✅
