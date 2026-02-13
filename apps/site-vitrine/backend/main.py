@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import anthropic
 import json
 
-# 🔹 NOUVEL IMPORT : service webhook n8n
+# 🔹 Service webhook n8n
 from services.n8n_webhook import trigger_n8n_webhook
 from datetime import datetime
 
@@ -15,16 +15,17 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 app = FastAPI(
     title="Site Vitrine API",
-    version="0.1.0",
-    description="Backend intelligent avec Claude + n8n"
+    version="0.2.0",
+    description="Backend intelligent avec Claude + n8n (Lead Scoring System)"
 )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://vitrine.sterveshop.cloud",  # Frontend production
-        "http://localhost:5500",              # Dev local
-        "http://127.0.0.1:5500",              # Dev local
-        "http://localhost:8000",              # Backend local
+        "https://vitrine.sterveshop.cloud",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500",
+        "http://localhost:8000",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -39,47 +40,64 @@ def root():
 def health_check():
     return {"status": "ok"}
 
+
 def extract_json_from_text(text: str) -> dict:
     """Extrait le JSON même si entouré de markdown"""
     text = text.strip()
-    
-    # Supprimer backticks
     text = text.replace("```json", "").replace("```", "")
-    
-    # Trouver le JSON
+
     start = text.find("{")
     end = text.rfind("}") + 1
-    
+
     if start == -1 or end == 0:
         raise ValueError("Aucun JSON trouvé")
-    
+
     json_str = text[start:end]
     return json.loads(json_str)
 
+
 async def analyze_with_claude(contact: ContactRequest):
-    """Analyse avec Claude - JSON strict"""
+    """Analyse avancée avec Claude - Lead Scoring JSON strict"""
     if not ANTHROPIC_API_KEY:
         raise RuntimeError("Clé API Claude manquante")
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    prompt = f"""Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après, sans backticks.
+    prompt = f"""
+You are a business lead qualification assistant.
 
-Schéma JSON :
+Respond ONLY with a valid JSON object. No text before or after. No backticks.
+
+JSON structure:
 {{
-  "category": "automation | website | ai | consulting | unknown",
-  "intent": "string",
-  "tools": ["string"],
-  "priority": "low | medium | high",
-  "summary": "string"
+  "category": "devis | information | automation | autre",
+  "priority_score": number between 0 and 10,
+  "lead_temperature": "hot | warm | cold",
+  "intent": "short_snake_case_intent",
+  "budget_signal": "high | medium | low | unknown",
+  "response_required": true,
+  "suggested_action": "schedule_call | send_pricing | auto_reply",
+  "summary": "short professional summary"
 }}
 
-Message client :
-Nom : {contact.name}
-Email : {contact.email}
-Message : {contact.message}
+Scoring rules:
+- 8–10 = urgent project, clear business intent
+- 5–7 = serious inquiry but missing urgency
+- 0–4 = vague or low business impact
 
-Réponds UNIQUEMENT avec le JSON."""
+Temperature rules:
+- hot if priority_score >= 8
+- warm if 5–7
+- cold if 0–4
+
+Client message:
+Name: {contact.name}
+Email: {contact.email}
+Phone: {contact.phone}
+Message: {contact.message}
+
+Return JSON only.
+"""
 
     try:
         message = client.messages.create(
@@ -89,73 +107,76 @@ Réponds UNIQUEMENT avec le JSON."""
         )
 
         raw_text = message.content[0].text.strip()
-        
-        # Debug
-        print("🔍 Claude a renvoyé :")
+
+        print("🔍 Claude response:")
         print(raw_text)
         print("=" * 50)
-        
-        # Parser avec fonction robuste
+
         parsed_json = extract_json_from_text(raw_text)
-        
-        # Valider
-        required_keys = ["category", "intent", "tools", "priority", "summary"]
+
+        required_keys = [
+            "category",
+            "priority_score",
+            "lead_temperature",
+            "intent",
+            "budget_signal",
+            "response_required",
+            "suggested_action",
+            "summary"
+        ]
+
         for key in required_keys:
             if key not in parsed_json:
                 raise ValueError(f"Clé manquante : {key}")
-        
+
         return parsed_json
 
     except (json.JSONDecodeError, ValueError) as e:
-        print("❌ Erreur parsing JSON :")
+        print("❌ JSON parsing error")
         print(f"Texte reçu : {raw_text}")
         print(f"Erreur : {str(e)}")
         raise RuntimeError(f"Réponse Claude non conforme : {str(e)}")
 
     except Exception as e:
-        print("❌ Erreur Claude :", str(e))
+        print("❌ Claude API error :", str(e))
         raise RuntimeError(f"Claude API error: {str(e)}")
 
 
-# 🔹 MODIFICATION : route /api/contact pour déclencher le workflow n8n
 @app.post("/api/contact")
 async def receive_contact(contact: ContactRequest):
     """
-    Reçoit le formulaire de contact,
+    Reçoit le formulaire,
     analyse avec Claude,
-    et déclenche un workflow n8n via webhook
+    déclenche n8n
     """
     try:
-        # 1️⃣ Analyse avec Claude
         analysis = await analyze_with_claude(contact)
 
-        # 2️⃣ Préparer les données pour n8n
         webhook_data = {
             "client": {
                 "name": contact.name,
                 "email": contact.email,
+                "phone": contact.phone,
                 "message": contact.message
             },
             "analysis": analysis,
             "timestamp": datetime.now().isoformat()
         }
 
-        # 3️⃣ Déclencher le workflow n8n
         try:
             n8n_response = await trigger_n8n_webhook(webhook_data)
             n8n_triggered = True
         except Exception as e:
-            # Si n8n échoue, on continue quand même
             print(f"⚠️ n8n webhook failed: {e}")
             n8n_triggered = False
             n8n_response = None
 
-        # 4️⃣ Retourner la réponse complète
         return {
             "success": True,
             "client": {
                 "name": contact.name,
-                "email": contact.email
+                "email": contact.email,
+                "phone": contact.phone
             },
             "analysis": analysis,
             "n8n_triggered": n8n_triggered
