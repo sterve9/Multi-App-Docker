@@ -1,14 +1,19 @@
+print("🔥🔥🔥 MAIN FILE CHARGÉ 🔥🔥🔥")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from models import ContactRequest
+import re
 import os
 from dotenv import load_dotenv
 import anthropic
 import json
-
-# 🔹 Service webhook n8n
 from services.n8n_webhook import trigger_n8n_webhook
 from datetime import datetime
+
+# =====================================================
+# CONFIG
+# =====================================================
 
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -32,6 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# =====================================================
+# ROUTES BASIQUES
+# =====================================================
+
 @app.get("/")
 def root():
     return {"success": True, "message": "API is running"}
@@ -40,115 +49,110 @@ def root():
 def health_check():
     return {"status": "ok"}
 
+@app.get("/debug/env")
+def debug_env():
+    return {
+        "anthropic_api_key_loaded": bool(ANTHROPIC_API_KEY),
+        "key_prefix": ANTHROPIC_API_KEY[:10] + "..." if ANTHROPIC_API_KEY else None
+    }
+
+# =====================================================
+# OUTILS
+# =====================================================
 
 def extract_json_from_text(text: str) -> dict:
-    """Extrait le JSON même si entouré de markdown"""
     text = text.strip()
     text = text.replace("```json", "").replace("```", "")
 
-    start = text.find("{")
-    end = text.rfind("}") + 1
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if not match:
+        raise ValueError("Aucun JSON trouvé dans la réponse Claude")
 
-    if start == -1 or end == 0:
-        raise ValueError("Aucun JSON trouvé")
+    return json.loads(match.group())
 
-    json_str = text[start:end]
-    return json.loads(json_str)
+# =====================================================
+# ANALYSE CLAUDE
+# =====================================================
 
+async def analyze_with_claude(contact: ContactRequest) -> dict:
 
-async def analyze_with_claude(contact: ContactRequest):
-    """Analyse avancée avec Claude - Lead Scoring JSON strict"""
     if not ANTHROPIC_API_KEY:
         raise RuntimeError("Clé API Claude manquante")
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     prompt = f"""
-You are a business lead qualification assistant.
+Tu es un expert en qualification de leads B2B pour une agence d'automatisation.
 
-Respond ONLY with a valid JSON object. No text before or after. No backticks.
+Analyse cette demande et retourne UNIQUEMENT un JSON strict :
 
-JSON structure:
 {{
-  "category": "devis | information | automation | autre",
-  "priority_score": number between 0 and 10,
-  "lead_temperature": "hot | warm | cold",
-  "intent": "short_snake_case_intent",
-  "budget_signal": "high | medium | low | unknown",
-  "response_required": true,
-  "suggested_action": "schedule_call | send_pricing | auto_reply",
-  "summary": "short professional summary"
+  "category": "automation|website|ai|consulting|ecommerce|other",
+  "intent": "description courte",
+  "priority": "low|medium|high",
+  "priority_score": 1-10,
+  "tools": ["liste", "outils"],
+  "summary": "résumé en une phrase",
+  "next_action": "action commerciale recommandée"
 }}
 
-Scoring rules:
-- 8–10 = urgent project, clear business intent
-- 5–7 = serious inquiry but missing urgency
-- 0–4 = vague or low business impact
+CLIENT :
+Nom : {contact.name}
+Email : {contact.email}
+Téléphone : {contact.phone or "Non fourni"}
+Sujet : {contact.subject or "Non fourni"}
+Message : {contact.message}
 
-Temperature rules:
-- hot if priority_score >= 8
-- warm if 5–7
-- cold if 0–4
-
-Client message:
-Name: {contact.name}
-Email: {contact.email}
-Phone: {contact.phone}
-Message: {contact.message}
-
-Return JSON only.
+Réponds uniquement avec le JSON.
 """
 
     try:
         message = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-20250514",
             max_tokens=1024,
             messages=[{"role": "user", "content": prompt}]
         )
 
         raw_text = message.content[0].text.strip()
+        print("🔍 Claude RAW:", raw_text)
 
-        print("🔍 Claude response:")
-        print(raw_text)
-        print("=" * 50)
+        analysis = extract_json_from_text(raw_text)
 
-        parsed_json = extract_json_from_text(raw_text)
-
-        required_keys = [
+        required_fields = [
             "category",
-            "priority_score",
-            "lead_temperature",
             "intent",
-            "budget_signal",
-            "response_required",
-            "suggested_action",
+            "priority",
+            "priority_score",
             "summary"
         ]
 
-        for key in required_keys:
-            if key not in parsed_json:
-                raise ValueError(f"Clé manquante : {key}")
+        for field in required_fields:
+            if field not in analysis:
+                raise ValueError(f"Champ manquant : {field}")
 
-        return parsed_json
+        analysis["priority_score"] = int(analysis.get("priority_score", 5))
 
-    except (json.JSONDecodeError, ValueError) as e:
-        print("❌ JSON parsing error")
-        print(f"Texte reçu : {raw_text}")
-        print(f"Erreur : {str(e)}")
-        raise RuntimeError(f"Réponse Claude non conforme : {str(e)}")
+        return analysis
 
     except Exception as e:
-        print("❌ Claude API error :", str(e))
-        raise RuntimeError(f"Claude API error: {str(e)}")
+        print("❌ Erreur analyse Claude:", e)
+        return {
+            "category": "other",
+            "intent": "erreur_analyse",
+            "priority": "medium",
+            "priority_score": 5,
+            "tools": [],
+            "summary": f"Erreur analyse : {str(e)}",
+            "next_action": "manual_review"
+        }
 
+# =====================================================
+# ROUTE PRINCIPALE
+# =====================================================
 
 @app.post("/api/contact")
 async def receive_contact(contact: ContactRequest):
-    """
-    Reçoit le formulaire,
-    analyse avec Claude,
-    déclenche n8n
-    """
+
     try:
         analysis = await analyze_with_claude(contact)
 
@@ -157,6 +161,7 @@ async def receive_contact(contact: ContactRequest):
                 "name": contact.name,
                 "email": contact.email,
                 "phone": contact.phone,
+                "subject": contact.subject,
                 "message": contact.message
             },
             "analysis": analysis,
@@ -164,12 +169,11 @@ async def receive_contact(contact: ContactRequest):
         }
 
         try:
-            n8n_response = await trigger_n8n_webhook(webhook_data)
+            await trigger_n8n_webhook(webhook_data)
             n8n_triggered = True
         except Exception as e:
-            print(f"⚠️ n8n webhook failed: {e}")
+            print("⚠️ n8n webhook error:", e)
             n8n_triggered = False
-            n8n_response = None
 
         return {
             "success": True,
@@ -185,10 +189,10 @@ async def receive_contact(contact: ContactRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# =====================================================
+# DEBUG ROUTES
+# =====================================================
 
-@app.get("/debug/env")
-def debug_env():
-    return {
-        "anthropic_api_key_loaded": bool(ANTHROPIC_API_KEY),
-        "key_prefix": ANTHROPIC_API_KEY[:10] + "..." if ANTHROPIC_API_KEY else None
-    }
+print("📌 ROUTES ENREGISTRÉES :")
+for route in app.routes:
+    print(route.path)
