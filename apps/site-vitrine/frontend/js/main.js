@@ -1,9 +1,7 @@
 /**
  * ==================== CONFIGURATION ====================
- * Configuration centrale pour le site
  */
 const CONFIG = {
-    N8N_WEBHOOK_URL: 'https://your-n8n-instance.com/webhook/contact',
     MESSAGE_DISPLAY_TIME: 5000,
     SELECTORS: {
         header: '#header',
@@ -32,22 +30,13 @@ class Navigation {
     }
 
     init() {
-        if (this.navToggle) {
-            this.navToggle.addEventListener('click', () => this.showMenu());
-        }
+        this.navToggle?.addEventListener('click', () => this.showMenu());
+        this.navClose?.addEventListener('click', () => this.hideMenu());
+        this.navLinks.forEach(link =>
+            link.addEventListener('click', () => this.hideMenu())
+        );
 
-        if (this.navClose) {
-            this.navClose.addEventListener('click', () => this.hideMenu());
-        }
-
-        this.navLinks.forEach(link => {
-            link.addEventListener('click', () => this.hideMenu());
-        });
-
-        window.addEventListener('scroll', () => {
-            this.handleScroll();
-        });
-
+        window.addEventListener('scroll', () => this.handleScroll());
         this.setupActiveLinks();
     }
 
@@ -126,7 +115,7 @@ class FormValidator {
 
     validatePhone(phone) {
         if (!phone) return true;
-        return this.phoneRegex.test(phone) && phone.length >= 10;
+        return this.phoneRegex.test(phone) && phone.length >= 8;
     }
 
     validateRequired(value) {
@@ -141,9 +130,9 @@ class FormValidator {
         }
 
         if (!this.validateRequired(formData.email)) {
-            errors.push('L\'email est requis');
+            errors.push("L'email est requis");
         } else if (!this.validateEmail(formData.email)) {
-            errors.push('L\'email n\'est pas valide');
+            errors.push("L'email n'est pas valide");
         }
 
         if (!this.validateRequired(formData.subject)) {
@@ -154,6 +143,10 @@ class FormValidator {
             errors.push('Le message est requis');
         } else if (formData.message.trim().length < 10) {
             errors.push('Le message doit contenir au moins 10 caractères');
+        }
+
+        if (!this.validatePhone(formData.phone)) {
+            errors.push('Le numéro de téléphone n’est pas valide');
         }
 
         return {
@@ -188,6 +181,8 @@ class ContactForm {
         return {
             name: document.getElementById('name')?.value || '',
             email: document.getElementById('email')?.value || '',
+            phone: document.getElementById('phone')?.value || '',
+            subject: document.getElementById('subject')?.value || '',
             message: document.getElementById('message')?.value || ''
         };
     }
@@ -220,35 +215,34 @@ class ContactForm {
         }
     }
 
-    // ✅ VERSION CORRIGÉE
-    async sendToWebhook(data) {
+    async sendToBackend(data) {
         try {
-            const payload = {
-                name: data.name,
-                email: data.email,
-                message: data.message
-            };
-
             const response = await fetch('https://api.sterveshop.cloud/api/contact', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    name: data.name,
+                    email: data.email,
+                    phone: data.phone,
+                    subject: data.subject,
+                    message: data.message
+                })
             });
 
             if (!response.ok) {
                 const errorText = await response.text();
                 console.error("Erreur serveur:", errorText);
-                return { success: false, error: `Erreur serveur: ${response.status}` };
+                return { success: false };
             }
 
             const result = await response.json();
             return { success: true, data: result };
 
         } catch (error) {
-            console.error('Erreur lors de l\'envoi vers le backend:', error);
-            return { success: false, error: error.message };
+            console.error("Erreur réseau:", error);
+            return { success: false };
         }
     }
 
@@ -263,7 +257,7 @@ class ContactForm {
 
         this.setLoading(true);
 
-        const result = await this.sendToWebhook(formData);
+        const result = await this.sendToBackend(formData);
 
         if (result.success) {
             this.showMessage('✅ Message envoyé avec succès ! Nous analysons votre demande.', 'success');
@@ -281,10 +275,8 @@ class ContactForm {
  */
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Site initialized');
-
     new Navigation();
     new ScrollToTop();
     new ContactForm();
-
     console.log('✅ All modules loaded successfully');
 });
