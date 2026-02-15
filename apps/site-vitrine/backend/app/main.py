@@ -2,27 +2,38 @@ print("🔥🔥🔥 MAIN FILE CHARGÉ 🔥🔥🔥")
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from models import ContactRequest
-import re
+from datetime import datetime
 import os
+import re
+import json
+
 from dotenv import load_dotenv
 import anthropic
-import json
-from services.n8n_webhook import trigger_n8n_webhook
-from datetime import datetime
 
-# =====================================================
+# =========================
+# Imports internes (NOUVELLE ARCHI)
+# =========================
+from app.schemas.contact import ContactRequest
+from app.services.n8n import trigger_n8n_webhook
+from app.core.database import engine
+from app.models import lead  # IMPORTANT : déclenche la création de table
+
+# =========================
 # CONFIG
-# =====================================================
+# =========================
 
 load_dotenv()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 app = FastAPI(
     title="Site Vitrine API",
-    version="0.2.0",
-    description="Backend intelligent avec Claude + n8n (Lead Scoring System)"
+    version="0.3.0",
+    description="Backend intelligent avec Claude + n8n + Database"
 )
+
+# =========================
+# MIDDLEWARE CORS
+# =========================
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,9 +48,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================================================
+# =========================
+# STARTUP EVENT (DATABASE)
+# =========================
+
+@app.on_event("startup")
+def startup_db():
+    print("🟢 Initialisation de la base de données...")
+    lead.Base.metadata.create_all(bind=engine)
+    print("✅ Tables prêtes")
+
+# =========================
 # ROUTES BASIQUES
-# =====================================================
+# =========================
 
 @app.get("/")
 def root():
@@ -56,26 +77,28 @@ def debug_env():
         "key_prefix": ANTHROPIC_API_KEY[:10] + "..." if ANTHROPIC_API_KEY else None
     }
 
-# =====================================================
+# =========================
 # OUTILS
-# =====================================================
+# =========================
 
 def extract_json_from_text(text: str) -> dict:
+    """
+    Nettoie et extrait un JSON valide depuis la réponse Claude
+    """
     text = text.strip()
     text = text.replace("```json", "").replace("```", "")
 
-    match = re.search(r'\{.*\}', text, re.DOTALL)
+    match = re.search(r"\{.*\}", text, re.DOTALL)
     if not match:
         raise ValueError("Aucun JSON trouvé dans la réponse Claude")
 
     return json.loads(match.group())
 
-# =====================================================
+# =========================
 # ANALYSE CLAUDE
-# =====================================================
+# =========================
 
 async def analyze_with_claude(contact: ContactRequest) -> dict:
-
     if not ANTHROPIC_API_KEY:
         raise RuntimeError("Clé API Claude manquante")
 
@@ -118,20 +141,7 @@ Réponds uniquement avec le JSON.
 
         analysis = extract_json_from_text(raw_text)
 
-        required_fields = [
-            "category",
-            "intent",
-            "priority",
-            "priority_score",
-            "summary"
-        ]
-
-        for field in required_fields:
-            if field not in analysis:
-                raise ValueError(f"Champ manquant : {field}")
-
         analysis["priority_score"] = int(analysis.get("priority_score", 5))
-
         return analysis
 
     except Exception as e:
@@ -146,13 +156,12 @@ Réponds uniquement avec le JSON.
             "next_action": "manual_review"
         }
 
-# =====================================================
+# =========================
 # ROUTE PRINCIPALE
-# =====================================================
+# =========================
 
 @app.post("/api/contact")
 async def receive_contact(contact: ContactRequest):
-
     try:
         analysis = await analyze_with_claude(contact)
 
@@ -162,10 +171,10 @@ async def receive_contact(contact: ContactRequest):
                 "email": contact.email,
                 "phone": contact.phone,
                 "subject": contact.subject,
-                "message": contact.message
+                "message": contact.message,
             },
             "analysis": analysis,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
         try:
@@ -177,21 +186,16 @@ async def receive_contact(contact: ContactRequest):
 
         return {
             "success": True,
-            "client": {
-                "name": contact.name,
-                "email": contact.email,
-                "phone": contact.phone
-            },
             "analysis": analysis,
-            "n8n_triggered": n8n_triggered
+            "n8n_triggered": n8n_triggered,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# =====================================================
+# =========================
 # DEBUG ROUTES
-# =====================================================
+# =========================
 
 print("📌 ROUTES ENREGISTRÉES :")
 for route in app.routes:
