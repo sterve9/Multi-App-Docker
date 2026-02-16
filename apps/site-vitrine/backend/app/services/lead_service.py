@@ -1,36 +1,29 @@
-from sqlalchemy.orm import Session
-from app.models.lead import Lead
+from sqlalchemy import Column, Integer, String, Text, Boolean
+from app.database import Base
 
+class Lead(Base):
+    __tablename__ = "leads"
 
-def create_lead(db: Session, payload: dict) -> Lead:
-    """
-    Crée et sauvegarde un lead en base de données
-    """
+    id = Column(Integer, primary_key=True, index=True)
 
-    lead = Lead(
-        # Client
-        name=payload["client"]["name"],
-        email=payload["client"]["email"],
-        phone=payload["client"].get("phone"),
-        subject=payload["client"].get("subject"),
-        message=payload["client"].get("message"),
+    # Contact
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    phone = Column(String, nullable=True)
+    subject = Column(String, nullable=True)
+    message = Column(Text, nullable=False)
 
-        # Analyse
-        category=payload["analysis"]["category"],
-        intent=payload["analysis"].get("intent"),
-        priority=payload["analysis"]["priority"],
-        priority_score=payload["analysis"]["priority_score"],
-        summary=payload["analysis"].get("summary"),
-        next_action=payload["analysis"].get("next_action"),
+    # Qualification
+    category = Column(String, default="contact")
+    intent = Column(String, nullable=True)
 
-        # Meta
-        source=payload.get("meta", {}).get("source", "website"),
-        status="new",
-        response_required=True,
-    )
+    priority = Column(String, default="medium")
+    priority_score = Column(Integer, default=50)
 
-    db.add(lead)
-    db.commit()
-    db.refresh(lead)
+    summary = Column(Text, nullable=True)
+    next_action = Column(String, nullable=True)
 
-    return lead
+    source = Column(String, default="website")
+    status = Column(String, default="new")
+
+    response_required = Column(Boolean, default=True)

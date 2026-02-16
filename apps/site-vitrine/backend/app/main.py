@@ -12,6 +12,9 @@ from app.services.claude import analyze_with_claude
 from app.services.lead_service import create_lead
 from app.services.n8n import trigger_n8n_webhook
 
+# ✅ AJOUT ROUTER
+from app.api.routes.contact import router as contact_router
+
 
 # =====================================================
 # APP
@@ -51,6 +54,9 @@ def get_db():
 # ROUTES SYSTEM
 # =====================================================
 
+# ✅ Activation du router
+app.include_router(contact_router, prefix="/api")
+
 @app.get("/")
 def root():
     return {"success": True, "message": "API is running"}
@@ -58,56 +64,6 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-# =====================================================
-# ROUTE CONTACT
-# =====================================================
-
-@app.post("/api/contact")
-async def receive_contact(
-    contact: ContactRequest,
-    db: Session = Depends(get_db)
-):
-    try:
-        # 1️⃣ Analyse IA
-        analysis = await analyze_with_claude(contact)
-
-        # 2️⃣ Payload unifié
-        payload = {
-            "client": {
-                "name": contact.name,
-                "email": contact.email,
-                "phone": contact.phone,
-                "subject": contact.subject,
-                "message": contact.message,
-            },
-            "analysis": analysis,
-            "meta": {
-                "source": "website",
-                "received_at": datetime.utcnow().isoformat(),
-            },
-        }
-
-        # 3️⃣ Sauvegarde DB
-        lead = create_lead(db, payload)
-
-        # 4️⃣ Webhook n8n (non bloquant)
-        try:
-            await trigger_n8n_webhook(payload)
-            n8n_triggered = True
-        except Exception as e:
-            print("⚠️ n8n error:", e)
-            n8n_triggered = False
-
-        return {
-            "success": True,
-            "lead_id": lead.id,
-            "priority": lead.priority,
-            "n8n_triggered": n8n_triggered,
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 print("📌 ROUTES ENREGISTRÉES :")
