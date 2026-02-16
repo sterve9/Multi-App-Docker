@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 import os
 
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, Base, engine  # ✅ AJOUT: Base, engine
+from app.models.lead import Lead  # ✅ AJOUT: Import du modèle
 from app.schemas.contact import ContactRequest
 from app.services.claude import analyze_with_claude
 from app.services.lead_service import create_lead
@@ -38,6 +39,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# =====================================================
+# ✅ CRÉATION DES TABLES AU DÉMARRAGE
+# =====================================================
+
+@app.on_event("startup")
+async def startup_event():
+    """Crée les tables dans la base de données au démarrage"""
+    print("🔄 Initialisation de la base de données...")
+    Base.metadata.create_all(bind=engine)
+    print("✅ Tables créées/vérifiées avec succès!")
 
 # =====================================================
 # DATABASE DEPENDENCY
