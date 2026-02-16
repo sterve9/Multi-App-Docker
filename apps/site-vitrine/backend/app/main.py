@@ -1,39 +1,27 @@
-print("🔥🔥🔥 MAIN FILE CHARGÉ 🔥🔥🔥")
+print("🔥 MAIN FILE CHARGÉ 🔥")
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
 from datetime import datetime
 import os
-import re
-import json
 
-from dotenv import load_dotenv
-import anthropic
-
-# =========================
-# Imports internes (NOUVELLE ARCHI)
-# =========================
+from app.core.database import SessionLocal
 from app.schemas.contact import ContactRequest
+from app.services.claude import analyze_with_claude
+from app.services.lead_service import create_lead
 from app.services.n8n import trigger_n8n_webhook
-from app.core.database import engine
-from app.models import lead  # IMPORTANT : déclenche la création de table
 
-# =========================
-# CONFIG
-# =========================
 
-load_dotenv()
-ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+# =====================================================
+# APP
+# =====================================================
 
 app = FastAPI(
     title="Site Vitrine API",
-    version="0.3.0",
-    description="Backend intelligent avec Claude + n8n + Database"
+    version="1.0.0",
+    description="Backend intelligent – Leads + DB + n8n"
 )
-
-# =========================
-# MIDDLEWARE CORS
-# =========================
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,124 +36,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =========================
-# STARTUP EVENT (DATABASE)
-# =========================
+# =====================================================
+# DATABASE DEPENDENCY
+# =====================================================
 
-@app.on_event("startup")
-def startup_db():
-    print("🟢 Initialisation de la base de données...")
-    lead.Base.metadata.create_all(bind=engine)
-    print("✅ Tables prêtes")
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# =========================
-# ROUTES BASIQUES
-# =========================
+# =====================================================
+# ROUTES SYSTEM
+# =====================================================
 
 @app.get("/")
 def root():
     return {"success": True, "message": "API is running"}
 
 @app.get("/health")
-def health_check():
+def health():
     return {"status": "ok"}
 
-@app.get("/debug/env")
-def debug_env():
-    return {
-        "anthropic_api_key_loaded": bool(ANTHROPIC_API_KEY),
-        "key_prefix": ANTHROPIC_API_KEY[:10] + "..." if ANTHROPIC_API_KEY else None
-    }
-
-# =========================
-# OUTILS
-# =========================
-
-def extract_json_from_text(text: str) -> dict:
-    """
-    Nettoie et extrait un JSON valide depuis la réponse Claude
-    """
-    text = text.strip()
-    text = text.replace("```json", "").replace("```", "")
-
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if not match:
-        raise ValueError("Aucun JSON trouvé dans la réponse Claude")
-
-    return json.loads(match.group())
-
-# =========================
-# ANALYSE CLAUDE
-# =========================
-
-async def analyze_with_claude(contact: ContactRequest) -> dict:
-    if not ANTHROPIC_API_KEY:
-        raise RuntimeError("Clé API Claude manquante")
-
-    client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
-    prompt = f"""
-Tu es un expert en qualification de leads B2B pour une agence d'automatisation.
-
-Analyse cette demande et retourne UNIQUEMENT un JSON strict :
-
-{{
-  "category": "automation|website|ai|consulting|ecommerce|other",
-  "intent": "description courte",
-  "priority": "low|medium|high",
-  "priority_score": 1-10,
-  "tools": ["liste", "outils"],
-  "summary": "résumé en une phrase",
-  "next_action": "action commerciale recommandée"
-}}
-
-CLIENT :
-Nom : {contact.name}
-Email : {contact.email}
-Téléphone : {contact.phone or "Non fourni"}
-Sujet : {contact.subject or "Non fourni"}
-Message : {contact.message}
-
-Réponds uniquement avec le JSON.
-"""
-
-    try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1024,
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        raw_text = message.content[0].text.strip()
-        print("🔍 Claude RAW:", raw_text)
-
-        analysis = extract_json_from_text(raw_text)
-
-        analysis["priority_score"] = int(analysis.get("priority_score", 5))
-        return analysis
-
-    except Exception as e:
-        print("❌ Erreur analyse Claude:", e)
-        return {
-            "category": "other",
-            "intent": "erreur_analyse",
-            "priority": "medium",
-            "priority_score": 5,
-            "tools": [],
-            "summary": f"Erreur analyse : {str(e)}",
-            "next_action": "manual_review"
-        }
-
-# =========================
-# ROUTE PRINCIPALE
-# =========================
+# =====================================================
+# ROUTE CONTACT
+# =====================================================
 
 @app.post("/api/contact")
-async def receive_contact(contact: ContactRequest):
+async def receive_contact(
+    contact: ContactRequest,
+    db: Session = Depends(get_db)
+):
     try:
+        # 1️⃣ Analyse IA
         analysis = await analyze_with_claude(contact)
 
-        webhook_data = {
+        # 2️⃣ Payload unifié
+        payload = {
             "client": {
                 "name": contact.name,
                 "email": contact.email,
@@ -174,28 +82,33 @@ async def receive_contact(contact: ContactRequest):
                 "message": contact.message,
             },
             "analysis": analysis,
-            "timestamp": datetime.now().isoformat(),
+            "meta": {
+                "source": "website",
+                "received_at": datetime.utcnow().isoformat(),
+            },
         }
 
+        # 3️⃣ Sauvegarde DB
+        lead = create_lead(db, payload)
+
+        # 4️⃣ Webhook n8n (non bloquant)
         try:
-            await trigger_n8n_webhook(webhook_data)
+            await trigger_n8n_webhook(payload)
             n8n_triggered = True
         except Exception as e:
-            print("⚠️ n8n webhook error:", e)
+            print("⚠️ n8n error:", e)
             n8n_triggered = False
 
         return {
             "success": True,
-            "analysis": analysis,
+            "lead_id": lead.id,
+            "priority": lead.priority,
             "n8n_triggered": n8n_triggered,
         }
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# =========================
-# DEBUG ROUTES
-# =========================
 
 print("📌 ROUTES ENREGISTRÉES :")
 for route in app.routes:

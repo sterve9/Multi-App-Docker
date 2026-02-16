@@ -11,13 +11,13 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
-      
+
       # Router HTTPS
       - "traefik.http.routers.site-vitrine.rule=Host(`vitrine.sterveshop.cloud`)"
       - "traefik.http.routers.site-vitrine.entrypoints=websecure"
       - "traefik.http.routers.site-vitrine.tls=true"
       - "traefik.http.routers.site-vitrine.tls.certresolver=letsencrypt"
-      
+
       # Service
       - "traefik.http.services.site-vitrine.loadbalancer.server.port=80"
 
@@ -26,27 +26,46 @@ services:
     build: ./backend
     container_name: site-vitrine-backend
     restart: unless-stopped
-    
+    ports:
+      - "8000:8000"
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
-    
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/site-vitrine
+    depends_on:
+      - postgres
     networks:
       - traefik-network
-    
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
-      
+
       # Router HTTPS
       - "traefik.http.routers.site-vitrine-api.rule=Host(`api.sterveshop.cloud`)"
       - "traefik.http.routers.site-vitrine-api.entrypoints=websecure"
       - "traefik.http.routers.site-vitrine-api.tls=true"
       - "traefik.http.routers.site-vitrine-api.tls.certresolver=letsencrypt"
-      
+
       # Service
       - "traefik.http.services.site-vitrine-api.loadbalancer.server.port=8000"
+
+  # PostgreSQL - Database
+  postgres:
+    image: postgres:15
+    container_name: site-vitrine-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: site-vitrine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - traefik-network
 
 networks:
   traefik-network:
     external: true
+
+volumes:
+  postgres_data:
