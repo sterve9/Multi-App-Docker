@@ -1,31 +1,47 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.core.database import SessionLocal
 from app.schemas.contact import ContactRequest
-from app.services.lead_service import create_lead
+from app.core.database import get_db
+from app.services.lead_service import create_lead, update_lead_analysis
+from app.services.claude import ClaudeService
 
-router = APIRouter(tags=["contact"])
+router = APIRouter(prefix="/contact", tags=["Contact"])
 
-
-# Database dependency (identique à ton main)
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+claude = ClaudeService()
 
 
-@router.post("/contact")
-def submit_contact(
+@router.post("", status_code=201)
+def create_contact(
     payload: ContactRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    lead = create_lead(db, payload.model_dump())
+    try:
+        # 1️⃣ Création du lead brut
+        lead = create_lead(db, payload.model_dump())
 
+        # 2️⃣ Analyse IA
+        analysis = claude.analyze_contact(
+            name=lead.name,
+            email=lead.email,
+            phone=lead.phone,
+            subject=lead.subject,
+            message=lead.message,
+        )
 
-    return {
-        "status": "ok",
-        "lead_id": lead.id
-    }
+        # 3️⃣ Enrichissement DB
+        lead = update_lead_analysis(db, lead, analysis)
+
+        return {
+            "status": "ok",
+            "lead_id": lead.id,
+            "priority": lead.priority,
+            "category": lead.category,
+            "next_action": lead.next_action,
+        }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erreur traitement contact: {str(e)}"
+        )

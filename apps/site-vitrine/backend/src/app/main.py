@@ -9,7 +9,6 @@ import os
 from app.core.database import SessionLocal, Base, engine  # ✅ AJOUT: Base, engine
 from app.models.lead import Lead  # ✅ AJOUT: Import du modèle
 from app.schemas.contact import ContactRequest
-from app.services.claude import analyze_with_claude
 from app.services.lead_service import create_lead
 from app.services.n8n import trigger_n8n_webhook
 

@@ -1,28 +1,18 @@
 from sqlalchemy.orm import Session
 from app.models.lead import Lead
+from app.schemas.analysis import LeadAnalysis
 
 
-def create_lead(db: Session, contact_data: dict) -> Lead:
-    """
-    Crée un lead en base de données à partir des données du formulaire contact
-    """
-
+def create_lead(db: Session, data: dict) -> Lead:
     lead = Lead(
-        name=contact_data.get("name"),
-        email=contact_data.get("email"),
-        phone=contact_data.get("phone"),
-        subject=contact_data.get("subject"),
-        message=contact_data.get("message"),
-
+        name=data["name"],
+        email=data["email"],
+        phone=data.get("phone"),
+        subject=data.get("subject"),
+        message=data["message"],
         category="contact",
-        intent=None,
-
         priority="medium",
-        priority_score=50,
-
-        summary=None,
-        next_action=None,
-
+        priority_score=5,
         source="website",
         status="new",
         response_required=True,
@@ -31,5 +21,21 @@ def create_lead(db: Session, contact_data: dict) -> Lead:
     db.add(lead)
     db.commit()
     db.refresh(lead)
+    return lead
 
+
+def update_lead_analysis(
+    db: Session,
+    lead: Lead,
+    analysis: LeadAnalysis
+) -> Lead:
+    lead.category = analysis.category
+    lead.intent = analysis.intent
+    lead.priority = analysis.priority
+    lead.priority_score = analysis.priority_score
+    lead.summary = analysis.summary
+    lead.next_action = analysis.next_action
+
+    db.commit()
+    db.refresh(lead)
     return lead
