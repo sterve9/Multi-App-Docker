@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: linkedin-publisher-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # Port différent de site-vitrine
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/linkedin_publisher
+    depends_on:
+      - postgres
+    networks:
+      - traefik-network
+    volumes:
+      - ./backend/src:/app  # Hot reload en dev
+      - image_outputs:/app/outputs
+
+  postgres:
+    image: postgres:15
+    container_name: linkedin-publisher-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: linkedin_publisher
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - traefik-network
+
+networks:
+  traefik-network:
+    external: true
+
+volumes:
+  postgres_data:
+  image_outputs:
