@@ -1,0 +1,28 @@
+# FastAPI
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+python-dotenv==1.0.1
+
+# Database
+sqlalchemy==2.0.35
+psycopg2-binary==2.9.10
+alembic==1.14.0
+
+# Validation
+pydantic==2.10.1
+email-validator==2.2.0
+
+# HTTP Client
+httpx==0.28.1
+
+# AI
+anthropic==0.82.0
+
+# Image Processing
+Pillow==11.0.0
+
+# Replicate
+replicate==1.0.4
+
+# HTTP Client (alternative à httpx pour certains services)
+requests==2.32.3
