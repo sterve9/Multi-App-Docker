@@ -2,26 +2,22 @@
 Service Claude pour améliorer et structurer les posts LinkedIn
 """
 import json
-import os
+import logging
 import anthropic
+from typing import List
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeLinkedInService:
-    """
-    Service d'amélioration de posts LinkedIn avec Claude
-    """
-    
+    """Service d'amélioration de posts LinkedIn avec Claude"""
+
     def __init__(self):
         if not settings.ANTHROPIC_API_KEY:
             raise RuntimeError("ANTHROPIC_API_KEY manquante")
-        
-        # Définir la clé API comme variable d'environnement
-        os.environ["ANTHROPIC_API_KEY"] = settings.ANTHROPIC_API_KEY
-        
-        # Initialiser le client sans argument
-        self.client = anthropic.Anthropic()
-    
+        self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+
     def improve_post(
         self,
         raw_content: str,
@@ -30,12 +26,7 @@ class ClaudeLinkedInService:
     ) -> dict:
         """
         Améliore un post LinkedIn brut
-        
-        Args:
-            raw_content: Texte brut de l'utilisateur
-            post_type: milestone, update, ou learning
-            user_name: Nom de l'utilisateur
-        
+
         Returns:
             {
                 "content": "Post amélioré...",
@@ -43,7 +34,6 @@ class ClaudeLinkedInService:
                 "image_prompt": "Prompt pour l'image..."
             }
         """
-        
         prompt = f"""Tu es un expert LinkedIn qui aide les professionnels à créer du contenu authentique et engageant.
 
 Contexte utilisateur : {user_name}
@@ -77,47 +67,29 @@ FORMAT DE SORTIE (JSON strict) :
   "image_prompt": "..."
 }}
 
-IMPORTANT :
-- Réponds UNIQUEMENT avec le JSON
-- Pas de texte avant ou après
-- Pas de markdown
-- JSON valide directement parsable
-"""
-        
+IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre, pas de markdown."""
+
         response = self.client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=1500,
-            temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
-        
+
         raw_text = response.content[0].text.strip()
-        
-        # Nettoyer les markdown potentiels
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-        
-        # Parser le JSON
+
         try:
-            result = json.loads(raw_text)
-            return result
-        except json.JSONDecodeError as e:
+            return json.loads(raw_text)
+        except json.JSONDecodeError:
             raise ValueError(f"Claude n'a pas retourné un JSON valide: {raw_text[:200]}")
-    
-    def generate_bullets(self, content: str) -> dict:
+
+    def generate_bullets(self, content: str) -> List[str]:
         """
         Génère 3 bullets résumant le post
-        
-        Args:
-            content: Le post complet
-        
+
         Returns:
-            {
-                "bullet1": "...",
-                "bullet2": "...",
-                "bullet3": "..."
-            }
+            List[str]: Liste de 3 bullet points
         """
-        
         prompt = f"""Voici un post LinkedIn :
 
 {content}
@@ -131,26 +103,22 @@ CONTRAINTES :
 
 FORMAT DE SORTIE (JSON strict) :
 {{
-  "bullet1": "...",
-  "bullet2": "...",
-  "bullet3": "..."
+  "bullets": ["...", "...", "..."]
 }}
 
-IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre.
-"""
-        
+IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre."""
+
         response = self.client.messages.create(
             model="claude-sonnet-4-20250514",
             max_tokens=500,
-            temperature=0.5,
             messages=[{"role": "user", "content": prompt}]
         )
-        
+
         raw_text = response.content[0].text.strip()
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-        
+
         try:
             result = json.loads(raw_text)
-            return result
-        except json.JSONDecodeError:
-            raise ValueError(f"Claude n'a pas retourné un JSON valide pour les bullets")
+            return result["bullets"]
+        except (json.JSONDecodeError, KeyError):
+            raise ValueError("Claude n'a pas retourné un JSON valide pour les bullets")
