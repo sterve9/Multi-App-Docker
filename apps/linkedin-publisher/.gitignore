@@ -34,3 +34,6 @@ postgres_data/
 
 # OS
 Thumbs.db
+backend/src/outputs/*
+backend/src/outputs/*
+!backend/src/outputs/.gitkeep
