@@ -5,6 +5,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.models.post import LinkedInPost, PostStatus
@@ -15,6 +16,16 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
 n8n_service = N8NTriggerService()
+
+
+class PostUpdateRequest(BaseModel):
+    processed_content: Optional[str] = None
+    title: Optional[str] = None
+    bullets: Optional[List[str]] = None
+    image_prompt: Optional[str] = None
+    replicate_image_url: Optional[str] = None
+    final_image_path: Optional[str] = None
+    status: Optional[str] = None
 
 
 @router.post("", status_code=201, response_model=PostResponse)
@@ -59,12 +70,10 @@ def list_posts(
 ):
     """Lister les posts avec filtres optionnels"""
     query = db.query(LinkedInPost)
-
     if user_id:
         query = query.filter(LinkedInPost.user_id == user_id)
     if status:
         query = query.filter(LinkedInPost.status == status)
-
     return query.order_by(LinkedInPost.created_at.desc()).limit(limit).all()
 
 
@@ -74,6 +83,31 @@ def get_post(post_id: int, db: Session = Depends(get_db)):
     post = db.query(LinkedInPost).filter(LinkedInPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
+
+@router.patch("/{post_id}", response_model=PostResponse)
+def update_post(
+    post_id: int,
+    payload: PostUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Mettre à jour un post avec les résultats du traitement IA"""
+    post = db.query(LinkedInPost).filter(LinkedInPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    allowed_fields = [
+        "processed_content", "title", "bullets", "image_prompt",
+        "replicate_image_url", "final_image_path", "status"
+    ]
+
+    for field, value in payload.model_dump(exclude_none=True).items():
+        if field in allowed_fields:
+            setattr(post, field, value)
+
+    db.commit()
+    db.refresh(post)
     return post
 
 
