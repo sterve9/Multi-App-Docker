@@ -1,0 +1,28 @@
+services:
+  ai-workflow-engine:
+    build: .
+    container_name: ai-workflow-engine
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+
+    networks:
+      - traefik-network
+
+    labels:
+      - "traefik.enable=true"
+
+      # ===== ROUTER =====
+      - "traefik.http.routers.ai-workflow.rule=Host(`api.workflow.sterveshop.cloud`)"
+      - "traefik.http.routers.ai-workflow.entrypoints=websecure"
+      - "traefik.http.routers.ai-workflow.tls=true"
+      - "traefik.http.routers.ai-workflow.tls.certresolver=letsencrypt"
+
+      # ===== SERVICE =====
+      - "traefik.http.services.ai-workflow.loadbalancer.server.port=3000"
+
+networks:
+  traefik-network:
+    external: true
