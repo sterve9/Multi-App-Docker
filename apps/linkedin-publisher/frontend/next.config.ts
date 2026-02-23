@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://api.linkedin.sterveshop.cloud/api/:path*",
+        destination: "http://linkedin-publisher-backend:8000/api/:path*",
       },
     ];
   },
