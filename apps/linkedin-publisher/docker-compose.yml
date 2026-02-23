@@ -1,4 +1,3 @@
-
 services:
   backend:
     build: ./backend
@@ -19,6 +18,25 @@ services:
       - traefik-network
     volumes:
       - image_outputs:/app/outputs
+
+  frontend:
+    build: ./frontend
+    container_name: linkedin-publisher-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedin-app.rule=Host(`app.linkedin.sterveshop.cloud`)"
+      - "traefik.http.routers.linkedin-app.entrypoints=websecure"
+      - "traefik.http.routers.linkedin-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.linkedin-app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.linkedin-app-http.rule=Host(`app.linkedin.sterveshop.cloud`)"
+      - "traefik.http.routers.linkedin-app-http.entrypoints=web"
+      - "traefik.http.routers.linkedin-app-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   postgres:
     image: postgres:15
