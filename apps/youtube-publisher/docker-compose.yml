@@ -19,6 +19,16 @@ services:
       - traefik-network
     volumes:
       - video_outputs:/app/outputs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.youtube-api.rule=Host(`api.youtube.sterveshop.cloud`)"
+      - "traefik.http.routers.youtube-api.entrypoints=websecure"
+      - "traefik.http.routers.youtube-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.youtube-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.youtube-api-http.rule=Host(`api.youtube.sterveshop.cloud`)"
+      - "traefik.http.routers.youtube-api-http.entrypoints=web"
+      - "traefik.http.routers.youtube-api-http.middlewares=redirect-to-https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
   postgres:
     image: postgres:15

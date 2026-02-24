@@ -12,3 +12,4 @@
 
 # Override docker-compose si présent
 **/docker-compose.override.yml
+apps/youtube-publisher/backend/.env
