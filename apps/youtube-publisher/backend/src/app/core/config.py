@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     ELEVENLABS_API_KEY: str
     ELEVENLABS_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
 
+    N8N_WEBHOOK_URL: str = ""
+
     YOUTUBE_CLIENT_ID: str = ""
     YOUTUBE_CLIENT_SECRET: str = ""
     YOUTUBE_REFRESH_TOKEN: str = ""
