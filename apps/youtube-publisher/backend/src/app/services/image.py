@@ -3,6 +3,8 @@ import httpx
 from app.core.config import settings
 
 async def generate_single_image(prompt: str, scene_num: int) -> str:
+    await asyncio.sleep(scene_num * 2)  # délai entre chaque scène
+    
     async with httpx.AsyncClient() as client:
         response = await client.post(
             "https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions",
@@ -11,10 +13,14 @@ async def generate_single_image(prompt: str, scene_num: int) -> str:
             timeout=60
         )
         prediction = response.json()
+        
+        if "id" not in prediction:
+            raise Exception(f"Replicate error scene {scene_num}: {prediction}")
+        
         pred_id = prediction["id"]
 
-        for _ in range(30):
-            await asyncio.sleep(3)
+        for _ in range(40):
+            await asyncio.sleep(5)
             status_resp = await client.get(
                 f"https://api.replicate.com/v1/predictions/{pred_id}",
                 headers={"Authorization": f"Bearer {settings.REPLICATE_API_TOKEN}"}
@@ -32,4 +38,5 @@ async def generate_images(scenes: list) -> list:
     for scene in scenes:
         url = await generate_single_image(scene["image_prompt"], scene["scene_number"])
         images.append(url)
+        await asyncio.sleep(3)  # pause entre chaque image
     return images
