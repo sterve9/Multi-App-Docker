@@ -2,16 +2,15 @@ import httpx
 import os
 from app.core.config import settings
 
-AUDIO_DIR = "/app/outputs/audio"
-
-async def generate_audio(scenes: list) -> list:
-    os.makedirs(AUDIO_DIR, exist_ok=True)
+async def generate_audio(video_id: int, scenes: list) -> list:
+    audio_dir = f"/app/outputs/audio/video_{video_id}"
+    os.makedirs(audio_dir, exist_ok=True)
     audio_files = []
     
     async with httpx.AsyncClient() as client:
         for scene in scenes:
             scene_num = scene["scene_number"]
-            output_path = f"{AUDIO_DIR}/scene_{scene_num}.mp3"
+            output_path = f"{audio_dir}/scene_{scene_num}.mp3"
             
             response = await client.post(
                 f"https://api.elevenlabs.io/v1/text-to-speech/{settings.ELEVENLABS_VOICE_ID}",

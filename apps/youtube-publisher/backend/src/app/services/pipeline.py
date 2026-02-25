@@ -1,12 +1,36 @@
 import logging
+import httpx
 from app.core.database import SessionLocal
 from app.models.video import Video, VideoStatus
 from app.services.script import generate_script
 from app.services.image import generate_images
 from app.services.audio import generate_audio
 from app.services.video import assemble_video
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags: list, video_path: str):
+    if not settings.N8N_WEBHOOK_URL:
+        logger.warning("N8N_WEBHOOK_URL non configuré, webhook ignoré")
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                settings.N8N_WEBHOOK_URL,
+                json={
+                    "video_id": video_id,
+                    "title": title,
+                    "description": description,
+                    "tags": tags,
+                    "video_path": video_path,
+                    "download_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/download"
+                },
+                timeout=30
+            )
+        logger.info(f"Webhook n8n envoyé pour vidéo {video_id}")
+    except Exception as e:
+        logger.warning(f"Webhook n8n échoué (non bloquant): {e}")
 
 async def run_pipeline(video_id: int):
     db = SessionLocal()
@@ -33,7 +57,7 @@ async def run_pipeline(video_id: int):
         # Étape 3 - Audio
         video.status = VideoStatus.GENERATING_AUDIO
         db.commit()
-        audio_files = await generate_audio(video.script)
+        audio_files = await generate_audio(video_id, video.script)
         video.scenes_audio = audio_files
         db.commit()
 
@@ -46,6 +70,15 @@ async def run_pipeline(video_id: int):
         db.commit()
 
         logger.info(f"Pipeline terminé pour vidéo {video_id}")
+
+        # Étape 5 - Webhook n8n
+        await trigger_n8n_webhook(
+            video_id=video_id,
+            title=video.title,
+            description=video.description,
+            tags=video.tags or [],
+            video_path=video_path
+        )
 
     except Exception as e:
         logger.error(f"Pipeline échoué pour vidéo {video_id}: {e}")
