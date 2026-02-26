@@ -3,7 +3,7 @@
 import { Video, api } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle } from "lucide-react";
+import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle, CheckCircle2, Mic, Image, Film, Upload } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -24,11 +24,56 @@ function timeAgo(dateStr: string) {
 
 const PROCESSING_STATUSES = ["scripting", "generating_images", "generating_audio", "assembling", "uploading"];
 
+// ─── Pipeline steps ───────────────────────────────────────────────────────────
+const PIPELINE_STEPS: { status: string; label: string; icon: React.ReactNode }[] = [
+  { status: "scripting",        label: "Script",    icon: <Film className="w-3 h-3" /> },
+  { status: "generating_images",label: "Images",    icon: <Image className="w-3 h-3" /> },
+  { status: "generating_audio", label: "Audio",     icon: <Mic className="w-3 h-3" /> },
+  { status: "assembling",       label: "Assemblage",icon: <RefreshCw className="w-3 h-3" /> },
+  { status: "uploading",        label: "Upload",    icon: <Upload className="w-3 h-3" /> },
+];
+
+const STEP_ORDER = PIPELINE_STEPS.map((s) => s.status);
+
+function PipelineProgress({ currentStatus }: { currentStatus: string }) {
+  const currentIndex = STEP_ORDER.indexOf(currentStatus);
+
+  return (
+    <div className="mb-3">
+      <div className="flex items-center gap-1">
+        {PIPELINE_STEPS.map((step, i) => {
+          const isDone    = i < currentIndex;
+          const isCurrent = i === currentIndex;
+          const isPending = i > currentIndex;
+
+          return (
+            <div key={step.status} className="flex items-center gap-1 flex-1">
+              <div className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all duration-300 flex-1 justify-center
+                ${isDone    ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40" : ""}
+                ${isCurrent ? "bg-blue-950/80 text-blue-300 border border-blue-700/60 animate-pulse" : ""}
+                ${isPending ? "bg-zinc-800/40 text-zinc-600 border border-zinc-700/30" : ""}
+              `}>
+                <span className={isCurrent ? "animate-spin" : ""}>{step.icon}</span>
+                <span className="hidden sm:inline">{step.label}</span>
+              </div>
+              {/* Connector */}
+              {i < PIPELINE_STEPS.length - 1 && (
+                <div className={`w-1.5 h-px shrink-0 ${isDone || isCurrent ? "bg-blue-600/60" : "bg-zinc-700/40"}`} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── VideoCard ────────────────────────────────────────────────────────────────
 export function VideoCard({ video, onDelete, onRefresh }: Props) {
-  const [deleting, setDeleting]     = useState(false);
+  const [deleting,   setDeleting]   = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [resuming, setResuming]     = useState(false);
-  const [showError, setShowError]   = useState(false);
+  const [resuming,   setResuming]   = useState(false);
+  const [showError,  setShowError]  = useState(false);
 
   const isProcessing = PROCESSING_STATUSES.includes(video.status);
   const isFailed     = video.status === "failed";
@@ -66,12 +111,24 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
 
   return (
     <div className={`group relative bg-zinc-900 border rounded-xl p-5 transition-all duration-200
-      ${isFailed ? "border-red-900/60 hover:border-red-800" : "border-zinc-800 hover:border-zinc-700"}`}>
+      ${isFailed     ? "border-red-900/60 hover:border-red-800"       : ""}
+      ${isProcessing ? "border-blue-900/40 hover:border-blue-800/60"  : ""}
+      ${!isFailed && !isProcessing ? "border-zinc-800 hover:border-zinc-700" : ""}
+    `}>
 
+      {/* Top progress bar — processing only */}
       {isProcessing && (
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-violet-600 to-orange-500 rounded-t-xl animate-pulse" />
       )}
 
+      {/* Published checkmark badge */}
+      {isPublished && (
+        <div className="absolute top-3 right-3">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+        </div>
+      )}
+
+      {/* Title + status */}
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-white truncate text-sm leading-snug">
@@ -81,13 +138,18 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
             <p className="text-[11px] text-zinc-500 mt-0.5 truncate">{video.topic}</p>
           )}
         </div>
-        <StatusBadge status={video.status} />
+        {!isPublished && <StatusBadge status={video.status} />}
       </div>
 
-      {video.description && (
+      {/* Pipeline steps — processing only */}
+      {isProcessing && <PipelineProgress currentStatus={video.status} />}
+
+      {/* Description */}
+      {video.description && !isProcessing && (
         <p className="text-xs text-zinc-500 line-clamp-2 mb-3 leading-relaxed">{video.description}</p>
       )}
 
+      {/* Error */}
       {isFailed && video.error_message && (
         <div className="mb-3">
           <button onClick={() => setShowError(!showError)}
@@ -103,7 +165,8 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         </div>
       )}
 
-      {video.tags && video.tags.length > 0 && (
+      {/* Tags */}
+      {video.tags && video.tags.length > 0 && !isProcessing && (
         <div className="flex flex-wrap gap-1 mb-3">
           {video.tags.slice(0, 3).map((tag) => (
             <span key={tag} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full border border-zinc-700/60">
@@ -116,6 +179,7 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         </div>
       )}
 
+      {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
         <span className="flex items-center gap-1.5 text-[11px] text-zinc-600">
           <Clock className="w-3 h-3" />
