@@ -3,7 +3,7 @@
 import { Video, api } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle, CheckCircle2, Mic, Image, Film, Upload } from "lucide-react";
+import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle, CheckCircle2, Mic, ImageIcon, Film, Upload } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -24,42 +24,79 @@ function timeAgo(dateStr: string) {
 
 const PROCESSING_STATUSES = ["scripting", "generating_images", "generating_audio", "assembling", "uploading"];
 
-// ─── Pipeline steps ───────────────────────────────────────────────────────────
-const PIPELINE_STEPS: { status: string; label: string; icon: React.ReactNode }[] = [
-  { status: "scripting",        label: "Script",    icon: <Film className="w-3 h-3" /> },
-  { status: "generating_images",label: "Images",    icon: <Image className="w-3 h-3" /> },
-  { status: "generating_audio", label: "Audio",     icon: <Mic className="w-3 h-3" /> },
-  { status: "assembling",       label: "Assemblage",icon: <RefreshCw className="w-3 h-3" /> },
-  { status: "uploading",        label: "Upload",    icon: <Upload className="w-3 h-3" /> },
+// ─── Pipeline steps avec % de progression ────────────────────────────────────
+const PIPELINE_STEPS: {
+  status: string;
+  label: string;
+  icon: React.ReactNode;
+  percent: number;
+}[] = [
+  { status: "scripting",         label: "Script",     icon: <Film className="w-3 h-3" />,      percent: 10 },
+  { status: "generating_images", label: "Images",     icon: <ImageIcon className="w-3 h-3" />, percent: 35 },
+  { status: "generating_audio",  label: "Audio",      icon: <Mic className="w-3 h-3" />,       percent: 60 },
+  { status: "assembling",        label: "Assemblage", icon: <RefreshCw className="w-3 h-3" />, percent: 80 },
+  { status: "uploading",         label: "Upload",     icon: <Upload className="w-3 h-3" />,    percent: 95 },
 ];
 
 const STEP_ORDER = PIPELINE_STEPS.map((s) => s.status);
 
+function getProgressPercent(status: string): number {
+  if (status === "ready" || status === "published") return 100;
+  if (status === "failed") return 0;
+  const step = PIPELINE_STEPS.find((s) => s.status === status);
+  return step?.percent ?? 0;
+}
+
 function PipelineProgress({ currentStatus }: { currentStatus: string }) {
   const currentIndex = STEP_ORDER.indexOf(currentStatus);
+  const percent      = getProgressPercent(currentStatus);
+  const currentStep  = PIPELINE_STEPS.find((s) => s.status === currentStatus);
 
   return (
-    <div className="mb-3">
-      <div className="flex items-center gap-1">
+    <div className="mb-3 space-y-2">
+
+      {/* % label + étape courante */}
+      <div className="flex items-center justify-between">
+        <span className="text-[11px] text-zinc-400 flex items-center gap-1.5">
+          {currentStep && (
+            <span className="animate-pulse text-blue-400">{currentStep.icon}</span>
+          )}
+          {currentStep?.label ?? currentStatus}
+        </span>
+        <span className="text-[11px] font-semibold text-blue-400 tabular-nums">{percent}%</span>
+      </div>
+
+      {/* Barre de progression */}
+      <div className="relative h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+        {/* Shimmer background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-zinc-700/30 to-transparent animate-[shimmer_2s_infinite]" />
+        {/* Fill */}
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-blue-600 via-violet-500 to-blue-400 transition-all duration-700 ease-out"
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+
+      {/* Steps dots */}
+      <div className="flex items-center justify-between px-0.5">
         {PIPELINE_STEPS.map((step, i) => {
           const isDone    = i < currentIndex;
           const isCurrent = i === currentIndex;
           const isPending = i > currentIndex;
-
           return (
-            <div key={step.status} className="flex items-center gap-1 flex-1">
-              <div className={`flex items-center gap-1 px-1.5 py-1 rounded-md text-[10px] font-medium transition-all duration-300 flex-1 justify-center
-                ${isDone    ? "bg-emerald-950/60 text-emerald-400 border border-emerald-800/40" : ""}
-                ${isCurrent ? "bg-blue-950/80 text-blue-300 border border-blue-700/60 animate-pulse" : ""}
-                ${isPending ? "bg-zinc-800/40 text-zinc-600 border border-zinc-700/30" : ""}
+            <div key={step.status} className="flex flex-col items-center gap-0.5">
+              <div className={`w-1.5 h-1.5 rounded-full transition-all duration-300
+                ${isDone    ? "bg-emerald-400" : ""}
+                ${isCurrent ? "bg-blue-400 ring-2 ring-blue-400/30 scale-125" : ""}
+                ${isPending ? "bg-zinc-700" : ""}
+              `} />
+              <span className={`text-[9px] hidden sm:block transition-colors
+                ${isDone    ? "text-emerald-600" : ""}
+                ${isCurrent ? "text-blue-400 font-medium" : ""}
+                ${isPending ? "text-zinc-700" : ""}
               `}>
-                <span className={isCurrent ? "animate-spin" : ""}>{step.icon}</span>
-                <span className="hidden sm:inline">{step.label}</span>
-              </div>
-              {/* Connector */}
-              {i < PIPELINE_STEPS.length - 1 && (
-                <div className={`w-1.5 h-px shrink-0 ${isDone || isCurrent ? "bg-blue-600/60" : "bg-zinc-700/40"}`} />
-              )}
+                {step.label}
+              </span>
             </div>
           );
         })}
@@ -111,17 +148,17 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
 
   return (
     <div className={`group relative bg-zinc-900 border rounded-xl p-5 transition-all duration-200
-      ${isFailed     ? "border-red-900/60 hover:border-red-800"       : ""}
-      ${isProcessing ? "border-blue-900/40 hover:border-blue-800/60"  : ""}
+      ${isFailed     ? "border-red-900/60 hover:border-red-800" : ""}
+      ${isProcessing ? "border-blue-900/40 hover:border-blue-800/60" : ""}
       ${!isFailed && !isProcessing ? "border-zinc-800 hover:border-zinc-700" : ""}
     `}>
 
-      {/* Top progress bar — processing only */}
+      {/* Top shimmer bar — processing */}
       {isProcessing && (
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-blue-600 via-violet-600 to-orange-500 rounded-t-xl animate-pulse" />
       )}
 
-      {/* Published checkmark badge */}
+      {/* Published checkmark */}
       {isPublished && (
         <div className="absolute top-3 right-3">
           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -141,7 +178,7 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         {!isPublished && <StatusBadge status={video.status} />}
       </div>
 
-      {/* Pipeline steps — processing only */}
+      {/* Pipeline progress — processing only */}
       {isProcessing && <PipelineProgress currentStatus={video.status} />}
 
       {/* Description */}
