@@ -10,7 +10,7 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags: list, video_path: str):
+async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags: list, video_path: str, thumbnail_path: str = None):
     if not settings.N8N_WEBHOOK_URL:
         logger.warning("N8N_WEBHOOK_URL non configuré, webhook ignoré")
         return
@@ -24,13 +24,16 @@ async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags:
                     "description": description,
                     "tags": tags,
                     "video_path": video_path,
-                    "download_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/download"
+                    "thumbnail_path": thumbnail_path,
+                    "download_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/download",
+                    "thumbnail_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/thumbnail" if thumbnail_path else None,
                 },
                 timeout=30
             )
         logger.info(f"Webhook n8n envoyé pour vidéo {video_id}")
     except Exception as e:
         logger.warning(f"Webhook n8n échoué (non bloquant): {e}")
+
 
 async def run_pipeline(video_id: int):
     db = SessionLocal()
@@ -54,22 +57,40 @@ async def run_pipeline(video_id: int):
         video.scenes_images = images
         db.commit()
 
-        # Étape 3 - Audio
+        # Étape 3 - Audio (avec gestion d'erreur quota)
         video.status = VideoStatus.GENERATING_AUDIO
         db.commit()
         audio_files = await generate_audio(video_id, video.script)
         video.scenes_audio = audio_files
         db.commit()
 
-        # Étape 4 - Assemblage
+        # Étape 4 - Assemblage (sous-titres + musique + miniature)
         video.status = VideoStatus.ASSEMBLING
         db.commit()
-        video_path = await assemble_video(video.id, video.script, images, audio_files)
-        video.final_video_path = video_path
+        result = await assemble_video(
+            video_id=video.id,
+            scenes=video.script,
+            image_urls=images,
+            audio_files=audio_files,
+            style=video.style or "educatif",
+            title=video.title or video.topic,
+        )
+
+        video.final_video_path = result["video_path"]
+
+        # Stocker les chemins des fichiers générés (si la colonne existe)
+        if hasattr(video, "thumbnail_path") and result.get("thumbnail_path"):
+            video.thumbnail_path = result["thumbnail_path"]
+        if hasattr(video, "subtitles_path") and result.get("subtitles_path"):
+            video.subtitles_path = result["subtitles_path"]
+
         video.status = VideoStatus.READY
         db.commit()
 
-        logger.info(f"Pipeline terminé pour vidéo {video_id}")
+        logger.info(f"Pipeline terminé pour vidéo {video_id} ✅")
+        logger.info(f"  → Vidéo      : {result['video_path']}")
+        logger.info(f"  → Miniature  : {result.get('thumbnail_path')}")
+        logger.info(f"  → Sous-titres: {result.get('subtitles_path')}")
 
         # Étape 5 - Webhook n8n
         await trigger_n8n_webhook(
@@ -77,7 +98,8 @@ async def run_pipeline(video_id: int):
             title=video.title,
             description=video.description,
             tags=video.tags or [],
-            video_path=video_path
+            video_path=result["video_path"],
+            thumbnail_path=result.get("thumbnail_path"),
         )
 
     except Exception as e:
