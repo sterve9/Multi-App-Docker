@@ -40,7 +40,7 @@ export function CreateVideoDialog({ onCreated }: Props) {
         tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
       });
       await api.generateVideo(video.id);
-      onCreated({ ...video, status: "GENERATING_SCRIPT" });
+      onCreated({ ...video, status: "scripting" });
       setOpen(false);
       setTopic("");
       setTitle("");
