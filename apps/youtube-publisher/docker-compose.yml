@@ -31,6 +31,26 @@ services:
       - "traefik.http.routers.youtube-api-http.middlewares=redirect-to-https"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.youtube.sterveshop.cloud
+    container_name: youtube-publisher-frontend
+    restart: unless-stopped
+    networks:
+      - traefik-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.youtube-app.rule=Host(`app.youtube.sterveshop.cloud`)"
+      - "traefik.http.routers.youtube-app.entrypoints=websecure"
+      - "traefik.http.routers.youtube-app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.youtube-app.loadbalancer.server.port=3000"
+      - "traefik.http.routers.youtube-app-http.rule=Host(`app.youtube.sterveshop.cloud`)"
+      - "traefik.http.routers.youtube-app-http.entrypoints=web"
+      - "traefik.http.routers.youtube-app-http.middlewares=redirect-to-https"
+
   postgres:
     image: postgres:15
     container_name: youtube-publisher-postgres
