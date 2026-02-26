@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { api, Video, VideoStatus } from "@/lib/api";
 import { VideoCard } from "@/components/VideoCard";
 import { CreateVideoDialog } from "@/components/CreateVideoDialog";
 import { StatusBadge } from "../components/StatusBadge";
-import { RefreshCw, Youtube, Film, CheckCircle2, AlertCircle, XCircle, Loader2 } from "lucide-react";
+import { RefreshCw, Youtube, Film, CheckCircle2, AlertCircle, XCircle, Loader2, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const PROCESSING_STATUSES: VideoStatus[] = [
@@ -17,16 +17,31 @@ const ALL_STATUSES: VideoStatus[] = [
   "assembling", "ready", "uploading", "published", "failed",
 ];
 
+const DATE_FILTERS = [
+  { label: "Tout",     value: "all" },
+  { label: "Auj.",     value: "today" },
+  { label: "7 jours",  value: "7d" },
+  { label: "30 jours", value: "30d" },
+] as const;
+type DateFilter = typeof DATE_FILTERS[number]["value"];
+
+function isWithinRange(dateStr: string, range: DateFilter): boolean {
+  if (range === "all") return true;
+  const date = new Date(dateStr).getTime();
+  const now  = Date.now();
+  if (range === "today") {
+    const start = new Date(); start.setHours(0, 0, 0, 0);
+    return date >= start.getTime();
+  }
+  const days = range === "7d" ? 7 : 30;
+  return date >= now - days * 24 * 60 * 60 * 1000;
+}
+
 function StatCard({
   label, value, icon, color, active, onClick, pulse,
 }: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  color: string;
-  active?: boolean;
-  onClick?: () => void;
-  pulse?: boolean;
+  label: string; value: number; icon: React.ReactNode; color: string;
+  active?: boolean; onClick?: () => void; pulse?: boolean;
 }) {
   return (
     <button
@@ -63,6 +78,8 @@ export default function Dashboard() {
   const [refreshing, setRefreshing]   = useState(false);
   const [error, setError]             = useState("");
   const [filter, setFilter]           = useState<VideoStatus | "ALL">("ALL");
+  const [dateFilter, setDateFilter]   = useState<DateFilter>("all");
+  const [search, setSearch]           = useState("");
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchVideos = useCallback(async (silent = false) => {
@@ -104,14 +121,11 @@ export default function Dashboard() {
   const filterByGroup = (group: "processing" | "ready" | "published" | "failed") => {
     const groupMap: Record<string, VideoStatus[]> = {
       processing: PROCESSING_STATUSES,
-      ready:      ["ready"],
-      published:  ["published"],
-      failed:     ["failed"],
+      ready: ["ready"], published: ["published"], failed: ["failed"],
     };
     const statuses = groupMap[group];
-    if (statuses.includes(filter as VideoStatus)) {
-      setFilter("ALL");
-    } else {
+    if (statuses.includes(filter as VideoStatus)) { setFilter("ALL"); }
+    else {
       const primary = statuses.find((s) => videos.some((v) => v.status === s)) ?? statuses[0];
       setFilter(primary);
     }
@@ -120,22 +134,48 @@ export default function Dashboard() {
   const isGroupActive = (group: "processing" | "ready" | "published" | "failed") => {
     const groupMap: Record<string, VideoStatus[]> = {
       processing: PROCESSING_STATUSES,
-      ready:      ["ready"],
-      published:  ["published"],
-      failed:     ["failed"],
+      ready: ["ready"], published: ["published"], failed: ["failed"],
     };
     return groupMap[group].includes(filter as VideoStatus);
   };
 
-  const filteredDisplay = filter === "ALL"
-    ? videos
-    : PROCESSING_STATUSES.includes(filter as VideoStatus)
-      ? videos.filter((v) => PROCESSING_STATUSES.includes(v.status))
-      : videos.filter((v) => v.status === filter);
+  // ── Combined filtering: status + date + search ──
+  const filteredDisplay = useMemo(() => {
+    return videos.filter((v) => {
+      // Status filter
+      const statusOk = filter === "ALL"
+        ? true
+        : PROCESSING_STATUSES.includes(filter as VideoStatus)
+          ? PROCESSING_STATUSES.includes(v.status)
+          : v.status === filter;
+
+      // Date filter
+      const dateOk = isWithinRange(v.created_at, dateFilter);
+
+      // Search filter
+      const q = search.trim().toLowerCase();
+      const searchOk = q === ""
+        ? true
+        : (v.title ?? "").toLowerCase().includes(q) ||
+          (v.topic ?? "").toLowerCase().includes(q) ||
+          (v.description ?? "").toLowerCase().includes(q);
+
+      return statusOk && dateOk && searchOk;
+    });
+  }, [videos, filter, dateFilter, search]);
+
+  const hasActiveFilters = search !== "" || dateFilter !== "all" || filter !== "ALL";
+
+  function clearAllFilters() {
+    setSearch("");
+    setDateFilter("all");
+    setFilter("ALL");
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
 
+      {/* ── Header ── */}
       <header className="border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -151,22 +191,16 @@ export default function Dashboard() {
             <span className="text-xs text-zinc-600 hidden sm:block tabular-nums">
               {lastRefresh ? lastRefresh.toLocaleTimeString("fr-FR") : "--:--:--"}
             </span>
-            <Button
-              variant="ghost" size="sm"
-              onClick={() => fetchVideos()}
-              disabled={refreshing}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 w-8 p-0"
-            >
+            <Button variant="ghost" size="sm" onClick={() => fetchVideos()} disabled={refreshing}
+              className="text-zinc-400 hover:text-white hover:bg-zinc-800 h-8 w-8 p-0">
               {refreshing
                 ? <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
-                : <RefreshCw className="w-4 h-4" />
-              }
+                : <RefreshCw className="w-4 h-4" />}
             </Button>
             <CreateVideoDialog onCreated={handleCreated} />
           </div>
         </div>
 
-        {/* Bannière en cours */}
         {stats.processing > 0 && (
           <div className="border-t border-zinc-800/60 bg-blue-950/20">
             <div className="max-w-6xl mx-auto px-6 py-2 flex items-center gap-2">
@@ -180,41 +214,25 @@ export default function Dashboard() {
         )}
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Stat cards cliquables */}
+        {/* ── Stat cards ── */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-          <StatCard label="Total"    value={stats.total}
-            icon={<Film className="w-4 h-4 text-zinc-300" />}
-            color="bg-zinc-800"
-            active={filter === "ALL"}
-            onClick={() => setFilter("ALL")}
-          />
+          <StatCard label="Total" value={stats.total}
+            icon={<Film className="w-4 h-4 text-zinc-300" />} color="bg-zinc-800"
+            active={filter === "ALL"} onClick={() => setFilter("ALL")} />
           <StatCard label="En cours" value={stats.processing}
-            icon={<RefreshCw className="w-4 h-4 text-blue-400" />}
-            color="bg-blue-950"
-            active={isGroupActive("processing")}
-            onClick={() => filterByGroup("processing")}
-            pulse
-          />
-          <StatCard label="Prêtes"   value={stats.ready}
-            icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-            color="bg-emerald-950"
-            active={isGroupActive("ready")}
-            onClick={() => filterByGroup("ready")}
-          />
+            icon={<RefreshCw className="w-4 h-4 text-blue-400" />} color="bg-blue-950"
+            active={isGroupActive("processing")} onClick={() => filterByGroup("processing")} pulse />
+          <StatCard label="Prêtes" value={stats.ready}
+            icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />} color="bg-emerald-950"
+            active={isGroupActive("ready")} onClick={() => filterByGroup("ready")} />
           <StatCard label="Publiées" value={stats.published}
-            icon={<Youtube className="w-4 h-4 text-sky-400" />}
-            color="bg-sky-950"
-            active={isGroupActive("published")}
-            onClick={() => filterByGroup("published")}
-          />
-          <StatCard label="Erreurs"  value={stats.failed}
-            icon={<XCircle className="w-4 h-4 text-red-400" />}
-            color="bg-red-950"
-            active={isGroupActive("failed")}
-            onClick={() => filterByGroup("failed")}
-          />
+            icon={<Youtube className="w-4 h-4 text-sky-400" />} color="bg-sky-950"
+            active={isGroupActive("published")} onClick={() => filterByGroup("published")} />
+          <StatCard label="Erreurs" value={stats.failed}
+            icon={<XCircle className="w-4 h-4 text-red-400" />} color="bg-red-950"
+            active={isGroupActive("failed")} onClick={() => filterByGroup("failed")} />
         </div>
 
         {error && (
@@ -223,7 +241,45 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Filter bar */}
+        {/* ── Search + Date filters ── */}
+        {videos.length > 0 && (
+          <div className="flex flex-col sm:flex-row gap-3">
+
+            {/* Search bar */}
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Rechercher une vidéo…"
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-lg pl-9 pr-8 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-zinc-600 transition-colors"
+              />
+              {search && (
+                <button onClick={() => setSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Date filter pills */}
+            <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg px-2 py-1.5">
+              {DATE_FILTERS.map((df) => (
+                <button key={df.value} onClick={() => setDateFilter(df.value)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    dateFilter === df.value
+                      ? "bg-zinc-700 text-white"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                  }`}>
+                  {df.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── Status filter bar ── */}
         {videos.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => setFilter("ALL")}
@@ -245,10 +301,27 @@ export default function Dashboard() {
                 </button>
               );
             })}
+
+            {/* Reset all filters */}
+            {hasActiveFilters && (
+              <button onClick={clearAllFilters}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-zinc-500 hover:text-red-400 hover:bg-red-950/30 transition-colors ml-auto">
+                <X className="w-3 h-3" />
+                Réinitialiser
+              </button>
+            )}
           </div>
         )}
 
-        {/* Grid */}
+        {/* ── Results count ── */}
+        {hasActiveFilters && !loading && (
+          <p className="text-xs text-zinc-600">
+            {filteredDisplay.length} résultat{filteredDisplay.length !== 1 ? "s" : ""}
+            {search && <span className="text-zinc-500"> pour "<span className="text-zinc-400">{search}</span>"</span>}
+          </p>
+        )}
+
+        {/* ── Grid ── */}
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
@@ -260,9 +333,22 @@ export default function Dashboard() {
             <div className="p-4 bg-zinc-900 rounded-2xl mb-4 border border-zinc-800">
               <Film className="w-8 h-8 text-zinc-600" />
             </div>
-            <p className="text-zinc-400 font-medium">Aucune vidéo</p>
-            <p className="text-zinc-600 text-sm mt-1">Lance le pipeline pour créer ta première vidéo</p>
-            <div className="mt-6"><CreateVideoDialog onCreated={handleCreated} /></div>
+            {hasActiveFilters ? (
+              <>
+                <p className="text-zinc-400 font-medium">Aucun résultat</p>
+                <p className="text-zinc-600 text-sm mt-1">Essaie d'autres filtres ou</p>
+                <button onClick={clearAllFilters}
+                  className="mt-3 text-xs text-zinc-500 hover:text-white underline underline-offset-2 transition-colors">
+                  réinitialiser les filtres
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-zinc-400 font-medium">Aucune vidéo</p>
+                <p className="text-zinc-600 text-sm mt-1">Lance le pipeline pour créer ta première vidéo</p>
+                <div className="mt-6"><CreateVideoDialog onCreated={handleCreated} /></div>
+              </>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
