@@ -5,24 +5,26 @@ import { api, Video, VideoStatus } from "@/lib/api";
 import { VideoCard } from "@/components/VideoCard";
 import { CreateVideoDialog } from "@/components/CreateVideoDialog";
 import { StatusBadge } from "../components/StatusBadge";
-import { RefreshCw, Youtube, Film, CheckCircle2, AlertCircle } from "lucide-react";
+import { RefreshCw, Youtube, Film, CheckCircle2, AlertCircle, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const PROCESSING_STATUSES: VideoStatus[] = [
-  "GENERATING_SCRIPT",
-  "GENERATING_IMAGES",
-  "GENERATING_AUDIO",
-  "ASSEMBLING_VIDEO",
+  "scripting", "generating_images", "generating_audio", "assembling", "uploading",
+];
+
+const ALL_STATUSES: VideoStatus[] = [
+  "draft", "scripting", "generating_images", "generating_audio",
+  "assembling", "ready", "uploading", "published", "failed",
 ];
 
 function StatCard({ label, value, icon, color }: {
   label: string; value: number; icon: React.ReactNode; color: string;
 }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4 hover:border-zinc-700 transition-colors">
       <div className={`p-2.5 rounded-lg ${color}`}>{icon}</div>
       <div>
-        <div className="text-2xl font-bold text-white">{value}</div>
+        <div className="text-2xl font-bold text-white tabular-nums">{value}</div>
         <div className="text-xs text-zinc-500">{label}</div>
       </div>
     </div>
@@ -30,10 +32,10 @@ function StatCard({ label, value, icon, color }: {
 }
 
 export default function Dashboard() {
-  const [videos, setVideos] = useState<Video[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filter, setFilter] = useState<VideoStatus | "ALL">("ALL");
+  const [videos, setVideos]           = useState<Video[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState("");
+  const [filter, setFilter]           = useState<VideoStatus | "ALL">("ALL");
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
   const fetchVideos = useCallback(async () => {
@@ -43,7 +45,7 @@ export default function Dashboard() {
       setLastRefresh(new Date());
       setError("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Erreur de connexion au backend");
+      setError(err instanceof Error ? err.message : "Erreur de connexion");
     } finally {
       setLoading(false);
     }
@@ -58,22 +60,17 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [videos, fetchVideos]);
 
-  function handleCreated(video: Video) {
-    setVideos((prev) => [video, ...prev]);
-  }
-  function handleDelete(id: string) {
-    setVideos((prev) => prev.filter((v) => v.id !== id));
-  }
-  function handleRefresh(updated: Video) {
-    setVideos((prev) => prev.map((v) => (v.id === updated.id ? updated : v)));
-  }
+  const handleCreated = (video: Video) => setVideos((p) => [video, ...p]);
+  const handleDelete  = (id: string)   => setVideos((p) => p.filter((v) => v.id !== id));
+  const handleRefresh = (updated: Video) => setVideos((p) => p.map((v) => v.id === updated.id ? updated : v));
 
   const filtered = filter === "ALL" ? videos : videos.filter((v) => v.status === filter);
   const stats = {
-    total: videos.length,
+    total:      videos.length,
     processing: videos.filter((v) => PROCESSING_STATUSES.includes(v.status)).length,
-    completed: videos.filter((v) => v.status === "COMPLETED").length,
-    published: videos.filter((v) => v.status === "PUBLISHED").length,
+    ready:      videos.filter((v) => v.status === "ready").length,
+    published:  videos.filter((v) => v.status === "published").length,
+    failed:     videos.filter((v) => v.status === "failed").length,
   };
 
   return (
@@ -103,21 +100,22 @@ export default function Dashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <StatCard label="Total vidéos" value={stats.total}
-            icon={<Film className="w-4 h-4 text-zinc-300" />} color="bg-zinc-800" />
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <StatCard label="Total"    value={stats.total}
+            icon={<Film className="w-4 h-4 text-zinc-300" />}           color="bg-zinc-800" />
           <StatCard label="En cours" value={stats.processing}
-            icon={<RefreshCw className="w-4 h-4 text-blue-400" />} color="bg-blue-950" />
-          <StatCard label="Terminées" value={stats.completed}
+            icon={<RefreshCw className="w-4 h-4 text-blue-400" />}      color="bg-blue-950" />
+          <StatCard label="Prêtes"   value={stats.ready}
             icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />} color="bg-emerald-950" />
           <StatCard label="Publiées" value={stats.published}
-            icon={<Youtube className="w-4 h-4 text-sky-400" />} color="bg-sky-950" />
+            icon={<Youtube className="w-4 h-4 text-sky-400" />}         color="bg-sky-950" />
+          <StatCard label="Erreurs"  value={stats.failed}
+            icon={<XCircle className="w-4 h-4 text-red-400" />}         color="bg-red-950" />
         </div>
 
         {error && (
           <div className="flex items-center gap-3 bg-red-950 border border-red-800 rounded-xl px-4 py-3 text-sm text-red-300">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            {error}
+            <AlertCircle className="w-4 h-4 shrink-0" />{error}
           </div>
         )}
 
@@ -129,12 +127,12 @@ export default function Dashboard() {
               }`}>
               Toutes ({videos.length})
             </button>
-            {(["PENDING","GENERATING_SCRIPT","GENERATING_IMAGES","GENERATING_AUDIO","ASSEMBLING_VIDEO","COMPLETED","FAILED","PUBLISHED"] as VideoStatus[]).map((s) => {
+            {ALL_STATUSES.map((s) => {
               const count = videos.filter((v) => v.status === s).length;
               if (count === 0) return null;
               return (
                 <button key={s} onClick={() => setFilter(s)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     filter === s ? "bg-zinc-700 text-white" : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
                   }`}>
                   <StatusBadge status={s} />
@@ -148,7 +146,7 @@ export default function Dashboard() {
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-40 animate-pulse" />
+              <div key={i} className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 h-44 animate-pulse" />
             ))}
           </div>
         ) : filtered.length === 0 ? (
@@ -156,11 +154,9 @@ export default function Dashboard() {
             <div className="p-4 bg-zinc-900 rounded-2xl mb-4 border border-zinc-800">
               <Film className="w-8 h-8 text-zinc-600" />
             </div>
-            <p className="text-zinc-400 font-medium">Aucune vidéo pour l'instant</p>
+            <p className="text-zinc-400 font-medium">Aucune vidéo</p>
             <p className="text-zinc-600 text-sm mt-1">Lance le pipeline pour créer ta première vidéo</p>
-            <div className="mt-6">
-              <CreateVideoDialog onCreated={handleCreated} />
-            </div>
+            <div className="mt-6"><CreateVideoDialog onCreated={handleCreated} /></div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
