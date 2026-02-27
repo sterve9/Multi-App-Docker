@@ -6,9 +6,11 @@ from app.services.script import generate_script
 from app.services.image import generate_images
 from app.services.audio import generate_audio
 from app.services.video import assemble_video
+from app.services.telegram import notify_video_ready, notify_video_failed
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
 
 async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags: list, video_path: str, thumbnail_path: str = None):
     if not settings.N8N_WEBHOOK_URL:
@@ -57,14 +59,14 @@ async def run_pipeline(video_id: int):
         video.scenes_images = images
         db.commit()
 
-        # Étape 3 - Audio (avec gestion d'erreur quota)
+        # Étape 3 - Audio
         video.status = VideoStatus.GENERATING_AUDIO
         db.commit()
         audio_files = await generate_audio(video_id, video.script)
         video.scenes_audio = audio_files
         db.commit()
 
-        # Étape 4 - Assemblage (sous-titres + musique + miniature)
+        # Étape 4 - Assemblage
         video.status = VideoStatus.ASSEMBLING
         db.commit()
         result = await assemble_video(
@@ -77,8 +79,6 @@ async def run_pipeline(video_id: int):
         )
 
         video.final_video_path = result["video_path"]
-
-        # Stocker les chemins des fichiers générés (si la colonne existe)
         if hasattr(video, "thumbnail_path") and result.get("thumbnail_path"):
             video.thumbnail_path = result["thumbnail_path"]
         if hasattr(video, "subtitles_path") and result.get("subtitles_path"):
@@ -88,9 +88,13 @@ async def run_pipeline(video_id: int):
         db.commit()
 
         logger.info(f"Pipeline terminé pour vidéo {video_id} ✅")
-        logger.info(f"  → Vidéo      : {result['video_path']}")
-        logger.info(f"  → Miniature  : {result.get('thumbnail_path')}")
-        logger.info(f"  → Sous-titres: {result.get('subtitles_path')}")
+
+        # 🔔 Notification Telegram — vidéo prête
+        await notify_video_ready(
+            video_id=video_id,
+            title=video.title,
+            youtube_url=getattr(video, "youtube_url", None)
+        )
 
         # Étape 5 - Webhook n8n
         await trigger_n8n_webhook(
@@ -107,5 +111,12 @@ async def run_pipeline(video_id: int):
         video.status = VideoStatus.FAILED
         video.error_message = str(e)
         db.commit()
+
+        # 🔔 Notification Telegram — erreur
+        await notify_video_failed(
+            video_id=video_id,
+            title=getattr(video, "title", None) or getattr(video, "topic", ""),
+            error=str(e)
+        )
     finally:
         db.close()
