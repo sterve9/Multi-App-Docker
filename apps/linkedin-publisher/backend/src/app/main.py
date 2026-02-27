@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.core.database import Base, engine
+from app.core.database import Base, engine, wait_for_db
 from app.models.user import User
 from app.models.post import LinkedInPost
 from app.api.routes import posts, images
@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Initialisation de la base de données...")
+    wait_for_db()
     Base.metadata.create_all(bind=engine)
     logger.info("Tables créées/vérifiées avec succès")
     yield
