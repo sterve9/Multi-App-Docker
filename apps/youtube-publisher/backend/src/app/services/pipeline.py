@@ -37,12 +37,54 @@ async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags:
         logger.warning(f"Webhook n8n échoué (non bloquant): {e}")
 
 
+async def _assemble_and_publish(video_id: int, video, images, audio_files, db):
+    """Étapes communes : assemblage FFmpeg + notifications + webhook n8n"""
+    video.status = VideoStatus.ASSEMBLING
+    db.commit()
+
+    result = await assemble_video(
+        video_id=video.id,
+        scenes=video.script,
+        image_urls=images,
+        audio_files=audio_files,
+        style=video.style or "educatif",
+        title=video.title or video.topic,
+    )
+
+    video.final_video_path = result["video_path"]
+    if hasattr(video, "thumbnail_path") and result.get("thumbnail_path"):
+        video.thumbnail_path = result["thumbnail_path"]
+    if hasattr(video, "subtitles_path") and result.get("subtitles_path"):
+        video.subtitles_path = result["subtitles_path"]
+
+    video.status = VideoStatus.READY
+    db.commit()
+
+    logger.info(f"✅ Pipeline terminé pour vidéo {video_id}")
+
+    # 🔔 Notification Telegram
+    await notify_video_ready(
+        video_id=video_id,
+        title=video.title,
+        youtube_url=getattr(video, "youtube_url", None)
+    )
+
+    await trigger_n8n_webhook(
+        video_id=video_id,
+        title=video.title,
+        description=video.description,
+        tags=video.tags or [],
+        video_path=result["video_path"],
+        thumbnail_path=result.get("thumbnail_path"),
+    )
+
+
 async def run_pipeline(video_id: int):
+    """Pipeline complet depuis le début."""
     db = SessionLocal()
     try:
         video = db.query(Video).filter(Video.id == video_id).first()
 
-        # Étape 1 - Script
         video.status = VideoStatus.SCRIPTING
         db.commit()
         script_data = await generate_script(video.topic, video.style)
@@ -52,67 +94,103 @@ async def run_pipeline(video_id: int):
         video.tags = script_data["tags"]
         db.commit()
 
-        # Étape 2 - Images
         video.status = VideoStatus.GENERATING_IMAGES
         db.commit()
         images = await generate_images(video.script)
         video.scenes_images = images
         db.commit()
 
-        # Étape 3 - Audio
         video.status = VideoStatus.GENERATING_AUDIO
         db.commit()
         audio_files = await generate_audio(video_id, video.script)
         video.scenes_audio = audio_files
         db.commit()
 
-        # Étape 4 - Assemblage
-        video.status = VideoStatus.ASSEMBLING
-        db.commit()
-        result = await assemble_video(
-            video_id=video.id,
-            scenes=video.script,
-            image_urls=images,
-            audio_files=audio_files,
-            style=video.style or "educatif",
-            title=video.title or video.topic,
-        )
-
-        video.final_video_path = result["video_path"]
-        if hasattr(video, "thumbnail_path") and result.get("thumbnail_path"):
-            video.thumbnail_path = result["thumbnail_path"]
-        if hasattr(video, "subtitles_path") and result.get("subtitles_path"):
-            video.subtitles_path = result["subtitles_path"]
-
-        video.status = VideoStatus.READY
-        db.commit()
-
-        logger.info(f"Pipeline terminé pour vidéo {video_id} ✅")
-
-        # 🔔 Notification Telegram — vidéo prête
-        await notify_video_ready(
-            video_id=video_id,
-            title=video.title,
-            youtube_url=getattr(video, "youtube_url", None)
-        )
-
-        # Étape 5 - Webhook n8n
-        await trigger_n8n_webhook(
-            video_id=video_id,
-            title=video.title,
-            description=video.description,
-            tags=video.tags or [],
-            video_path=result["video_path"],
-            thumbnail_path=result.get("thumbnail_path"),
-        )
+        await _assemble_and_publish(video_id, video, images, audio_files, db)
 
     except Exception as e:
         logger.error(f"Pipeline échoué pour vidéo {video_id}: {e}")
+        video = db.query(Video).filter(Video.id == video_id).first()
         video.status = VideoStatus.FAILED
         video.error_message = str(e)
         db.commit()
+        # 🔔 Notification Telegram erreur
+        await notify_video_failed(
+            video_id=video_id,
+            title=getattr(video, "title", None) or getattr(video, "topic", ""),
+            error=str(e)
+        )
+    finally:
+        db.close()
 
-        # 🔔 Notification Telegram — erreur
+
+async def run_pipeline_from_audio(video_id: int):
+    """Reprend depuis l'audio — script + images déjà sauvegardés."""
+    db = SessionLocal()
+    try:
+        video = db.query(Video).filter(Video.id == video_id).first()
+
+        if not video.script:
+            raise Exception("Script manquant, impossible de reprendre depuis l'audio")
+        if not video.scenes_images:
+            raise Exception("Images manquantes, impossible de reprendre depuis l'audio")
+
+        logger.info(f"▶ Resume vidéo {video_id} depuis l'audio ({len(video.scenes_images)} images récupérées)")
+
+        images = video.scenes_images
+        video.status = VideoStatus.GENERATING_AUDIO
+        video.error_message = None
+        db.commit()
+
+        audio_files = await generate_audio(video_id, video.script)
+        video.scenes_audio = audio_files
+        db.commit()
+
+        await _assemble_and_publish(video_id, video, images, audio_files, db)
+
+    except Exception as e:
+        logger.error(f"Resume (audio) échoué pour vidéo {video_id}: {e}")
+        video = db.query(Video).filter(Video.id == video_id).first()
+        video.status = VideoStatus.FAILED
+        video.error_message = str(e)
+        db.commit()
+        await notify_video_failed(
+            video_id=video_id,
+            title=getattr(video, "title", None) or getattr(video, "topic", ""),
+            error=str(e)
+        )
+    finally:
+        db.close()
+
+
+async def run_pipeline_from_assembly(video_id: int):
+    """Reprend depuis l'assemblage — script + images + audio déjà sauvegardés."""
+    db = SessionLocal()
+    try:
+        video = db.query(Video).filter(Video.id == video_id).first()
+
+        if not video.script:
+            raise Exception("Script manquant, impossible de reprendre depuis l'assemblage")
+        if not video.scenes_images:
+            raise Exception("Images manquantes, impossible de reprendre depuis l'assemblage")
+        if not video.scenes_audio:
+            raise Exception("Audio manquant, impossible de reprendre depuis l'assemblage")
+
+        logger.info(f"▶ Resume vidéo {video_id} depuis l'assemblage")
+
+        images = video.scenes_images
+        audio_files = video.scenes_audio
+        video.error_message = None
+        db.commit()
+
+        await _assemble_and_publish(video_id, video, images, audio_files, db)
+
+    except Exception as e:
+        logger.error(f"Resume (assembly) échoué pour vidéo {video_id}: {e}")
+        video = db.query(Video).filter(Video.id == video_id).first()
+        video.status = VideoStatus.FAILED
+        video.error_message = str(e)
+        db.commit()
         await notify_video_failed(
             video_id=video_id,
             title=getattr(video, "title", None) or getattr(video, "topic", ""),
