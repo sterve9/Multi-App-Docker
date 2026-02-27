@@ -6,12 +6,15 @@ client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
 async def generate_script(topic: str, style: str = "cinematique") -> dict:
     prompt = f"""Tu es un scénariste expert en histoires vraies pour YouTube francophone.
-    
-Crée un script complet pour une vidéo de 5-7 minutes sur ce sujet : "{topic}"
 
-Le script doit avoir exactement 15 scènes de ~20 secondes chacune.
+Crée un script complet pour une vidéo de 7-10 minutes sur ce sujet : "{topic}"
+Le script doit avoir exactement 18 scènes.
 
-Réponds UNIQUEMENT en JSON strict :
+IMPORTANT : chaque narration doit être longue et détaillée — minimum 80 mots par scène (environ 5-6 phrases). 
+Style storytelling immersif, comme un vrai narrateur YouTube qui tient son audience en haleine.
+Plus la narration est riche et détaillée, mieux c'est pour le watch time YouTube.
+
+Réponds UNIQUEMENT en JSON strict, sans texte avant ou après :
 {{
   "title": "Titre accrocheur pour YouTube (max 70 chars)",
   "description": "Description YouTube de 150 mots avec les mots clés",
@@ -19,19 +22,19 @@ Réponds UNIQUEMENT en JSON strict :
   "scenes": [
     {{
       "scene_number": 1,
-      "narration": "Texte de narration spoken word pour cette scène (2-3 phrases)",
+      "narration": "Texte de narration long et détaillé pour cette scène, minimum 80 mots, style storytelling immersif, 5-6 phrases captivantes qui donnent envie de continuer à regarder",
       "image_prompt": "Prompt en anglais pour générer l'image de cette scène, style {style}, cinematic, dramatic lighting, 16:9",
-      "duration_seconds": 20
+      "duration_seconds": 30
     }}
   ]
 }}"""
 
     message = client.messages.create(
-        model="claude-opus-4-20250514",
-        max_tokens=4000,
+        model="claude-opus-4-5",
+        max_tokens=8000,
         messages=[{"role": "user", "content": prompt}]
     )
-    
+
     response = message.content[0].text
     cleaned = response.replace("```json", "").replace("```", "").strip()
     return json.loads(cleaned)
