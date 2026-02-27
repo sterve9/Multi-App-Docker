@@ -3,11 +3,15 @@ Service Claude pour améliorer et structurer les posts LinkedIn
 """
 import json
 import logging
+import asyncio
 import anthropic
 from typing import List
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+MAX_RETRIES = 3
+RETRY_DELAYS = [5, 15, 30]
 
 
 class ClaudeLinkedInService:
@@ -18,15 +22,14 @@ class ClaudeLinkedInService:
             raise RuntimeError("ANTHROPIC_API_KEY manquante")
         self.client = anthropic.Anthropic(api_key=settings.ANTHROPIC_API_KEY)
 
-    def improve_post(
+    async def improve_post(
         self,
         raw_content: str,
         post_type: str,
         user_name: str = "Utilisateur"
     ) -> dict:
         """
-        Améliore un post LinkedIn brut
-
+        Améliore un post LinkedIn brut avec retry 3x
         Returns:
             {
                 "content": "Post amélioré...",
@@ -35,7 +38,6 @@ class ClaudeLinkedInService:
             }
         """
         prompt = f"""Tu es un expert LinkedIn qui aide les professionnels à créer du contenu authentique et engageant.
-
 Contexte utilisateur : {user_name}
 Type de post : {post_type}
 Contenu brut : {raw_content}
@@ -66,36 +68,55 @@ FORMAT DE SORTIE (JSON strict) :
   "title": "...",
   "image_prompt": "..."
 }}
-
 IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre, pas de markdown."""
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1500,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        last_exception = None
 
-        raw_text = response.content[0].text.strip()
-        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+        for attempt in range(MAX_RETRIES):
+            try:
+                if attempt > 0:
+                    delay = RETRY_DELAYS[attempt - 1]
+                    logger.info(f"Claude improve_post — retry {attempt}/{MAX_RETRIES - 1} dans {delay}s...")
+                    await asyncio.sleep(delay)
 
-        try:
-            return json.loads(raw_text)
-        except json.JSONDecodeError:
-            raise ValueError(f"Claude n'a pas retourné un JSON valide: {raw_text[:200]}")
+                # Run synchronous Claude call in thread pool to avoid blocking
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: self.client.messages.create(
+                        model="claude-sonnet-4-5",
+                        max_tokens=1500,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                )
 
-    def generate_bullets(self, content: str) -> List[str]:
+                raw_text = response.content[0].text.strip()
+                raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+
+                result = json.loads(raw_text)
+                logger.info(f"Claude improve_post ✅ (tentative {attempt + 1})")
+                return result
+
+            except json.JSONDecodeError as e:
+                last_exception = e
+                logger.warning(f"Claude improve_post — JSON invalide tentative {attempt + 1}: {e}")
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"Claude improve_post — erreur tentative {attempt + 1}: {e}")
+
+        logger.error(f"Claude improve_post — échec après {MAX_RETRIES} tentatives")
+        raise Exception(f"Claude improve_post échoué après {MAX_RETRIES} tentatives : {last_exception}")
+
+    async def generate_bullets(self, content: str) -> List[str]:
         """
-        Génère 3 bullets résumant le post
-
+        Génère 3 bullets résumant le post avec retry 3x
         Returns:
             List[str]: Liste de 3 bullet points
         """
         prompt = f"""Voici un post LinkedIn :
-
 {content}
 
 TÂCHE : Crée 3 bullet points qui résument les points clés du post.
-
 CONTRAINTES :
 - Chaque bullet : maximum 7-8 mots
 - Courts et percutants
@@ -105,20 +126,39 @@ FORMAT DE SORTIE (JSON strict) :
 {{
   "bullets": ["...", "...", "..."]
 }}
-
 IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre."""
 
-        response = self.client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=500,
-            messages=[{"role": "user", "content": prompt}]
-        )
+        last_exception = None
 
-        raw_text = response.content[0].text.strip()
-        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+        for attempt in range(MAX_RETRIES):
+            try:
+                if attempt > 0:
+                    delay = RETRY_DELAYS[attempt - 1]
+                    logger.info(f"Claude generate_bullets — retry {attempt}/{MAX_RETRIES - 1} dans {delay}s...")
+                    await asyncio.sleep(delay)
 
-        try:
-            result = json.loads(raw_text)
-            return result["bullets"]
-        except (json.JSONDecodeError, KeyError):
-            raise ValueError("Claude n'a pas retourné un JSON valide pour les bullets")
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: self.client.messages.create(
+                        model="claude-sonnet-4-5",
+                        max_tokens=500,
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                )
+
+                raw_text = response.content[0].text.strip()
+                raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+                result = json.loads(raw_text)
+                logger.info(f"Claude generate_bullets ✅ (tentative {attempt + 1})")
+                return result["bullets"]
+
+            except (json.JSONDecodeError, KeyError) as e:
+                last_exception = e
+                logger.warning(f"Claude generate_bullets — JSON invalide tentative {attempt + 1}: {e}")
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"Claude generate_bullets — erreur tentative {attempt + 1}: {e}")
+
+        logger.error(f"Claude generate_bullets — échec après {MAX_RETRIES} tentatives")
+        raise Exception(f"Claude generate_bullets échoué après {MAX_RETRIES} tentatives : {last_exception}")

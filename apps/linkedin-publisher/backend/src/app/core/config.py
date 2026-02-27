@@ -27,6 +27,10 @@ class Settings:
     # N8N
     N8N_WEBHOOK_URL: str = os.getenv("N8N_WEBHOOK_URL", "")
 
+    # Telegram
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+
     # App
     DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
     APP_NAME: str = "LinkedIn Publisher API"
@@ -48,6 +52,10 @@ class Settings:
             missing.append("REPLICATE_API_TOKEN")
         if not self.N8N_WEBHOOK_URL:
             missing.append("N8N_WEBHOOK_URL")
+        if not self.TELEGRAM_BOT_TOKEN:
+            missing.append("TELEGRAM_BOT_TOKEN")
+        if not self.TELEGRAM_CHAT_ID:
+            missing.append("TELEGRAM_CHAT_ID")
         if missing:
             logger.warning(f"Variables d'environnement manquantes : {', '.join(missing)}")
 
