@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Frontend - Site Vitrine
   frontend:
     build: ./frontend
     container_name: site-vitrine-frontend
@@ -11,17 +10,12 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
-
-      # Router HTTPS
       - "traefik.http.routers.site-vitrine.rule=Host(`vitrine.sterveshop.cloud`)"
       - "traefik.http.routers.site-vitrine.entrypoints=websecure"
       - "traefik.http.routers.site-vitrine.tls=true"
       - "traefik.http.routers.site-vitrine.tls.certresolver=letsencrypt"
-
-      # Service
       - "traefik.http.services.site-vitrine.loadbalancer.server.port=80"
 
-  # Backend - API FastAPI
   backend:
     build: ./backend
     container_name: site-vitrine-backend
@@ -31,25 +25,23 @@ services:
     environment:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/site-vitrine
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/sterveshop
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     networks:
       - traefik-network
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
-
-      # Router HTTPS
       - "traefik.http.routers.site-vitrine-api.rule=Host(`api.sterveshop.cloud`)"
       - "traefik.http.routers.site-vitrine-api.entrypoints=websecure"
       - "traefik.http.routers.site-vitrine-api.tls=true"
       - "traefik.http.routers.site-vitrine-api.tls.certresolver=letsencrypt"
-
-      # Service
       - "traefik.http.services.site-vitrine-api.loadbalancer.server.port=8000"
 
-  # PostgreSQL - Database
   postgres:
     image: postgres:15
     container_name: site-vitrine-postgres
@@ -57,11 +49,17 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: site-vitrine
+      POSTGRES_DB: sterveshop
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - traefik-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sterveshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
 networks:
   traefik-network:
