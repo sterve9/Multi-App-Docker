@@ -20,6 +20,15 @@ services:
       - traefik-network
     volumes:
       - image_outputs:/app/outputs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.linkedin-api.rule=Host(`api.linkedin.sterveshop.cloud`)"
+      - "traefik.http.routers.linkedin-api.entrypoints=websecure"
+      - "traefik.http.routers.linkedin-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.linkedin-api.loadbalancer.server.port=8000"
+      - "traefik.http.routers.linkedin-api-http.rule=Host(`api.linkedin.sterveshop.cloud`)"
+      - "traefik.http.routers.linkedin-api-http.entrypoints=web"
+      - "traefik.http.routers.linkedin-api-http.middlewares=redirect-to-https"
 
   frontend:
     build: ./frontend
