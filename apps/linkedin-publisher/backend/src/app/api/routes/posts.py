@@ -2,7 +2,7 @@
 Routes API pour la gestion des posts LinkedIn
 """
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
@@ -10,12 +10,11 @@ from pydantic import BaseModel
 from app.core.database import get_db
 from app.models.post import LinkedInPost, PostStatus
 from app.schemas.post_request import PostCreateRequest, PostResponse
-from app.services.n8n_trigger import N8NTriggerService
+from app.services.pipeline import run_post_pipeline
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/posts", tags=["Posts"])
-n8n_service = N8NTriggerService()
 
 
 class PostUpdateRequest(BaseModel):
@@ -33,7 +32,7 @@ async def create_post(
     payload: PostCreateRequest,
     db: Session = Depends(get_db)
 ):
-    """Créer un nouveau post LinkedIn et déclencher le workflow N8N"""
+    """Créer un nouveau post LinkedIn en brouillon"""
     try:
         post = LinkedInPost(
             user_id=payload.user_id,
@@ -44,21 +43,46 @@ async def create_post(
         db.add(post)
         db.commit()
         db.refresh(post)
-
-        try:
-            await n8n_service.trigger_post_workflow(
-                post_id=post.id,
-                user_id=post.user_id
-            )
-        except Exception as e:
-            logger.warning(f"N8N webhook error (non-blocking): {e}")
-
         return post
 
     except Exception as e:
         db.rollback()
         logger.error(f"Error creating post: {e}")
         raise HTTPException(status_code=500, detail=f"Erreur création post: {str(e)}")
+
+
+@router.post("/{post_id}/run", status_code=202)
+async def run_post(
+    post_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Lance le pipeline IA : Claude → Replicate → Overlay → n8n"""
+    post = db.query(LinkedInPost).filter(LinkedInPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.status == PostStatus.PROCESSING:
+        raise HTTPException(status_code=400, detail="Post déjà en cours de traitement")
+
+    background_tasks.add_task(run_post_pipeline, post_id)
+    return {"message": "Pipeline lancé", "post_id": post_id}
+
+
+@router.post("/{post_id}/resume", status_code=202)
+async def resume_post(
+    post_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """Relance le pipeline sur un post échoué"""
+    post = db.query(LinkedInPost).filter(LinkedInPost.id == post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    if post.status not in [PostStatus.FAILED, PostStatus.DRAFT]:
+        raise HTTPException(status_code=400, detail=f"Impossible de relancer un post avec le statut '{post.status}'")
+
+    background_tasks.add_task(run_post_pipeline, post_id)
+    return {"message": "Pipeline relancé", "post_id": post_id}
 
 
 @router.get("", response_model=List[PostResponse])
@@ -92,7 +116,7 @@ def update_post(
     payload: PostUpdateRequest,
     db: Session = Depends(get_db)
 ):
-    """Mettre à jour un post avec les résultats du traitement IA"""
+    """Mettre à jour un post — utilisé par n8n après publication"""
     post = db.query(LinkedInPost).filter(LinkedInPost.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")

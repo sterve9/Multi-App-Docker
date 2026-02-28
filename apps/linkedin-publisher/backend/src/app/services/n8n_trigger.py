@@ -1,47 +1,45 @@
 """
 Service pour déclencher les webhooks N8N
+Nouveau rôle : uniquement notifier n8n que le post est prêt à publier
 """
 import httpx
+import logging
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class N8NTriggerService:
-    """
-    Service pour déclencher les workflows N8N
-    """
-    
+    """Service pour déclencher les workflows N8N"""
+
     def __init__(self):
-        if not settings.N8N_WEBHOOK_URL:
-            raise RuntimeError("N8N_WEBHOOK_URL manquant")
-        
         self.webhook_url = settings.N8N_WEBHOOK_URL
-    
-    async def trigger_post_workflow(self, post_id: int, user_id: int) -> dict:
+
+    async def trigger_publish_workflow(
+        self,
+        post_id: int,
+        processed_content: str,
+        final_image_path: str,
+    ) -> None:
         """
-        Déclenche le workflow N8N pour traiter un post
-        
-        Args:
-            post_id: ID du post créé
-            user_id: ID de l'utilisateur
-        
-        Returns:
-            dict: Réponse du webhook N8N
+        Notifie n8n que le post est prêt à publier sur LinkedIn.
+        Non bloquant — si n8n est indisponible, le post reste en status ready.
         """
-        
+        if not self.webhook_url:
+            logger.warning("N8N_WEBHOOK_URL non configuré, notification ignorée")
+            return
+
         payload = {
-            "post_id": post_id,
-            "user_id": user_id,
-            "trigger": "new_post_created"
+            "post_id":          post_id,
+            "processed_content": processed_content,
+            "final_image_path": final_image_path,
+            "trigger":          "post_ready_to_publish"
         }
-        
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            try:
-                response = await client.post(
-                    self.webhook_url,
-                    json=payload
-                )
+
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(self.webhook_url, json=payload)
                 response.raise_for_status()
-                return response.json()
-            
-            except httpx.HTTPError as e:
-                raise RuntimeError(f"Erreur N8N webhook: {str(e)}")
+            logger.info(f"N8N notifié pour post {post_id} ✅")
+        except Exception as e:
+            logger.warning(f"N8N webhook échoué (non bloquant) : {e}")
