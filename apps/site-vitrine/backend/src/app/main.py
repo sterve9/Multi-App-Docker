@@ -1,29 +1,47 @@
 print("🔥 MAIN FILE CHARGÉ 🔥")
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from datetime import datetime
-import os
+from contextlib import asynccontextmanager
+import time
+import logging
 
-from app.core.database import SessionLocal, Base, engine  # ✅ AJOUT: Base, engine
-from app.models.lead import Lead  # ✅ AJOUT: Import du modèle
-from app.schemas.contact import ContactRequest
-from app.services.lead_service import create_lead
-from app.services.n8n_service import trigger_n8n_webhook
-
-# ✅ AJOUT ROUTER
+from app.core.database import Base, engine
+from app.models.lead import Lead
 from app.api.routes.contact import router as contact_router
 
+logger = logging.getLogger(__name__)
 
-# =====================================================
-# APP
-# =====================================================
+
+def wait_for_db(retries=10, delay=3):
+    """Attend que la base de données soit prête"""
+    from sqlalchemy import text
+    for attempt in range(retries):
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("SELECT 1"))
+            logger.info("Base de données accessible.")
+            return
+        except Exception as e:
+            logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
+            time.sleep(delay)
+    raise RuntimeError("Base de données inaccessible après plusieurs tentatives")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("🔄 Initialisation de la base de données...")
+    wait_for_db()
+    Base.metadata.create_all(bind=engine)
+    print("✅ Tables créées/vérifiées avec succès!")
+    yield
+
 
 app = FastAPI(
     title="Site Vitrine API",
     version="1.0.0",
-    description="Backend intelligent – Leads + DB + n8n"
+    description="Backend intelligent – Leads + DB + n8n",
+    lifespan=lifespan
 )
 
 app.add_middleware(
@@ -39,38 +57,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# =====================================================
-# ✅ CRÉATION DES TABLES AU DÉMARRAGE
-# =====================================================
-
-@app.on_event("startup")
-async def startup_event():
-    """Crée les tables dans la base de données au démarrage"""
-    print("🔄 Initialisation de la base de données...")
-    Base.metadata.create_all(bind=engine)
-    print("✅ Tables créées/vérifiées avec succès!")
-
-# =====================================================
-# DATABASE DEPENDENCY
-# =====================================================
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-# =====================================================
-# ROUTES SYSTEM
-# =====================================================
-
-# ✅ Activation du router
 app.include_router(contact_router, prefix="/api")
+
 
 @app.get("/")
 def root():
     return {"success": True, "message": "API is running"}
+
 
 @app.get("/health")
 def health():
