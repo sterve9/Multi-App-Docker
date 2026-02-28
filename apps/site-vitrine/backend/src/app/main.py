@@ -10,7 +10,7 @@ from app.core.database import SessionLocal, Base, engine  # ✅ AJOUT: Base, eng
 from app.models.lead import Lead  # ✅ AJOUT: Import du modèle
 from app.schemas.contact import ContactRequest
 from app.services.lead_service import create_lead
-from app.services.n8n import trigger_n8n_webhook
+from app.services.n8n_service import trigger_n8n_webhook
 
 # ✅ AJOUT ROUTER
 from app.api.routes.contact import router as contact_router

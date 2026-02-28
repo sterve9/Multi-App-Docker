@@ -31,5 +31,11 @@ class Settings:
     ANTHROPIC_API_KEY: str | None = os.getenv("ANTHROPIC_API_KEY")
     N8N_WEBHOOK_URL: str | None = os.getenv("N8N_WEBHOOK_URL")
 
+    # ===============================
+    # TELEGRAM
+    # ===============================
+    TELEGRAM_BOT_TOKEN: str | None = os.getenv("TELEGRAM_BOT_TOKEN")
+    TELEGRAM_CHAT_ID: str | None = os.getenv("TELEGRAM_CHAT_ID")
+
 
 settings = Settings()

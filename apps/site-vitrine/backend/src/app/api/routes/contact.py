@@ -1,57 +1,32 @@
-from fastapi import APIRouter, Depends, HTTPException
+import logging
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from app.schemas.contact import ContactRequest
 from app.core.database import get_db
-from app.services.lead_service import create_lead, update_lead_analysis
-from app.services.claude import ClaudeService
-from app.services.n8n import trigger_n8n_webhook  # 🆕 AJOUT
+from app.services.lead_service import create_lead
+from app.services.pipeline import run_lead_pipeline
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/contact", tags=["Contact"])
 
-claude = ClaudeService()
-
 
 @router.post("", status_code=201)
-async def create_contact(  # 🆕 async ajouté
+async def create_contact(
     payload: ContactRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    try:
-        # 1️⃣ Création du lead brut
-        lead = create_lead(db, payload.model_dump())
+    """
+    Crée le lead en DB et lance le pipeline en arrière-plan.
+    Réponse immédiate au frontend — pas d'attente IA.
+    """
+    lead = create_lead(db, payload.model_dump())
+    background_tasks.add_task(run_lead_pipeline, lead.id)
 
-        # 2️⃣ Analyse IA
-        analysis = claude.analyze_contact(
-            name=lead.name,
-            email=lead.email,
-            phone=lead.phone,
-            subject=lead.subject,
-            message=lead.message,
-        )
-
-        # 3️⃣ Enrichissement DB
-        lead = update_lead_analysis(db, lead, analysis)
-
-        # 4️⃣ Notification n8n 🆕
-        await trigger_n8n_webhook({
-            "lead_id": lead.id,
-            "priority": lead.priority,
-            "category": lead.category,
-            "next_action": lead.next_action,
-        })
-
-        # 5️⃣ Retour au frontend
-        return {
-            "status": "ok",
-            "lead_id": lead.id,
-            "priority": lead.priority,
-            "category": lead.category,
-            "next_action": lead.next_action,
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erreur traitement contact: {str(e)}"
-        )
+    return {
+        "status": "ok",
+        "lead_id": lead.id,
+        "message": "Votre message a bien été reçu, nous vous répondons rapidement."
+    }
