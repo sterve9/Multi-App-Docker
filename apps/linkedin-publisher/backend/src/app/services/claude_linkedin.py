@@ -37,6 +37,11 @@ class ClaudeLinkedInService:
                 "image_prompt": "Prompt pour l'image..."
             }
         """
+        if post_type == "learning":
+            cta = "- Termine OBLIGATOIREMENT le post avec ce bloc lead magnet (adapte le MOT_CLÉ au sujet du post) :\n  '💬 Commente [MOT_CLÉ] + suis mon profil → je t'envoie le PDF complet gratuitement'"
+        else:
+            cta = "- Termine par une question engageante ou un CTA léger"
+
         prompt = f"""Tu es un expert LinkedIn qui aide les professionnels à créer du contenu authentique et engageant.
 Contexte utilisateur : {user_name}
 Type de post : {post_type}
@@ -46,7 +51,7 @@ TÂCHE 1 - Améliorer le post :
 - Corrige les erreurs d'orthographe/grammaire
 - Structure avec des sauts de ligne clairs
 - Ajoute 2-3 emojis pertinents maximum
-- Termine par une question engageante ou un CTA léger
+{cta}
 - Garde le ton authentique de l'auteur
 - Maximum 1300 caractères
 - N'utilise PAS de tirets cadratin (—), utilise des tirets normaux (-)
@@ -79,7 +84,6 @@ IMPORTANT : Réponds UNIQUEMENT avec le JSON, rien d'autre, pas de markdown."""
                     logger.info(f"Claude improve_post — retry {attempt}/{MAX_RETRIES - 1} dans {delay}s...")
                     await asyncio.sleep(delay)
 
-                # Run synchronous Claude call in thread pool to avoid blocking
                 loop = asyncio.get_event_loop()
                 response = await loop.run_in_executor(
                     None,
