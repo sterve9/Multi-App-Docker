@@ -1,6 +1,7 @@
 """
 Pipeline site vitrine : analyse lead → génère email → envoie → notifie
 """
+import asyncio
 import logging
 from app.core.database import SessionLocal
 from app.models.lead import Lead
@@ -16,7 +17,24 @@ claude_service = ClaudeService()
 
 async def run_lead_pipeline(lead_id: int):
     """Pipeline complet : analyse + email + notification"""
-    db = SessionLocal()
+
+    # Retry connexion DB (3 tentatives)
+    db = None
+    for attempt in range(3):
+        try:
+            db = SessionLocal()
+            db.execute("SELECT 1")
+            break
+        except Exception as e:
+            logger.warning(f"DB connexion tentative {attempt + 1}/3 échouée : {e}")
+            if db:
+                db.close()
+                db = None
+            if attempt == 2:
+                await notify_lead_failed(lead_id=lead_id, error=f"DB indisponible : {e}")
+                return
+            await asyncio.sleep(2)
+
     try:
         lead = db.query(Lead).filter(Lead.id == lead_id).first()
         if not lead:
@@ -50,7 +68,7 @@ async def run_lead_pipeline(lead_id: int):
         )
         logger.info(f"Lead {lead_id} — email généré ✅")
 
-        # Étape 3 — Trigger n8n pour envoi email uniquement
+        # Étape 3 — Trigger n8n pour envoi email
         await trigger_n8n_webhook({
             "lead_id": lead_id,
             "email": lead.email,
@@ -75,4 +93,5 @@ async def run_lead_pipeline(lead_id: int):
         await notify_lead_failed(lead_id=lead_id, error=str(e))
 
     finally:
-        db.close()
+        if db:
+            db.close()

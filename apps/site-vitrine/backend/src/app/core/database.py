@@ -2,12 +2,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    'postgresql+psycopg2://postgres:postgres@postgres:5432/site-vitrine'
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL non définie — vérifier les variables d'environnement Docker")
+
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+)
 
 SessionLocal = sessionmaker(
     autocommit=False,
