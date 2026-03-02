@@ -7,7 +7,6 @@ services:
     restart: unless-stopped
     networks:
       - traefik-network
-
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -28,13 +27,13 @@ services:
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@postgres:5432/sterveshop
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@site-vitrine-db:5432/sterveshop
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - traefik-network
-      - internal         # ← réseau privé
+      - internal
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -47,6 +46,7 @@ services:
   postgres:
     image: postgres:15
     container_name: site-vitrine-postgres
+    hostname: site-vitrine-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -55,7 +55,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - internal         # ← réseau privé UNIQUEMENT, plus de traefik-network
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sterveshop"]
       interval: 5s
@@ -66,7 +66,7 @@ services:
 networks:
   traefik-network:
     external: true
-  internal:              # ← réseau privé isolé
+  internal:
     internal: true
 
 volumes:
