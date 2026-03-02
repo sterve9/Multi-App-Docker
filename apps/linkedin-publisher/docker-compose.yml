@@ -6,10 +6,10 @@ services:
     ports:
       - "8001:8000"
     environment:
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@linkedin-db:5432/linkedin_publisher
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
-      - DATABASE_URL=${DATABASE_URL}
       - DEBUG=${DEBUG:-False}
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
@@ -18,10 +18,12 @@ services:
         condition: service_healthy
     networks:
       - traefik-network
+      - internal
     volumes:
       - image_outputs:/app/outputs
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.linkedin-api.rule=Host(`api.linkedin.sterveshop.cloud`)"
       - "traefik.http.routers.linkedin-api.entrypoints=websecure"
       - "traefik.http.routers.linkedin-api.tls.certresolver=letsencrypt"
@@ -40,6 +42,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.linkedin-app.rule=Host(`app.linkedin.sterveshop.cloud`)"
       - "traefik.http.routers.linkedin-app.entrypoints=websecure"
       - "traefik.http.routers.linkedin-app.tls.certresolver=letsencrypt"
@@ -52,6 +55,7 @@ services:
   postgres:
     image: postgres:15
     container_name: linkedin-publisher-postgres
+    hostname: linkedin-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -60,7 +64,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - traefik-network
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d linkedin_publisher"]
       interval: 5s
@@ -71,6 +75,8 @@ services:
 networks:
   traefik-network:
     external: true
+  internal:
+    internal: true
 
 volumes:
   postgres_data:
