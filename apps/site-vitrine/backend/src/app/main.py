@@ -13,28 +13,33 @@ from app.api.routes.contact import router as contact_router
 logger = logging.getLogger(__name__)
 
 
-def wait_for_db(retries=10, delay=3):
+def wait_for_db(retries=20, delay=3):
     from sqlalchemy import text
     for attempt in range(retries):
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            logger.info("Base de données accessible.")
-            return
+            logger.info("✅ Base de données accessible.")
+            engine.dispose()  # Vide le pool, repart propre
+            return True
         except Exception as e:
             logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
             engine.dispose()
             time.sleep(delay)
-    raise RuntimeError("Base de données inaccessible après plusieurs tentatives")
+    # ← PAS de raise — on laisse l'app démarrer, pool_pre_ping gère la suite
+    logger.error("⚠️ DB inaccessible après tous les retries — démarrage quand même")
+    return False
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🔄 Initialisation de la base de données...")
-    wait_for_db()
-    engine.dispose()  # ← Vide le pool, repart propre
-    Base.metadata.create_all(bind=engine)
-    print("✅ Tables créées/vérifiées avec succès!")
+    db_ready = wait_for_db()
+    if db_ready:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tables créées/vérifiées avec succès!")
+    else:
+        print("⚠️ Démarrage sans initialisation DB — les tables seront créées à la première connexion réussie")
     yield
 
 
