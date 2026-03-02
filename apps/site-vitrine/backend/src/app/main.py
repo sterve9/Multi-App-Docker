@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import time
 import logging
+import sqlalchemy
 
 from app.core.database import Base, engine
 from app.models.lead import Lead
@@ -22,8 +23,13 @@ def wait_for_db(retries=10, delay=3):
                 conn.execute(text("SELECT 1"))
             logger.info("Base de données accessible.")
             return
+        except sqlalchemy.exc.OperationalError as e:
+            logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
+            engine.dispose()  # ← Force nouvelle connexion à chaque tentative
+            time.sleep(delay)
         except Exception as e:
             logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
+            engine.dispose()
             time.sleep(delay)
     raise RuntimeError("Base de données inaccessible après plusieurs tentatives")
 
