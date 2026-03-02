@@ -7,6 +7,7 @@ services:
     restart: unless-stopped
     networks:
       - traefik-network
+
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -33,6 +34,7 @@ services:
         condition: service_healthy
     networks:
       - traefik-network
+      - internal         # ← réseau privé
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -53,17 +55,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - traefik-network
+      - internal         # ← réseau privé UNIQUEMENT, plus de traefik-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d sterveshop"]
       interval: 5s
       timeout: 5s
       retries: 10
-      start_period: 10s
+      start_period: 20s
 
 networks:
   traefik-network:
     external: true
+  internal:              # ← réseau privé isolé
+    internal: true
 
 volumes:
   postgres_data:
