@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import time
 import logging
-import sqlalchemy
 
 from app.core.database import Base, engine
 from app.models.lead import Lead
@@ -15,7 +14,6 @@ logger = logging.getLogger(__name__)
 
 
 def wait_for_db(retries=10, delay=3):
-    """Attend que la base de données soit prête"""
     from sqlalchemy import text
     for attempt in range(retries):
         try:
@@ -23,10 +21,6 @@ def wait_for_db(retries=10, delay=3):
                 conn.execute(text("SELECT 1"))
             logger.info("Base de données accessible.")
             return
-        except sqlalchemy.exc.OperationalError as e:
-            logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
-            engine.dispose()  # ← Force nouvelle connexion à chaque tentative
-            time.sleep(delay)
         except Exception as e:
             logger.warning(f"DB pas encore prête (tentative {attempt + 1}/{retries}) : {e}")
             engine.dispose()
@@ -38,6 +32,7 @@ def wait_for_db(retries=10, delay=3):
 async def lifespan(app: FastAPI):
     print("🔄 Initialisation de la base de données...")
     wait_for_db()
+    engine.dispose()  # ← Vide le pool, repart propre
     Base.metadata.create_all(bind=engine)
     print("✅ Tables créées/vérifiées avec succès!")
     yield

@@ -4,7 +4,7 @@ Pipeline site vitrine : analyse lead → génère email → envoie → notifie
 import asyncio
 import logging
 from sqlalchemy import text
-from app.core.database import SessionLocal
+from app.core.database import SessionLocal, engine
 from app.models.lead import Lead
 from app.services.claude_service import ClaudeService
 from app.services.lead_service import update_lead_analysis
@@ -12,14 +12,12 @@ from app.services.n8n_service import trigger_n8n_webhook
 from app.services.telegram import notify_lead_ready, notify_lead_failed
 
 logger = logging.getLogger(__name__)
-
 claude_service = ClaudeService()
 
 
 async def run_lead_pipeline(lead_id: int):
     """Pipeline complet : analyse + email + notification"""
 
-    # Retry connexion DB (3 tentatives)
     db = None
     for attempt in range(3):
         try:
@@ -31,6 +29,7 @@ async def run_lead_pipeline(lead_id: int):
             if db:
                 db.close()
                 db = None
+            engine.dispose()  # ← Force nouvelles connexions propres
             if attempt == 2:
                 await notify_lead_failed(lead_id=lead_id, error=f"DB indisponible : {e}")
                 return
@@ -69,7 +68,7 @@ async def run_lead_pipeline(lead_id: int):
         )
         logger.info(f"Lead {lead_id} — email généré ✅")
 
-        # Étape 3 — Trigger n8n pour envoi email
+        # Étape 3 — Trigger n8n
         await trigger_n8n_webhook({
             "lead_id": lead_id,
             "email": lead.email,
@@ -79,7 +78,7 @@ async def run_lead_pipeline(lead_id: int):
         })
         logger.info(f"Lead {lead_id} — n8n notifié ✅")
 
-        # Étape 4 — Notification Telegram
+        # Étape 4 — Telegram
         await notify_lead_ready(
             lead_id=lead_id,
             name=lead.name,
