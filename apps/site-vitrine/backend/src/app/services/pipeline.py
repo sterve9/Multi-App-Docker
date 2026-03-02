@@ -3,6 +3,7 @@ Pipeline site vitrine : analyse lead → génère email → envoie → notifie
 """
 import asyncio
 import logging
+from sqlalchemy import text
 from app.core.database import SessionLocal
 from app.models.lead import Lead
 from app.services.claude_service import ClaudeService
@@ -23,7 +24,7 @@ async def run_lead_pipeline(lead_id: int):
     for attempt in range(3):
         try:
             db = SessionLocal()
-            db.execute("SELECT 1")
+            db.execute(text("SELECT 1"))
             break
         except Exception as e:
             logger.warning(f"DB connexion tentative {attempt + 1}/3 échouée : {e}")
