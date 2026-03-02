@@ -6,7 +6,7 @@ services:
     ports:
       - "8002:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql+psycopg2://postgres:postgres@youtube-db:5432/youtube_publisher
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
@@ -18,10 +18,12 @@ services:
         condition: service_healthy
     networks:
       - traefik-network
+      - internal
     volumes:
       - video_outputs:/app/outputs
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.youtube-api.rule=Host(`api.youtube.sterveshop.cloud`)"
       - "traefik.http.routers.youtube-api.entrypoints=websecure"
       - "traefik.http.routers.youtube-api.tls.certresolver=letsencrypt"
@@ -43,6 +45,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.youtube-app.rule=Host(`app.youtube.sterveshop.cloud`)"
       - "traefik.http.routers.youtube-app.entrypoints=websecure"
       - "traefik.http.routers.youtube-app.tls.certresolver=letsencrypt"
@@ -54,6 +57,7 @@ services:
   postgres:
     image: postgres:15
     container_name: youtube-publisher-postgres
+    hostname: youtube-db
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
@@ -62,9 +66,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - traefik-network
+      - internal
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d youtube_publisher"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -72,6 +76,8 @@ services:
 networks:
   traefik-network:
     external: true
+  internal:
+    internal: true
 
 volumes:
   postgres_data:
