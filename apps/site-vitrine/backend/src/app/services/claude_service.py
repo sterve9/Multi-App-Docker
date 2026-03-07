@@ -13,7 +13,7 @@ RETRY_DELAYS = [5, 15, 30]
 
 
 class ClaudeService:
-    """Service Claude : analyse lead + génération email de réponse"""
+    """Service Claude : analyse lead + génération email + génération article blog"""
 
     def __init__(self):
         if not settings.ANTHROPIC_API_KEY:
@@ -26,6 +26,10 @@ class ClaudeService:
         if not match:
             raise ValueError("Aucun JSON valide trouvé dans la réponse IA")
         return json.loads(match.group())
+
+    # ===============================
+    # ANALYSE LEAD (existant)
+    # ===============================
 
     async def analyze_contact(
         self,
@@ -86,6 +90,10 @@ IMPORTANT : Réponds UNIQUEMENT avec le JSON, aucun texte avant ou après."""
                 logger.warning(f"analyze_contact — erreur tentative {attempt + 1}: {e}")
 
         raise Exception(f"analyze_contact échoué après {MAX_RETRIES} tentatives : {last_exception}")
+
+    # ===============================
+    # GÉNÉRATION EMAIL (existant)
+    # ===============================
 
     async def generate_email(
         self,
@@ -174,3 +182,67 @@ IMPORTANT : Réponds UNIQUEMENT avec le JSON, aucun texte avant ou après, pas d
                 logger.warning(f"generate_email — erreur tentative {attempt + 1}: {e}")
 
         raise Exception(f"generate_email échoué après {MAX_RETRIES} tentatives : {last_exception}")
+
+    # ===============================
+    # ✅ GÉNÉRATION ARTICLE BLOG (nouveau)
+    # ===============================
+
+    async def generate_blog_article(
+        self,
+        *,
+        topic: str,
+        tone: str = "professionnel",
+    ) -> dict:
+        """
+        Génère un article de blog SEO optimisé à partir d'un sujet.
+        Retourne : title, slug, excerpt, content
+        Retry 3x en cas d'échec.
+        """
+
+        prompt = f"""Tu es un expert en rédaction de contenu SEO et marketing de contenu.
+
+Génère un article de blog complet et optimisé SEO sur le sujet suivant :
+Sujet : {topic}
+Ton : {tone}
+
+Retourne UNIQUEMENT un JSON strict avec cette structure :
+{{
+  "title": "Titre accrocheur et optimisé SEO (60-70 caractères max)",
+  "slug": "titre-en-minuscules-avec-tirets-sans-accents",
+  "excerpt": "Résumé de 150-160 caractères optimisé pour les meta descriptions SEO",
+  "content": "Article complet en markdown avec titres H2 (##), paragraphes, et listes. Minimum 600 mots."
+}}
+
+RÈGLES :
+- Le slug ne doit contenir que des lettres minuscules, chiffres et tirets
+- Le content doit être structuré avec des ## pour les sections
+- L'article doit être informatif, engageant et optimisé pour le référencement
+- Aucun texte avant ou après le JSON
+- Pas de markdown autour du JSON"""
+
+        last_exception = None
+        for attempt in range(MAX_RETRIES):
+            try:
+                if attempt > 0:
+                    delay = RETRY_DELAYS[attempt - 1]
+                    logger.info(f"generate_blog_article — retry {attempt}/{MAX_RETRIES - 1} dans {delay}s...")
+                    await asyncio.sleep(delay)
+
+                loop = asyncio.get_event_loop()
+                response = await loop.run_in_executor(
+                    None,
+                    lambda: self.client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=4000,  # article long → plus de tokens
+                        messages=[{"role": "user", "content": prompt}]
+                    )
+                )
+                data = self._extract_json(response.content[0].text)
+                logger.info(f"generate_blog_article ✅ (tentative {attempt + 1})")
+                return data
+
+            except Exception as e:
+                last_exception = e
+                logger.warning(f"generate_blog_article — erreur tentative {attempt + 1}: {e}")
+
+        raise Exception(f"generate_blog_article échoué après {MAX_RETRIES} tentatives : {last_exception}")

@@ -26,6 +26,13 @@ class Settings:
     )
 
     # ===============================
+    # SECURITY JWT                         ← AJOUTÉ
+    # ===============================
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "CHANGE_THIS_IN_PRODUCTION")
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # ===============================
     # EXTERNAL SERVICES
     # ===============================
     ANTHROPIC_API_KEY: str | None = os.getenv("ANTHROPIC_API_KEY")

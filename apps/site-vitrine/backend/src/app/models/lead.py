@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
@@ -28,5 +29,10 @@ class Lead(Base):
     source = Column(String(50), default="website")
     status = Column(String(50), default="new")
     response_required = Column(Boolean, default=True)
+
+    # 🔗 Multi-tenant
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    owner = relationship("User", back_populates="leads")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
