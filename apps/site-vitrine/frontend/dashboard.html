@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Sterve</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="dashboard-body">
+
+  <!-- ==================== SIDEBAR ==================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__header">
+      <a href="index.html" class="sidebar__logo">sterve<span>.</span></a>
+      <button class="sidebar__close" id="sidebar-close">✕</button>
+    </div>
+
+    <nav class="sidebar__nav">
+      <div class="sidebar__nav-label">Navigation</div>
+      <ul class="sidebar__nav-list">
+        <li>
+          <a href="#" class="sidebar__nav-link active" data-view="overview">
+            <span class="sidebar__nav-icon">◈</span> Vue d'ensemble
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar__nav-link" data-view="generate">
+            <span class="sidebar__nav-icon">⚡</span> Générer un article
+          </a>
+        </li>
+        <li>
+          <a href="#" class="sidebar__nav-link" data-view="articles">
+            <span class="sidebar__nav-icon">◧</span> Mes articles
+          </a>
+        </li>
+      </ul>
+
+      <div class="sidebar__nav-label" style="margin-top: 32px;">Ressources</div>
+      <ul class="sidebar__nav-list">
+        <li>
+          <a href="blog.html" class="sidebar__nav-link">
+            <span class="sidebar__nav-icon">◉</span> Blog public
+          </a>
+        </li>
+        <li>
+          <a href="https://api.sterveshop.cloud/docs" target="_blank" class="sidebar__nav-link">
+            <span class="sidebar__nav-icon">⊞</span> API Docs
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="sidebar__footer">
+      <div class="sidebar__user" id="sidebar-user">
+        <div class="sidebar__user-avatar" id="sidebar-avatar">?</div>
+        <div class="sidebar__user-info">
+          <div class="sidebar__user-email" id="sidebar-email">—</div>
+          <div class="sidebar__user-plan">Plan Gratuit</div>
+        </div>
+      </div>
+      <button class="sidebar__logout" id="sidebar-logout">
+        <span>↩</span> Déconnexion
+      </button>
+    </div>
+  </aside>
+
+  <!-- Overlay mobile -->
+  <div class="sidebar__overlay" id="sidebar-overlay"></div>
+
+  <!-- ==================== MAIN ==================== -->
+  <main class="dashboard-main" id="dashboard-main">
+
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="topbar__menu" id="topbar-menu">☰</button>
+      <div class="topbar__breadcrumb">
+        <span class="topbar__breadcrumb-root">Dashboard</span>
+        <span class="topbar__breadcrumb-sep">›</span>
+        <span class="topbar__breadcrumb-current" id="topbar-current">Vue d'ensemble</span>
+      </div>
+      <div class="topbar__actions">
+        <button class="topbar__generate-btn" onclick="switchView('generate')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Générer
+        </button>
+      </div>
+    </header>
+
+    <!-- ======== VIEW: OVERVIEW ======== -->
+    <div class="view" id="view-overview">
+      <div class="view__header">
+        <h1 class="view__title">Bonjour, <span id="greeting-name">—</span> 👋</h1>
+        <p class="view__sub">Voici un résumé de votre activité de contenu.</p>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-card__icon">◧</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-total">—</div>
+            <div class="stat-card__label">Articles créés</div>
+          </div>
+          <div class="stat-card__trend trend--up">+0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon" style="color: var(--green)">✓</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-published">—</div>
+            <div class="stat-card__label">Publiés</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card__icon" style="color: var(--white-muted)">◌</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-drafts">—</div>
+            <div class="stat-card__label">Brouillons</div>
+          </div>
+        </div>
+        <div class="stat-card stat-card--accent">
+          <div class="stat-card__icon">⚡</div>
+          <div class="stat-card__body">
+            <div class="stat-card__value" id="stat-quota">3</div>
+            <div class="stat-card__label">Générations restantes</div>
+          </div>
+          <a href="#pricing" class="stat-card__upgrade">Passer Pro →</a>
+        </div>
+      </div>
+
+      <!-- Quick generate -->
+      <div class="quick-generate">
+        <div class="quick-generate__header">
+          <div class="quick-generate__title">
+            <span class="quick-generate__icon">⚡</span>
+            Génération rapide
+          </div>
+          <span class="tag tag--green"><span class="tag__dot"></span>IA Active</span>
+        </div>
+        <div class="quick-generate__body">
+          <input
+            type="text"
+            class="quick-generate__input"
+            id="quick-topic"
+            placeholder="Entrez un sujet d'article..."
+            onkeydown="if(event.key==='Enter') quickGenerate()"
+          >
+          <select class="quick-generate__select" id="quick-tone">
+            <option value="professionnel">Professionnel</option>
+            <option value="expert">Expert</option>
+            <option value="pédagogique">Pédagogique</option>
+            <option value="inspirant">Inspirant</option>
+          </select>
+          <button class="quick-generate__btn" id="quick-btn" onclick="quickGenerate()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Générer
+          </button>
+        </div>
+        <div class="quick-generate__status" id="quick-status" style="display:none">
+          <div class="quick-generate__status-dot"></div>
+          <span id="quick-status-text">Génération en cours...</span>
+        </div>
+      </div>
+
+      <!-- Recent articles -->
+      <div class="recent-section">
+        <div class="recent-section__header">
+          <h2 class="recent-section__title">Articles récents</h2>
+          <a href="#" class="recent-section__link" onclick="switchView('articles'); return false;">Voir tout →</a>
+        </div>
+        <div class="articles-list" id="recent-list">
+          <div class="articles-empty" id="recent-empty" style="display:none">
+            <div class="articles-empty__icon">◌</div>
+            <p>Aucun article encore. Générez-en un !</p>
+            <button class="button button--primary" style="margin-top:16px;font-size:0.85rem;padding:10px 24px" onclick="switchView('generate')">
+              Générer mon premier article
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== VIEW: GENERATE ======== -->
+    <div class="view" id="view-generate" style="display:none">
+      <div class="view__header">
+        <h1 class="view__title">Générer un article</h1>
+        <p class="view__sub">L'IA rédige un article SEO complet à partir de votre sujet.</p>
+      </div>
+
+      <div class="generate-layout">
+        <!-- Form -->
+        <div class="generate-form card">
+          <div class="generate-form__section-label">Paramètres</div>
+
+          <div class="form__group">
+            <label class="form__label">Sujet de l'article <span style="color:var(--red)">*</span></label>
+            <textarea class="form__input" id="gen-topic" rows="3"
+              placeholder="Ex: Les 5 meilleures pratiques pour le marketing B2B en 2026"></textarea>
+          </div>
+
+          <div class="form__group">
+            <label class="form__label">Ton de rédaction</label>
+            <select class="form__input form__select" id="gen-tone">
+              <option value="professionnel">🎯 Professionnel</option>
+              <option value="expert">🔬 Expert</option>
+              <option value="pédagogique">📚 Pédagogique</option>
+              <option value="inspirant">🚀 Inspirant</option>
+            </select>
+          </div>
+
+          <div class="generate-form__info">
+            <span class="generate-form__info-icon">ℹ</span>
+            L'article généré sera sauvegardé en brouillon. Vous pourrez le modifier avant de publier.
+          </div>
+
+          <button class="generate-form__btn" id="gen-btn" onclick="generateArticle()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Générer l'article
+          </button>
+
+          <div class="generate-form__error" id="gen-error" style="display:none"></div>
+        </div>
+
+        <!-- Result -->
+        <div class="generate-result" id="gen-result-panel">
+          <!-- Idle -->
+          <div class="generate-idle" id="gen-idle">
+            <div class="generate-idle__orb"></div>
+            <div class="generate-idle__title">Prêt à générer</div>
+            <p class="generate-idle__sub">Remplissez le formulaire et lancez la génération. L'IA créera un article complet en quelques secondes.</p>
+            <div class="generate-idle__features">
+              <div class="generate-idle__feature"><span>✓</span> 600+ mots</div>
+              <div class="generate-idle__feature"><span>✓</span> SEO optimisé</div>
+              <div class="generate-idle__feature"><span>✓</span> Slug unique</div>
+              <div class="generate-idle__feature"><span>✓</span> Meta description</div>
+            </div>
+          </div>
+
+          <!-- Loading -->
+          <div class="generate-loading" id="gen-loading" style="display:none">
+            <div class="generate-loading__visual">
+              <div class="generate-loading__ring generate-loading__ring--1"></div>
+              <div class="generate-loading__ring generate-loading__ring--2"></div>
+              <div class="generate-loading__ring generate-loading__ring--3"></div>
+              <div class="generate-loading__core">⚡</div>
+            </div>
+            <div class="generate-loading__title">Génération en cours</div>
+            <div class="generate-loading__steps" id="gen-steps">
+              <div class="gen-step" id="step-1">Connexion à Claude AI...</div>
+              <div class="gen-step" id="step-2">Analyse du sujet...</div>
+              <div class="gen-step" id="step-3">Rédaction du contenu...</div>
+              <div class="gen-step" id="step-4">Optimisation SEO...</div>
+              <div class="gen-step" id="step-5">Finalisation...</div>
+            </div>
+          </div>
+
+          <!-- Result card -->
+          <div class="generate-output" id="gen-output" style="display:none">
+            <div class="generate-output__header">
+              <span class="tag tag--green"><span class="tag__dot"></span>Généré avec succès</span>
+              <button class="generate-output__edit-btn" id="gen-edit-btn">✏ Modifier</button>
+            </div>
+
+            <div class="generate-output__title" id="gen-out-title"></div>
+
+            <div class="generate-output__meta">
+              <span class="generate-output__meta-item">
+                <span>◧</span> <span id="gen-out-slug"></span>
+              </span>
+              <span class="generate-output__meta-item">
+                <span>◌</span> Brouillon
+              </span>
+              <span class="generate-output__meta-item" id="gen-out-tone-tag"></span>
+            </div>
+
+            <div class="generate-output__excerpt-label">Résumé</div>
+            <div class="generate-output__excerpt" id="gen-out-excerpt"></div>
+
+            <div class="generate-output__content-label">Contenu <span id="gen-out-words"></span></div>
+            <div class="generate-output__content" id="gen-out-content"></div>
+
+            <div class="generate-output__actions">
+              <button class="button button--primary" onclick="publishArticle()">
+                Publier l'article
+              </button>
+              <button class="button button--secondary" onclick="switchView('articles')">
+                Voir mes articles
+              </button>
+              <button class="button button--secondary" onclick="generateAnother()">
+                Générer un autre
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======== VIEW: ARTICLES ======== -->
+    <div class="view" id="view-articles" style="display:none">
+      <div class="view__header">
+        <h1 class="view__title">Mes articles</h1>
+        <p class="view__sub">Gérez et publiez vos articles générés.</p>
+      </div>
+
+      <!-- Filters -->
+      <div class="articles-filters">
+        <div class="articles-search">
+          <span class="articles-search__icon">⌕</span>
+          <input type="text" class="articles-search__input" id="search-input"
+            placeholder="Rechercher un article..." oninput="filterArticles()">
+        </div>
+        <div class="articles-filter-tabs">
+          <button class="articles-filter-tab active" data-filter="all"    onclick="setFilter(this)">Tous</button>
+          <button class="articles-filter-tab"        data-filter="published" onclick="setFilter(this)">Publiés</button>
+          <button class="articles-filter-tab"        data-filter="draft"  onclick="setFilter(this)">Brouillons</button>
+        </div>
+        <button class="topbar__generate-btn" onclick="switchView('generate')" style="margin-left:auto">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          Nouveau
+        </button>
+      </div>
+
+      <!-- Articles list -->
+      <div id="articles-container">
+        <div class="articles-loading" id="articles-loading">
+          <div class="articles-loading__spinner"></div>
+          <span>Chargement des articles...</span>
+        </div>
+        <div class="articles-empty" id="articles-empty" style="display:none">
+          <div class="articles-empty__icon">◌</div>
+          <p>Aucun article trouvé.</p>
+          <button class="button button--primary" style="margin-top:16px;font-size:0.85rem;padding:10px 24px" onclick="switchView('generate')">
+            Générer mon premier article
+          </button>
+        </div>
+        <div class="articles-grid" id="articles-grid"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== MODAL EDIT ==================== -->
+  <div class="modal-overlay" id="edit-modal">
+    <div class="modal modal--wide">
+      <button class="modal__close" id="edit-modal-close">✕</button>
+      <div class="modal__title">Modifier l'article</div>
+      <div class="edit-form">
+        <input type="hidden" id="edit-id">
+        <div class="form__group">
+          <label class="form__label">Titre</label>
+          <input type="text" class="form__input" id="edit-title">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Slug</label>
+          <input type="text" class="form__input" id="edit-slug">
+        </div>
+        <div class="form__group">
+          <label class="form__label">Résumé</label>
+          <textarea class="form__input" id="edit-excerpt" rows="2"></textarea>
+        </div>
+        <div class="form__group">
+          <label class="form__label">Contenu</label>
+          <textarea class="form__input" id="edit-content" rows="10" style="font-size:0.82rem;line-height:1.6"></textarea>
+        </div>
+        <div class="form__group" style="flex-direction:row;align-items:center;gap:12px">
+          <label class="form__label" style="margin:0">Publié</label>
+          <label class="toggle">
+            <input type="checkbox" id="edit-published">
+            <span class="toggle__slider"></span>
+          </label>
+        </div>
+        <div class="edit-form__error" id="edit-error" style="display:none"></div>
+        <div class="edit-form__actions">
+          <button class="button button--primary" onclick="saveArticle()">Enregistrer</button>
+          <button class="button button--secondary" onclick="closeEditModal()">Annuler</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST ==================== -->
+  <div class="toast" id="toast"></div>
+
+  <script src="js/main.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
