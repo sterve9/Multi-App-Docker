@@ -55,6 +55,16 @@ async function apiRequest(path, options = {}) {
     return res;
 }
 
+/**
+ * Normalise la réponse de /api/blog/me
+ * L'API retourne une liste directe [] (pas un objet {articles, total})
+ */
+function parseArticlesResponse(data) {
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.articles)) return data.articles;
+    return [];
+}
+
 /* ==================== AUTH GUARD ==================== */
 function logout() {
     localStorage.removeItem('sterve_token');
@@ -150,10 +160,11 @@ async function loadOverview() {
         if (!res) return;
         const data = await res.json();
 
-        const articles   = data.articles || [];
-        const total      = data.total    || 0;
-        const published  = articles.filter(a => a.is_published).length;
-        const drafts     = articles.filter(a => !a.is_published).length;
+        // FIX : l'API retourne une liste directe, pas {articles, total}
+        const articles  = parseArticlesResponse(data);
+        const total     = articles.length;
+        const published = articles.filter(a => a.is_published).length;
+        const drafts    = articles.filter(a => !a.is_published).length;
 
         document.getElementById('stat-total')?.setAttribute('data-count', total);
         document.getElementById('stat-published')?.setAttribute('data-count', published);
@@ -176,7 +187,6 @@ function animateStatValues() {
         const el = document.getElementById(id);
         if (!el) return;
         const target = parseInt(el.dataset.count || '0');
-        let start = 0;
         const dur = 900;
         const t0  = performance.now();
         const tick = (now) => {
@@ -217,7 +227,9 @@ async function loadArticles() {
         const res = await apiRequest('/api/blog/me?page=1&limit=100');
         if (!res) return;
         const data = await res.json();
-        allArticles = data.articles || [];
+
+        // FIX : l'API retourne une liste directe, pas {articles, total}
+        allArticles = parseArticlesResponse(data);
         renderArticlesGrid();
     } catch(e) {
         console.error('loadArticles error:', e);
@@ -332,7 +344,7 @@ async function quickGenerate() {
 
     if (!topic) { document.getElementById('quick-topic')?.focus(); return; }
 
-    btn.disabled      = true;
+    btn.disabled         = true;
     status.style.display = 'flex';
     stText.textContent   = 'Génération en cours...';
 
@@ -378,7 +390,6 @@ async function animateSteps(steps) {
     for (let i = 0; i < steps.length; i++) {
         const el = document.getElementById(`step-${i+1}`);
         if (!el) continue;
-        // Mark previous as done
         if (i > 0) {
             const prev = document.getElementById(`step-${i}`);
             if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
@@ -386,7 +397,6 @@ async function animateSteps(steps) {
         el.classList.add('active');
         await new Promise(r => setTimeout(r, 800));
     }
-    // Mark last as done
     const last = document.getElementById(`step-${steps.length}`);
     if (last) { last.classList.remove('active'); last.classList.add('done'); }
 }
@@ -425,7 +435,7 @@ async function generateArticle() {
         });
         if (!res) { showGenState('gen-idle'); return; }
 
-        await stepAnim; // wait for animation
+        await stepAnim;
 
         if (res.status === 429) {
             showGenState('gen-idle');
@@ -440,21 +450,26 @@ async function generateArticle() {
         currentArticleId = data.id;
 
         // Fill output
-        document.getElementById('gen-out-title').textContent   = data.title   || '';
-        document.getElementById('gen-out-slug').textContent    = data.slug     || '';
-        document.getElementById('gen-out-excerpt').textContent = data.excerpt  || '';
+        document.getElementById('gen-out-title').textContent    = data.title   || '';
+        document.getElementById('gen-out-slug').textContent     = data.slug    || '';
+        document.getElementById('gen-out-excerpt').textContent  = data.excerpt || '';
         document.getElementById('gen-out-tone-tag').textContent = tone.charAt(0).toUpperCase() + tone.slice(1);
 
         const words = countWords(data.content);
-        document.getElementById('gen-out-words').textContent = `${words} mots`;
+        document.getElementById('gen-out-words').textContent   = `${words} mots`;
         document.getElementById('gen-out-content').textContent = stripMarkdown(data.content);
 
-        // Edit button
-        document.getElementById('gen-edit-btn')?.addEventListener('click', () => openEditModal(data.id));
+        // Edit button — remove old listener before adding new one
+        const editBtn = document.getElementById('gen-edit-btn');
+        if (editBtn) {
+            const newBtn = editBtn.cloneNode(true);
+            editBtn.parentNode.replaceChild(newBtn, editBtn);
+            newBtn.addEventListener('click', () => openEditModal(data.id));
+        }
 
         showGenState('gen-output');
         toast('✓ Article généré et sauvegardé !', 'success');
-        allArticles.unshift(data); // add to local cache
+        allArticles.unshift(data);
 
     } catch(e) {
         console.error(e);
@@ -517,7 +532,7 @@ async function deleteArticle(id) {
 
         const currentView = document.querySelector('.sidebar__nav-link.active')?.dataset.view;
         if (currentView === 'articles') renderArticlesGrid();
-        if (currentView === 'overview') { loadOverview(); }
+        if (currentView === 'overview') loadOverview();
     } catch(e) {
         toast('Erreur réseau.', 'error');
     }
@@ -528,11 +543,11 @@ function openEditModal(id) {
     const article = allArticles.find(a => a.id === id);
     if (!article) { toast('Article introuvable.', 'error'); return; }
 
-    document.getElementById('edit-id').value        = article.id;
-    document.getElementById('edit-title').value     = article.title     || '';
-    document.getElementById('edit-slug').value      = article.slug      || '';
-    document.getElementById('edit-excerpt').value   = article.excerpt   || '';
-    document.getElementById('edit-content').value   = article.content   || '';
+    document.getElementById('edit-id').value          = article.id;
+    document.getElementById('edit-title').value       = article.title     || '';
+    document.getElementById('edit-slug').value        = article.slug      || '';
+    document.getElementById('edit-excerpt').value     = article.excerpt   || '';
+    document.getElementById('edit-content').value     = article.content   || '';
     document.getElementById('edit-published').checked = article.is_published || false;
     document.getElementById('edit-error').style.display = 'none';
 
@@ -546,8 +561,8 @@ function closeEditModal() {
 }
 
 async function saveArticle() {
-    const id      = parseInt(document.getElementById('edit-id').value);
-    const errEl   = document.getElementById('edit-error');
+    const id    = parseInt(document.getElementById('edit-id').value);
+    const errEl = document.getElementById('edit-error');
     errEl.style.display = 'none';
 
     const payload = {
@@ -607,8 +622,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Expose globally for inline onclick
-window.switchView     = switchView;
-window.quickGenerate  = quickGenerate;
+window.switchView      = switchView;
+window.quickGenerate   = quickGenerate;
 window.generateArticle = generateArticle;
 window.publishArticle  = publishArticle;
 window.generateAnother = generateAnother;
