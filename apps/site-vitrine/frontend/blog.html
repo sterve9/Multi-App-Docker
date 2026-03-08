@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Blog Sterve — Articles SEO générés par IA. Stratégie digitale, marketing, référencement.">
+  <title>Blog — Sterve</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/blog.css">
+</head>
+<body>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" id="header">
+    <nav class="nav container">
+      <a href="index.html" class="nav__logo">
+        <img src="assets/images/logo.png" alt="Sterve" class="nav__logo-img" onerror="this.style.display='none'">
+        sterve<span>.</span>
+      </a>
+
+      <div class="nav__menu" id="nav-menu">
+        <ul class="nav__list">
+          <li><a href="index.html#avantages" class="nav__link">Avantages</a></li>
+          <li><a href="index.html#pricing"   class="nav__link">Tarifs</a></li>
+          <li><a href="blog.html"            class="nav__link active-link">Blog</a></li>
+          <li id="nav-auth-links">
+            <a href="#" class="nav__link nav__cta" data-open-modal>Commencer gratuitement</a>
+          </li>
+        </ul>
+        <i class="nav__close" id="nav-close">✕</i>
+      </div>
+
+      <div class="nav__user" id="nav-user">
+        <span class="nav__user-email" id="nav-user-email"></span>
+        <a href="dashboard.html" class="nav__cta" style="margin-right:8px">Dashboard →</a>
+        <button class="nav__logout" id="nav-logout">Déconnexion</button>
+      </div>
+
+      <i class="nav__toggle" id="nav-toggle">☰</i>
+    </nav>
+  </header>
+
+  <!-- ==================== BLOG HERO ==================== -->
+  <section class="blog-hero">
+    <div class="blog-hero__grid"></div>
+    <div class="blog-hero__glow"></div>
+    <div class="container blog-hero__container">
+      <div class="tag tag--green blog-hero__tag reveal">
+        <span class="tag__dot"></span>
+        Contenu généré par IA
+      </div>
+      <h1 class="blog-hero__title reveal">Le Blog <span>Sterve</span></h1>
+      <p class="blog-hero__sub reveal">
+        Articles SEO, stratégie digitale, marketing — générés et publiés par notre communauté.
+      </p>
+
+      <!-- Search -->
+      <div class="blog-search reveal">
+        <span class="blog-search__icon">⌕</span>
+        <input
+          type="text"
+          class="blog-search__input"
+          id="blog-search"
+          placeholder="Rechercher un article..."
+          oninput="handleSearch()"
+        >
+        <button class="blog-search__clear" id="search-clear" onclick="clearSearch()" style="display:none">✕</button>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="blog-hero__stats reveal">
+        <div class="blog-hero__stat">
+          <span class="blog-hero__stat-value" id="total-count">—</span>
+          <span class="blog-hero__stat-label">articles publiés</span>
+        </div>
+        <div class="blog-hero__stat-dot"></div>
+        <div class="blog-hero__stat">
+          <span class="blog-hero__stat-value">100%</span>
+          <span class="blog-hero__stat-label">SEO optimisé</span>
+        </div>
+        <div class="blog-hero__stat-dot"></div>
+        <div class="blog-hero__stat">
+          <span class="blog-hero__stat-value">IA</span>
+          <span class="blog-hero__stat-label">Claude Sonnet</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== BLOG CONTENT ==================== -->
+  <section class="blog-content">
+    <div class="container">
+
+      <!-- Loading state -->
+      <div class="blog-loading" id="blog-loading">
+        <div class="blog-loading__grid">
+          <div class="blog-skeleton"></div>
+          <div class="blog-skeleton"></div>
+          <div class="blog-skeleton"></div>
+          <div class="blog-skeleton"></div>
+          <div class="blog-skeleton"></div>
+          <div class="blog-skeleton"></div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="blog-empty" id="blog-empty" style="display:none">
+        <div class="blog-empty__icon">◌</div>
+        <h3 class="blog-empty__title">Aucun article trouvé</h3>
+        <p class="blog-empty__sub">Essayez un autre terme de recherche, ou revenez bientôt.</p>
+        <button class="button button--secondary" onclick="clearSearch()" style="margin-top:16px">
+          Réinitialiser la recherche
+        </button>
+      </div>
+
+      <!-- Articles grid -->
+      <div class="blog-grid" id="blog-grid"></div>
+
+      <!-- Pagination -->
+      <div class="blog-pagination" id="blog-pagination" style="display:none">
+        <button class="blog-pagination__btn" id="prev-btn" onclick="changePage(-1)" disabled>
+          ← Précédent
+        </button>
+        <div class="blog-pagination__pages" id="page-numbers"></div>
+        <button class="blog-pagination__btn" id="next-btn" onclick="changePage(1)">
+          Suivant →
+        </button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ==================== ARTICLE MODAL ==================== -->
+  <div class="article-modal-overlay" id="article-modal">
+    <div class="article-modal">
+      <div class="article-modal__header">
+        <button class="article-modal__back" onclick="closeArticle()">
+          ← Retour au blog
+        </button>
+        <button class="article-modal__close" onclick="closeArticle()">✕</button>
+      </div>
+
+      <div class="article-modal__body">
+        <div class="article-modal__meta" id="modal-meta"></div>
+        <h1 class="article-modal__title" id="modal-title"></h1>
+        <div class="article-modal__excerpt" id="modal-excerpt"></div>
+        <div class="article-modal__divider"></div>
+        <div class="article-modal__content" id="modal-content"></div>
+      </div>
+
+      <div class="article-modal__footer">
+        <div class="article-modal__footer-left">
+          <span class="tag tag--green"><span class="tag__dot"></span>SEO Optimisé</span>
+          <span class="article-modal__words" id="modal-words"></span>
+        </div>
+        <a href="#" class="article-modal__cta" data-open-modal>
+          Générer des articles similaires →
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== CTA SECTION ==================== -->
+  <section class="blog-cta">
+    <div class="blog-cta__glow"></div>
+    <div class="container blog-cta__container">
+      <div class="blog-cta__content reveal">
+        <h2 class="blog-cta__title">Vous aussi, publiez avec l'IA.</h2>
+        <p class="blog-cta__sub">Créez votre compte et générez votre premier article en moins d'une minute.</p>
+        <a href="#" class="button button--primary" data-open-modal>
+          Commencer gratuitement
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    <div class="container footer__container">
+      <div class="footer__logo">
+        <img src="assets/images/logo.png" alt="Sterve" class="footer__logo-img" onerror="this.style.display='none'">
+        sterve<span>.</span>
+      </div>
+      <ul class="footer__list">
+        <li><a href="index.html"           class="footer__link">Accueil</a></li>
+        <li><a href="index.html#pricing"   class="footer__link">Tarifs</a></li>
+        <li><a href="dashboard.html"       class="footer__link">Dashboard</a></li>
+      </ul>
+      <p class="footer__copy">© 2026 Sterve — Tous droits réservés</p>
+    </div>
+  </footer>
+
+  <a href="#" class="scrolltop" id="scroll-top">↑</a>
+
+  <!-- ==================== MODAL AUTH ==================== -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal__close" id="modal-close">✕</button>
+      <div class="modal__title">Bienvenue</div>
+      <div class="modal__sub">Connectez-vous ou créez votre compte gratuit</div>
+      <div class="modal__tabs">
+        <button class="modal__tab active" id="tab-login">Connexion</button>
+        <button class="modal__tab" id="tab-register">Inscription</button>
+      </div>
+      <div id="form-login" style="display:flex;flex-direction:column;gap:12px">
+        <input type="email"    class="modal__input" id="login-email"    placeholder="votre@email.com">
+        <input type="password" class="modal__input" id="login-password" placeholder="Mot de passe">
+        <div class="modal__error"   id="login-error"></div>
+        <div class="modal__success" id="login-success"></div>
+        <button class="modal__submit" id="login-btn">Se connecter</button>
+      </div>
+      <div id="form-register" style="display:none;flex-direction:column;gap:12px">
+        <input type="email"    class="modal__input" id="register-email"    placeholder="votre@email.com">
+        <input type="password" class="modal__input" id="register-password" placeholder="Mot de passe (8 caractères min)">
+        <div class="modal__error"   id="register-error"></div>
+        <div class="modal__success" id="register-success"></div>
+        <button class="modal__submit" id="register-btn">Créer mon compte</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/blog.js"></script>
+</body>
+</html>
