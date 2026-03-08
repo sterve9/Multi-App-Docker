@@ -1,443 +1,485 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Sterve - Développeur & Expert en Intelligence Artificielle">
-    <meta name="author" content="Sterve">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.png">
-    
-    <!-- Styles -->
-    <link rel="stylesheet" href="css/styles.css">
-    
-    <title>Sterve - Développeur IA</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sterve — Générez des articles SEO de qualité avec l'IA. Publiez 10x plus vite et boostez votre référencement.">
+  <title>Sterve — Génération de contenu SEO par IA</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/index.css">
 </head>
 <body>
-    
-    <!-- ==================== HEADER / NAVIGATION ==================== -->
-    <header class="header" id="header">
-        <nav class="nav container">
-            <a href="#home" class="nav__logo">
-                <img src="assets/images/logo.png" alt="Logo Sterve" class="nav__logo-img">
-                <span class="logo__text">SterveiaCreator</span>
-            </a>
 
-            <!-- Navigation Menu -->
-            <div class="nav__menu" id="nav-menu">
-                <ul class="nav__list">
-                    <li class="nav__item">
-                        <a href="#home" class="nav__link active-link">Accueil</a>
-                    </li>
-                    <li class="nav__item">
-                        <a href="#services" class="nav__link">Services</a>
-                    </li>
-                    <li class="nav__item">
-                        <a href="#about" class="nav__link">À propos</a>
-                    </li>
-                    <li class="nav__item">
-                        <a href="#contact" class="nav__link">Contact</a>
-                    </li>
-                </ul>
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" id="header">
+    <nav class="nav container">
+      <a href="index.html" class="nav__logo">
+        <img src="assets/images/logo.png" alt="Sterve" class="nav__logo-img" onerror="this.style.display='none'">
+        sterve<span>.</span>
+      </a>
 
-                <!-- Close button for mobile -->
-                <div class="nav__close" id="nav-close">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </div>
-            </div>
+      <div class="nav__menu" id="nav-menu">
+        <ul class="nav__list">
+          <li><a href="#avantages" class="nav__link">Avantages</a></li>
+          <li><a href="#demo"      class="nav__link">Démo</a></li>
+          <li><a href="#features"  class="nav__link">Fonctionnalités</a></li>
+          <li><a href="#pricing"   class="nav__link">Tarifs</a></li>
+          <li id="nav-auth-links">
+            <a href="#" class="nav__link nav__cta" data-open-modal>Commencer gratuitement</a>
+          </li>
+        </ul>
+        <i class="nav__close" id="nav-close">✕</i>
+      </div>
 
-            <!-- Toggle button for mobile -->
-            <div class="nav__toggle" id="nav-toggle">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                </svg>
-            </div>
-        </nav>
-    </header>
+      <div class="nav__user" id="nav-user">
+        <span class="nav__user-email" id="nav-user-email"></span>
+        <a href="dashboard.html" class="nav__cta" style="margin-right:8px;">Dashboard →</a>
+        <button class="nav__logout" id="nav-logout">Déconnexion</button>
+      </div>
 
-    <!-- ==================== MAIN CONTENT ==================== -->
-    <main class="main">
-        
-        <!-- ==================== HOME SECTION ==================== -->
-        <section class="home section" id="home">
-            <div class="home__container container">
-                <div class="home__content">
-                    <h1 class="home__title">
-                        Développeur & Expert en 
-                        <span class="home__title-highlight">Intelligence Artificielle</span>
-                    </h1>
-                    <p class="home__description">
-                        Développeur passionné par l'IA et l'automatisation. 
-                        Je crée des solutions innovantes qui transforment vos idées en réalité digitale.
-                    </p>
-                    <div class="home__buttons">
-                        <a href="#contact" class="button button--primary">
-                            Démarrer un projet
-                        </a>
-                        <a href="#services" class="button button--secondary">
-                            Découvrir mes services
-                        </a>
-                    </div>
-                </div>
-                <div class="home__image">
-                    <svg class="home__svg" viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg">
-                        <!-- Illustration SVG simple -->
-                        <rect x="50" y="50" width="300" height="200" rx="10" fill="var(--color-primary-light)" opacity="0.2"/>
-                        <rect x="70" y="70" width="260" height="30" rx="5" fill="var(--color-primary)"/>
-                        <rect x="70" y="120" width="180" height="15" rx="3" fill="var(--color-primary)" opacity="0.6"/>
-                        <rect x="70" y="145" width="220" height="15" rx="3" fill="var(--color-primary)" opacity="0.4"/>
-                        <rect x="70" y="170" width="150" height="15" rx="3" fill="var(--color-primary)" opacity="0.3"/>
-                        <circle cx="320" cy="200" r="30" fill="var(--color-accent)" opacity="0.8"/>
-                        <circle cx="280" cy="230" r="20" fill="var(--color-accent)" opacity="0.5"/>
-                    </svg>
-                </div>
-            </div>
-        </section>
+      <i class="nav__toggle" id="nav-toggle">☰</i>
+    </nav>
+  </header>
 
-        <!-- ==================== SERVICES SECTION ==================== -->
-        <section class="services section" id="services">
-            <div class="container">
-                <h2 class="section__title">Mes Services</h2>
-                <p class="section__subtitle">
-                    Des solutions complètes pour votre présence digitale
-                </p>
+  <!-- ==================== HERO ==================== -->
+  <section class="hero section" id="home">
+    <!-- Grid background -->
+    <div class="hero__grid"></div>
+    <!-- Glows -->
+    <div class="hero__glow hero__glow--1"></div>
+    <div class="hero__glow hero__glow--2"></div>
 
-                <div class="services__grid">
-                    <!-- Service 1 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                                <line x1="8" y1="21" x2="16" y2="21"></line>
-                                <line x1="12" y1="17" x2="12" y2="21"></line>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">Développement Web</h3>
-                        <p class="service__description">
-                            Création de sites vitrines, applications web sur mesure avec les dernières technologies.
-                        </p>
-                    </article>
-
-                    <!-- Service 2 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">Automatisation</h3>
-                        <p class="service__description">
-                            Optimisez vos processus avec n8n, Zapier et des workflows intelligents.
-                        </p>
-                    </article>
-
-                    <!-- Service 3 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-                                <line x1="12" y1="22.08" x2="12" y2="12"></line>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">API & Backend</h3>
-                        <p class="service__description">
-                            Développement d'APIs robustes avec FastAPI, Django et architecture moderne.
-                        </p>
-                    </article>
-
-                    <!-- Service 4 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="2" y1="12" x2="22" y2="12"></line>
-                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">Intelligence Artificielle</h3>
-                        <p class="service__description">
-                            Intégration d'IA, machine learning et solutions d'automatisation intelligente.
-                        </p>
-                    </article>
-
-                    <!-- Service 5 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 20h9"></path>
-                                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">Design UI/UX</h3>
-                        <p class="service__description">
-                            Interfaces modernes, responsive et centrées sur l'expérience utilisateur.
-                        </p>
-                    </article>
-
-                    <!-- Service 6 -->
-                    <article class="service__card">
-                        <div class="service__icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                                <line x1="16" y1="13" x2="8" y2="13"></line>
-                                <line x1="16" y1="17" x2="8" y2="17"></line>
-                                <polyline points="10 9 9 9 8 9"></polyline>
-                            </svg>
-                        </div>
-                        <h3 class="service__title">Conseil & Audit</h3>
-                        <p class="service__description">
-                            Analyse de votre infrastructure existante et recommandations stratégiques.
-                        </p>
-                    </article>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==================== ABOUT SECTION ==================== -->
-        <section class="about section" id="about">
-            <div class="container">
-                <div class="about__container">
-                    <div class="about__image">
-                        <img src="assets/images/profile.jpg" alt="Photo de Sterve" class="about__photo">
-                    </div>
-                    <div class="about__content">
-                        <h2 class="section__title">À Propos</h2>
-                        <p class="about__text">
-                            Développeur full-stack spécialisé dans l'intelligence artificielle et l'automatisation.
-                            Je combine créativité et expertise technique pour créer des solutions innovantes.
-                        </p>
-                        <p class="about__text">
-                            Passionné par l'IA, le développement web moderne et l'automatisation des processus,
-                            je mets mon expertise au service de projets ambitieux et innovants.
-                        </p>
-                        
-                        <div class="about__stats">
-                            <div class="stat__item">
-                                <h3 class="stat__number">5+</h3>
-                                <p class="stat__label">Années d'expérience</p>
-                            </div>
-                            <div class="stat__item">
-                                <h3 class="stat__number">50+</h3>
-                                <p class="stat__label">Projets réalisés</p>
-                            </div>
-                            <div class="stat__item">
-                                <h3 class="stat__number">100%</h3>
-                                <p class="stat__label">Clients satisfaits</p>
-                            </div>
-                        </div>
-
-                        <a href="#contact" class="button button--primary">Travaillons ensemble</a>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- ==================== CONTACT SECTION ==================== -->
-        <section class="contact section" id="contact">
-            <div class="container">
-                <h2 class="section__title">Contactez-moi</h2>
-                <p class="section__subtitle">
-                    Un projet en tête ? Discutons-en !
-                </p>
-
-                <div class="contact__container">
-                    <!-- Contact Info -->
-                    <div class="contact__info">
-                        <div class="contact__card">
-                            <div class="contact__card-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                    <polyline points="22,6 12,13 2,6"></polyline>
-                                </svg>
-                            </div>
-                            <h3 class="contact__card-title">Email</h3>
-                            <p class="contact__card-data">sterveshop6@gmail.com</p>
-                        </div>
-
-                        <div class="contact__card">
-                            <div class="contact__card-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                                </svg>
-                            </div>
-                            <h3 class="contact__card-title">Téléphone</h3>
-                            <p class="contact__card-data">+216 55273396</p>
-                        </div>
-
-                        <div class="contact__card">
-                            <div class="contact__card-icon">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                    <circle cx="12" cy="10" r="3"></circle>
-                                </svg>
-                            </div>
-                            <h3 class="contact__card-title">Localisation</h3>
-                            <p class="contact__card-data">Tunis, Tunisie</p>
-                        </div>
-                    </div>
-
-                    <!-- Contact Form -->
-                    <form class="contact__form" id="contact-form">
-                        <div class="form__group">
-                            <label for="name" class="form__label">Nom complet *</label>
-                            <input 
-                                type="text" 
-                                id="name" 
-                                name="name" 
-                                class="form__input" 
-                                placeholder="Votre nom"
-                                required
-                            >
-                        </div>
-
-                        <div class="form__group">
-                            <label for="email" class="form__label">Email *</label>
-                            <input 
-                                type="email" 
-                                id="email" 
-                                name="email" 
-                                class="form__input" 
-                                placeholder="votre@email.com"
-                                required
-                            >
-                        </div>
-
-                        <div class="form__group">
-                            <label for="phone" class="form__label">Téléphone</label>
-                            <input 
-                                type="tel" 
-                                id="phone" 
-                                name="phone" 
-                                class="form__input" 
-                                placeholder="+216 XX XXX XXX"
-                            >
-                        </div>
-
-                        <div class="form__group">
-                            <label for="subject" class="form__label">Sujet *</label>
-                            <select id="subject" name="subject" class="form__input" required>
-                                <option value="">Sélectionnez un sujet</option>
-                                <option value="devis">Demande de devis</option>
-                                <option value="projet">Nouveau projet</option>
-                                <option value="information">Demande d'information</option>
-                                <option value="autre">Autre</option>
-                            </select>
-                        </div>
-
-                        <div class="form__group form__group--full">
-                            <label for="message" class="form__label">Message *</label>
-                            <textarea 
-                                id="message" 
-                                name="message" 
-                                class="form__textarea" 
-                                placeholder="Décrivez votre projet..."
-                                rows="6"
-                                required
-                            ></textarea>
-                        </div>
-
-                        <!-- Message de statut -->
-                        <div class="form__message" id="form-message"></div>
-
-                        <button type="submit" class="button button--primary button--block" id="submit-btn">
-                            <span class="button__text">Envoyer le message</span>
-                            <span class="button__loader" style="display: none;">
-                                <svg class="spinner" viewBox="0 0 50 50">
-                                    <circle class="path" cx="25" cy="25" r="20" fill="none" stroke-width="5"></circle>
-                                </svg>
-                            </span>
-                        </button>
-
-                        <p class="form__privacy">
-                            * Champs obligatoires. Vos données sont protégées et ne seront jamais partagées.
-                        </p>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ==================== FOOTER ==================== -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer__container">
-                <div class="footer__content">
-                    <a href="#home" class="footer__logo">
-                        <img src="assets/images/logo.png" alt="Logo Sterve" class="footer__logo-img">
-                        <span class="logo__text">SterveiaCreator</span>
-                    </a>
-                    <p class="footer__description">
-                        Solutions digitales innovantes et expertise en intelligence artificielle.
-                    </p>
-                </div>
-
-                <div class="footer__links">
-                    <h3 class="footer__title">Navigation</h3>
-                    <ul class="footer__list">
-                        <li><a href="#home" class="footer__link">Accueil</a></li>
-                        <li><a href="#services" class="footer__link">Services</a></li>
-                        <li><a href="#about" class="footer__link">À propos</a></li>
-                        <li><a href="#contact" class="footer__link">Contact</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer__links">
-                    <h3 class="footer__title">Services</h3>
-                    <ul class="footer__list">
-                        <li><a href="#services" class="footer__link">Développement Web</a></li>
-                        <li><a href="#services" class="footer__link">Automatisation</a></li>
-                        <li><a href="#services" class="footer__link">Intelligence Artificielle</a></li>
-                        <li><a href="#services" class="footer__link">Conseil</a></li>
-                    </ul>
-                </div>
-
-                <div class="footer__social">
-                    <h3 class="footer__title">Suivez-moi</h3>
-                    <div class="footer__social-links">
-                        <a href="https://github.com/sterve9" target="_blank" rel="noopener" class="footer__social-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                            </svg>
-                        </a>
-                        <a href="https://www.linkedin.com/in/sterve-ai" target="_blank" rel="noopener" class="footer__social-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
-                            </svg>
-                        </a>
-                        <a href="https://t.me/sterveshop" target="_blank" rel="noopener" class="footer__social-link">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
-                            </svg>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="footer__bottom">
-                <p class="footer__copy">
-                    &copy; 2026 Sterve. Tous droits réservés.
-                </p>
-            </div>
+    <div class="container hero__container">
+      <div class="hero__content">
+        <div class="tag tag--green hero__tag">
+          <span class="tag__dot"></span>
+          Alimenté par Claude AI
         </div>
-    </footer>
 
-    <!-- Scroll to top button -->
-    <a href="#home" class="scrolltop" id="scroll-top">
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="18 15 12 9 6 15"></polyline>
-        </svg>
-    </a>
+        <h1 class="hero__title">
+          Publiez <span class="hero__title-accent">10x plus vite</span><br>
+          avec du contenu<br>qui convertit.
+        </h1>
 
-    <!-- JavaScript -->
-    <script src="js/main.js?v=2"></script>
+        <p class="hero__description">
+          Sterve génère des articles SEO complets, structurés et optimisés en quelques secondes.
+          Alimentez votre blog, dominez Google, gagnez du temps.
+        </p>
+
+        <div class="hero__actions">
+          <a href="#" class="button button--primary hero__cta" data-open-modal>
+            Essayer gratuitement
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+          <a href="#demo" class="button button--secondary">Voir la démo</a>
+        </div>
+
+        <div class="hero__stats">
+          <div class="hero__stat">
+            <div class="hero__stat-number" data-target="10">0<span>x</span></div>
+            <div class="hero__stat-label">Plus rapide qu'un humain</div>
+          </div>
+          <div class="hero__stat-divider"></div>
+          <div class="hero__stat">
+            <div class="hero__stat-number" data-target="600">0<span>+</span></div>
+            <div class="hero__stat-label">Mots par article</div>
+          </div>
+          <div class="hero__stat-divider"></div>
+          <div class="hero__stat">
+            <div class="hero__stat-number" data-target="100">0<span>%</span></div>
+            <div class="hero__stat-label">Optimisé SEO</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hero visual: animated terminal -->
+      <div class="hero__visual">
+        <div class="hero__terminal">
+          <div class="hero__terminal-bar">
+            <span class="hero__terminal-dot" style="background:#ff5f57"></span>
+            <span class="hero__terminal-dot" style="background:#febc2e"></span>
+            <span class="hero__terminal-dot" style="background:#28c840"></span>
+            <span class="hero__terminal-title">sterve — génération IA</span>
+          </div>
+          <div class="hero__terminal-body">
+            <div class="terminal-line"><span class="terminal-prompt">$</span> <span class="terminal-cmd" id="t-cmd"></span><span class="terminal-cursor">|</span></div>
+            <div class="terminal-output" id="t-output"></div>
+            <div class="terminal-result" id="t-result" style="display:none">
+              <div class="terminal-result-title" id="t-title"></div>
+              <div class="terminal-result-meta">
+                <span class="tag tag--green" style="font-size:0.65rem">✓ SEO</span>
+                <span class="tag tag--white" style="font-size:0.65rem" id="t-words"></span>
+              </div>
+              <div class="terminal-result-excerpt" id="t-excerpt"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Floating badges -->
+        <div class="hero__badge hero__badge--1">
+          <span>⚡</span> Généré en 8s
+        </div>
+        <div class="hero__badge hero__badge--2">
+          <span>🎯</span> SEO Score 98
+        </div>
+        <div class="hero__badge hero__badge--3">
+          <span>✓</span> Prêt à publier
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== AVANTAGES ANIMÉS ==================== -->
+  <section class="avantages section" id="avantages">
+    <div class="container">
+      <div class="avantages__header">
+        <div class="section__label reveal">Pourquoi Sterve</div>
+        <h2 class="section__title reveal">Ce que vous gagnez<br>dès le premier article</h2>
+      </div>
+
+      <div class="avantages__grid">
+
+        <!-- Avantage 1 : Temps -->
+        <div class="avantage-card reveal" data-delay="0">
+          <div class="avantage-card__icon-wrap">
+            <div class="avantage-card__icon">⚡</div>
+            <div class="avantage-card__icon-ring"></div>
+          </div>
+          <h3 class="avantage-card__title">Gagnez des heures par semaine</h3>
+          <p class="avantage-card__desc">Un article complet en 8 secondes. Fini les heures à rédiger, reformuler, structurer. Focalisez-vous sur votre business.</p>
+          <div class="avantage-card__meter">
+            <div class="avantage-card__meter-label">
+              <span>Temps de rédaction</span>
+              <span class="avantage-card__meter-value">−92%</span>
+            </div>
+            <div class="avantage-card__meter-bar">
+              <div class="avantage-card__meter-fill" data-width="92"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avantage 2 : SEO -->
+        <div class="avantage-card reveal" data-delay="100">
+          <div class="avantage-card__icon-wrap">
+            <div class="avantage-card__icon">📈</div>
+            <div class="avantage-card__icon-ring"></div>
+          </div>
+          <h3 class="avantage-card__title">SEO natif dès la génération</h3>
+          <p class="avantage-card__desc">Titres H1/H2, meta description, slug, densité de mots-clés — chaque article est structuré pour ranker sur Google.</p>
+          <div class="avantage-card__score">
+            <div class="avantage-card__score-circle">
+              <svg viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" fill="none" stroke="rgba(245,245,240,0.05)" stroke-width="6"/>
+                <circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="6"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6"
+                  class="score-arc" data-score="213.6" stroke-linecap="round"
+                  transform="rotate(-90 40 40)"/>
+              </svg>
+              <span class="avantage-card__score-number">98</span>
+            </div>
+            <div class="avantage-card__score-labels">
+              <div class="avantage-card__score-item">
+                <span class="avantage-card__score-dot"></span> Structure HTML
+              </div>
+              <div class="avantage-card__score-item">
+                <span class="avantage-card__score-dot"></span> Meta tags
+              </div>
+              <div class="avantage-card__score-item">
+                <span class="avantage-card__score-dot"></span> Densité mots-clés
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avantage 3 : Volume -->
+        <div class="avantage-card reveal" data-delay="200">
+          <div class="avantage-card__icon-wrap">
+            <div class="avantage-card__icon">🚀</div>
+            <div class="avantage-card__icon-ring"></div>
+          </div>
+          <h3 class="avantage-card__title">Publiez à grande échelle</h3>
+          <p class="avantage-card__desc">Là où votre équipe publie 4 articles par mois, Sterve en génère 100. Alimentez votre blog sans limite.</p>
+          <div class="avantage-card__comparison">
+            <div class="avantage-card__comp-item">
+              <div class="avantage-card__comp-label">Sans Sterve</div>
+              <div class="avantage-card__comp-bar-wrap">
+                <div class="avantage-card__comp-bar avantage-card__comp-bar--low" data-width="8">
+                  <span>4 / mois</span>
+                </div>
+              </div>
+            </div>
+            <div class="avantage-card__comp-item">
+              <div class="avantage-card__comp-label" style="color:var(--green)">Avec Sterve</div>
+              <div class="avantage-card__comp-bar-wrap">
+                <div class="avantage-card__comp-bar avantage-card__comp-bar--high" data-width="100">
+                  <span>100+ / mois</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Avantage 4 : Qualité -->
+        <div class="avantage-card avantage-card--wide reveal" data-delay="0">
+          <div class="avantage-card__icon-wrap">
+            <div class="avantage-card__icon">✨</div>
+            <div class="avantage-card__icon-ring"></div>
+          </div>
+          <h3 class="avantage-card__title">Qualité éditoriale professionnelle</h3>
+          <p class="avantage-card__desc">Introduction percutante, corps argumenté, conclusion actionnables. Du contenu que vos lecteurs veulent partager.</p>
+          <div class="avantage-card__tones">
+            <div class="avantage-card__tone active" data-tone="Professionnel">Professionnel</div>
+            <div class="avantage-card__tone" data-tone="Expert">Expert</div>
+            <div class="avantage-card__tone" data-tone="Pédagogique">Pédagogique</div>
+            <div class="avantage-card__tone" data-tone="Inspirant">Inspirant</div>
+          </div>
+          <div class="avantage-card__preview">
+            <div class="avantage-card__preview-text" id="tone-preview">
+              "Dans un paysage digital en constante évolution, maîtriser le référencement naturel n'est plus une option mais une nécessité stratégique pour toute entreprise souhaitant maintenir sa compétitivité..."
+            </div>
+          </div>
+        </div>
+
+        <!-- Avantage 5 : ROI -->
+        <div class="avantage-card avantage-card--accent reveal" data-delay="100">
+          <div class="avantage-card__icon-wrap">
+            <div class="avantage-card__icon">💰</div>
+            <div class="avantage-card__icon-ring"></div>
+          </div>
+          <h3 class="avantage-card__title">ROI immédiat</h3>
+          <p class="avantage-card__desc">Un rédacteur freelance facture 80-150€/article. Sterve vous revient à moins de 0,30€. L'équation est simple.</p>
+          <div class="avantage-card__roi">
+            <div class="avantage-card__roi-item">
+              <div class="avantage-card__roi-label">Rédacteur freelance</div>
+              <div class="avantage-card__roi-price">~120€<span>/article</span></div>
+            </div>
+            <div class="avantage-card__roi-vs">VS</div>
+            <div class="avantage-card__roi-item">
+              <div class="avantage-card__roi-label" style="color:var(--green)">Sterve Pro</div>
+              <div class="avantage-card__roi-price" style="color:var(--green)">0,29€<span>/article</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== DÉMO INTERACTIVE ==================== -->
+  <section class="demo-section section" id="demo">
+    <div class="container">
+      <div class="section__label reveal">Démo interactive</div>
+      <h2 class="section__title reveal">Testez en temps réel</h2>
+      <p class="section__subtitle reveal">Entrez un sujet, choisissez un ton. L'IA génère un article complet en quelques secondes.</p>
+
+      <div class="demo__container reveal">
+        <!-- Input -->
+        <div class="demo__input-panel">
+          <div class="demo__panel-label">Paramètres</div>
+          <div class="demo__fields">
+            <div class="form__group">
+              <label class="form__label">Sujet de l'article</label>
+              <textarea class="form__input" id="demo-topic" rows="3"
+                placeholder="Ex: Comment améliorer son référencement Google en 2026"></textarea>
+            </div>
+            <div class="form__group">
+              <label class="form__label">Ton de rédaction</label>
+              <select class="form__input form__select" id="demo-tone">
+                <option value="professionnel">Professionnel</option>
+                <option value="expert">Expert</option>
+                <option value="pédagogique">Pédagogique</option>
+                <option value="inspirant">Inspirant</option>
+              </select>
+            </div>
+          </div>
+          <button class="demo__btn" id="demo-btn" onclick="generateDemo()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            Générer l'article
+          </button>
+        </div>
+
+        <!-- Output -->
+        <div class="demo__output-panel">
+          <div class="demo__panel-label">Résultat</div>
+
+          <div class="demo__state demo__state--empty" id="demo-empty">
+            <div class="demo__empty-icon">✦</div>
+            <p>Entrez un sujet et cliquez sur Générer</p>
+          </div>
+
+          <div class="demo__state demo__state--loading" id="demo-loading" style="display:none">
+            <div class="demo__loading-orb"></div>
+            <div class="demo__loading-bar"><div class="demo__loading-fill"></div></div>
+            <div class="demo__loading-text">L'IA rédige votre article...</div>
+          </div>
+
+          <div class="demo__state demo__state--login" id="demo-login" style="display:none">
+            <div class="demo__empty-icon">🔒</div>
+            <p>Connectez-vous pour générer vos articles</p>
+            <button class="button button--primary" style="margin-top:16px;font-size:0.85rem;padding:10px 24px" data-open-modal>
+              Se connecter
+            </button>
+          </div>
+
+          <div class="demo__result" id="demo-result" style="display:none">
+            <div class="demo__result-title" id="result-title"></div>
+            <div class="demo__result-meta">
+              <span class="tag tag--green">SEO Optimisé</span>
+              <span class="tag tag--white" id="result-tone-tag"></span>
+            </div>
+            <div class="demo__result-excerpt" id="result-excerpt"></div>
+            <div class="demo__result-content" id="result-content"></div>
+            <a href="dashboard.html" class="demo__result-cta">
+              Gérer cet article dans le dashboard →
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== FEATURES GRID ==================== -->
+  <section class="features section" id="features">
+    <div class="container">
+      <div class="section__label reveal">Fonctionnalités</div>
+      <h2 class="section__title reveal">Tout ce qu'il vous faut</h2>
+
+      <div class="features__grid">
+        <div class="feature-card reveal" style="--delay:0ms">
+          <div class="feature-card__icon">⚡</div>
+          <h3 class="feature-card__title">Génération instantanée</h3>
+          <p class="feature-card__desc">600+ mots structurés, optimisés, prêts à publier en moins de 15 secondes.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay:80ms">
+          <div class="feature-card__icon">🎯</div>
+          <h3 class="feature-card__title">SEO natif</h3>
+          <p class="feature-card__desc">Titres H2, meta description, slug URL — structuré pour les moteurs de recherche.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay:160ms">
+          <div class="feature-card__icon">✏️</div>
+          <h3 class="feature-card__title">Édition complète</h3>
+          <p class="feature-card__desc">Modifiez, affinez, publiez ou gardez en brouillon. Contrôle total.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay:240ms">
+          <div class="feature-card__icon">🔒</div>
+          <h3 class="feature-card__title">Sécurité enterprise</h3>
+          <p class="feature-card__desc">JWT, données chiffrées. Chaque utilisateur accède uniquement à son contenu.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay:320ms">
+          <div class="feature-card__icon">🌐</div>
+          <h3 class="feature-card__title">API REST complète</h3>
+          <p class="feature-card__desc">Intégrez Sterve dans votre workflow existant. Compatible tous CMS.</p>
+        </div>
+        <div class="feature-card reveal" style="--delay:400ms">
+          <div class="feature-card__icon">📊</div>
+          <h3 class="feature-card__title">Multiples tons</h3>
+          <p class="feature-card__desc">Professionnel, expert, pédagogique, inspirant — adapté à votre audience.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== PRICING ==================== -->
+  <section class="pricing section" id="pricing">
+    <div class="container">
+      <div class="section__label reveal">Tarifs</div>
+      <h2 class="section__title reveal">Simple et transparent</h2>
+      <p class="section__subtitle reveal">Commencez gratuitement. Passez au Pro quand vous êtes prêt.</p>
+
+      <div class="pricing__grid">
+        <div class="pricing-card reveal">
+          <div class="pricing-card__plan">Gratuit</div>
+          <div class="pricing-card__price">0€ <span>/ mois</span></div>
+          <div class="pricing-card__desc">Pour découvrir la puissance de la génération IA.</div>
+          <ul class="pricing-card__features">
+            <li>3 articles générés / mois</li>
+            <li>Tous les tons disponibles</li>
+            <li>Optimisation SEO incluse</li>
+            <li>Accès à l'API</li>
+          </ul>
+          <a href="#" class="button button--secondary button--block" data-open-modal>Commencer gratuitement</a>
+        </div>
+
+        <div class="pricing-card pricing-card--featured reveal">
+          <div class="pricing-card__badge">POPULAIRE</div>
+          <div class="pricing-card__plan" style="color:var(--green)">Pro</div>
+          <div class="pricing-card__price">29€ <span>/ mois</span></div>
+          <div class="pricing-card__desc">Pour les PME et agences qui publient régulièrement.</div>
+          <ul class="pricing-card__features">
+            <li>Articles illimités</li>
+            <li>Tous les tons disponibles</li>
+            <li>Optimisation SEO avancée</li>
+            <li>API prioritaire</li>
+            <li>Support dédié</li>
+          </ul>
+          <a href="#" class="button button--primary button--block" data-open-modal>Démarrer l'essai gratuit</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CTA FINAL ==================== -->
+  <section class="cta-section section">
+    <div class="cta-section__glow"></div>
+    <div class="container cta-section__container">
+      <h2 class="cta-section__title reveal">Prêt à publier<br><span>10x plus vite ?</span></h2>
+      <p class="cta-section__sub reveal">Rejoignez les équipes qui font confiance à Sterve pour leur stratégie de contenu.</p>
+      <a href="#" class="button button--primary reveal" data-open-modal>
+        Créer mon compte gratuit
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer">
+    <div class="container footer__container">
+      <div class="footer__logo">
+        <img src="assets/images/logo.png" alt="Sterve" class="footer__logo-img" onerror="this.style.display='none'">
+        sterve<span>.</span>
+      </div>
+      <ul class="footer__list">
+        <li><a href="#avantages" class="footer__link">Avantages</a></li>
+        <li><a href="#features"  class="footer__link">Fonctionnalités</a></li>
+        <li><a href="#pricing"   class="footer__link">Tarifs</a></li>
+      </ul>
+      <p class="footer__copy">© 2026 Sterve — Tous droits réservés</p>
+    </div>
+  </footer>
+
+  <!-- Scroll to top -->
+  <a href="#home" class="scrolltop" id="scroll-top">↑</a>
+
+  <!-- ==================== MODAL AUTH ==================== -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <button class="modal__close" id="modal-close">✕</button>
+      <div class="modal__title">Bienvenue</div>
+      <div class="modal__sub">Connectez-vous ou créez votre compte gratuit</div>
+
+      <div class="modal__tabs">
+        <button class="modal__tab active" id="tab-login">Connexion</button>
+        <button class="modal__tab" id="tab-register">Inscription</button>
+      </div>
+
+      <div id="form-login" style="display:flex;flex-direction:column;gap:12px">
+        <input type="email"    class="modal__input" id="login-email"    placeholder="votre@email.com">
+        <input type="password" class="modal__input" id="login-password" placeholder="Mot de passe">
+        <div class="modal__error"   id="login-error"></div>
+        <div class="modal__success" id="login-success"></div>
+        <button class="modal__submit" id="login-btn">Se connecter</button>
+      </div>
+
+      <div id="form-register" style="display:none;flex-direction:column;gap:12px">
+        <input type="email"    class="modal__input" id="register-email"    placeholder="votre@email.com">
+        <input type="password" class="modal__input" id="register-password" placeholder="Mot de passe (8 caractères min)">
+        <div class="modal__error"   id="register-error"></div>
+        <div class="modal__success" id="register-success"></div>
+        <button class="modal__submit" id="register-btn">Créer mon compte</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/index.js"></script>
 </body>
 </html>
