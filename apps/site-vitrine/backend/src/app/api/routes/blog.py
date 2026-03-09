@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from pydantic import BaseModel
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
@@ -12,7 +11,12 @@ from app.models.user import User
 from app.schemas.blog import BlogCreate, BlogUpdate, BlogResponse
 
 router = APIRouter(prefix="/api/blog", tags=["Blog"])
-limiter = Limiter(key_func=get_remote_address)
+
+# Limite mensuelle par plan
+PLAN_LIMITS = {
+    "free": 3,
+    "pro": 999999,
+}
 
 
 # ===============================
@@ -22,6 +26,44 @@ limiter = Limiter(key_func=get_remote_address)
 class GenerateRequest(BaseModel):
     topic: str
     tone: str = "professionnel"
+
+
+# ===============================
+# HELPER — reset quota si nouveau mois
+# ===============================
+
+def check_and_reset_quota(user: User, db: Session) -> int:
+    """Vérifie et remet à zéro le compteur si on est dans un nouveau mois. Retourne les générations restantes."""
+    now = datetime.now(timezone.utc)
+
+    # Premier appel : initialiser generation_reset
+    if user.generation_reset is None:
+        if now.month == 12:
+            next_reset = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            next_reset = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        user.generation_reset = next_reset
+        user.generation_count = 0
+        db.commit()
+        db.refresh(user)
+
+    # Reset si on a dépassé la date de reset
+    reset_dt = user.generation_reset
+    if reset_dt.tzinfo is None:
+        reset_dt = reset_dt.replace(tzinfo=timezone.utc)
+
+    if now >= reset_dt:
+        user.generation_count = 0
+        if now.month == 12:
+            next_reset = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            next_reset = now.replace(month=now.month + 1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        user.generation_reset = next_reset
+        db.commit()
+        db.refresh(user)
+
+    limit = PLAN_LIMITS.get(user.plan, 3)
+    return max(0, limit - user.generation_count)
 
 
 # =========================
@@ -49,11 +91,10 @@ def create_blog(
 
 
 # =========================
-# GENERATE BLOG VIA IA — 5/heure max par IP
+# GENERATE BLOG VIA IA — quota mensuel par plan
 # =========================
 
 @router.post("/generate", response_model=BlogResponse, status_code=status.HTTP_201_CREATED)
-@limiter.limit("5/hour")
 async def generate_blog(
     request: Request,
     body: GenerateRequest,
@@ -63,11 +104,19 @@ async def generate_blog(
     """
     Génère automatiquement un article de blog via IA (Claude).
     - Authentification requise
-    - Limité à 5 générations par heure par IP
+    - Quota mensuel : 3/mois plan gratuit, illimité plan pro
     - Sauvegardé en brouillon (is_published=False)
     """
     from app.services.claude_service import ClaudeService
     from app.core.config import settings
+
+    # Vérification quota mensuel
+    remaining = check_and_reset_quota(current_user, db)
+    if remaining <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Quota mensuel atteint ({PLAN_LIMITS.get(current_user.plan, 3)} générations/mois). Passez au plan Pro pour un accès illimité.",
+        )
 
     if not settings.ANTHROPIC_API_KEY:
         raise HTTPException(
@@ -102,6 +151,9 @@ async def generate_blog(
         owner_id=current_user.id,
     )
     db.add(db_blog)
+
+    # Incrémenter le compteur
+    current_user.generation_count += 1
     db.commit()
     db.refresh(db_blog)
     return db_blog
@@ -127,7 +179,7 @@ def get_blogs(
 
 
 # =========================
-# GET MY BLOGS — avec pagination
+# GET MY BLOGS
 # =========================
 
 @router.get("/me", response_model=List[BlogResponse])
