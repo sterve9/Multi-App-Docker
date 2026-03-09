@@ -11,9 +11,17 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+    # 👤 Profil
+    full_name = Column(String, nullable=True)
+
     # 🔐 Rôles
     is_admin = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+
+    # 💳 Plan & Quota
+    plan = Column(String, default="free")               # "free" ou "pro"
+    generation_count = Column(Integer, default=0)       # générations du mois en cours
+    generation_reset = Column(DateTime(timezone=True), nullable=True)  # date du prochain reset
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
