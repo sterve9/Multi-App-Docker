@@ -156,7 +156,7 @@ function initNavLinks() {
 /* ==================== LOAD OVERVIEW ==================== */
 async function loadOverview() {
     try {
-        const res = await apiRequest('/api/blog/me?page=1&limit=100');
+        const res = await apiRequest('/api/blog/me?page=1&limit=50');
         if (!res) return;
         const data = await res.json();
 
@@ -224,7 +224,7 @@ async function loadArticles() {
     if (grid)    grid.innerHTML = '';
 
     try {
-        const res = await apiRequest('/api/blog/me?page=1&limit=100');
+        const res = await apiRequest('/api/blog/me?page=1&limit=50');
         if (!res) return;
         const data = await res.json();
 
