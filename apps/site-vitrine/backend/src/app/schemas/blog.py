@@ -16,17 +16,17 @@ class BlogCreate(BlogBase):
 
 
 class BlogUpdate(BaseModel):
-    title: Optional[str]
-    slug: Optional[str]
-    content: Optional[str]
-    excerpt: Optional[str]
-    is_published: Optional[bool]
+    title: Optional[str] = None
+    slug: Optional[str] = None
+    content: Optional[str] = None
+    excerpt: Optional[str] = None
+    is_published: Optional[bool] = None
 
 
 class BlogResponse(BlogBase):
     id: int
-    created_at: Optional[datetime]
-    updated_at: Optional[datetime]
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
