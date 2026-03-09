@@ -6,6 +6,7 @@ const CONFIG = {
     MESSAGE_DISPLAY_TIME: 5000,
     TOKEN_KEY: 'sterve_token',
     EMAIL_KEY: 'sterve_email',
+    NAME_KEY:  'sterve_name',
     SELECTORS: {
         header:      '#header',
         navMenu:     '#nav-menu',
@@ -32,6 +33,7 @@ const CONFIG = {
         loginBtn:      '#login-btn',
         loginError:    '#login-error',
         loginSuccess:  '#login-success',
+        registerName:     '#register-name',
         registerEmail:    '#register-email',
         registerPassword: '#register-password',
         registerBtn:      '#register-btn',
@@ -46,16 +48,19 @@ const CONFIG = {
 const Auth = {
     getToken()  { return localStorage.getItem(CONFIG.TOKEN_KEY); },
     getEmail()  { return localStorage.getItem(CONFIG.EMAIL_KEY); },
+    getName()   { return localStorage.getItem(CONFIG.NAME_KEY); },
     isLoggedIn(){ return !!this.getToken(); },
 
-    save(token, email) {
+    save(token, email, name = '') {
         localStorage.setItem(CONFIG.TOKEN_KEY, token);
         localStorage.setItem(CONFIG.EMAIL_KEY, email);
+        if (name) localStorage.setItem(CONFIG.NAME_KEY, name);
     },
 
     clear() {
         localStorage.removeItem(CONFIG.TOKEN_KEY);
         localStorage.removeItem(CONFIG.EMAIL_KEY);
+        localStorage.removeItem(CONFIG.NAME_KEY);
     },
 
     async fetchMe() {
@@ -297,7 +302,7 @@ class AuthModal {
             document.querySelector(sel)?.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.doLogin(); });
         });
 
-        [CONFIG.SELECTORS.registerEmail, CONFIG.SELECTORS.registerPassword].forEach(sel => {
+        [CONFIG.SELECTORS.registerName, CONFIG.SELECTORS.registerEmail, CONFIG.SELECTORS.registerPassword].forEach(sel => {
             document.querySelector(sel)?.addEventListener('keydown', (e) => { if (e.key === 'Enter') this.doRegister(); });
         });
     }
@@ -357,9 +362,15 @@ class AuthModal {
 
             if (!res.ok) { this._showMsg('login-error', data.detail || 'Identifiants incorrects'); return; }
 
-            Auth.save(data.access_token, email);
+            // Récupérer le profil pour avoir le full_name
+            const meRes  = await fetch(`${CONFIG.API_URL}/api/auth/me`, {
+                headers: { 'Authorization': `Bearer ${data.access_token}` }
+            });
+            const me = meRes.ok ? await meRes.json() : null;
+
+            Auth.save(data.access_token, email, me?.full_name || '');
             this.close();
-            NavUser.show(email);
+            NavUser.show(me?.full_name || email);
 
             // Redirect to dashboard if on landing
             if (window.location.pathname.endsWith('index.html') || window.location.pathname === '/') {
@@ -374,11 +385,13 @@ class AuthModal {
     }
 
     async doRegister() {
+        const fullName = document.querySelector(CONFIG.SELECTORS.registerName)?.value.trim();
         const email    = document.querySelector(CONFIG.SELECTORS.registerEmail)?.value.trim();
         const password = document.querySelector(CONFIG.SELECTORS.registerPassword)?.value;
         const btn      = document.querySelector(CONFIG.SELECTORS.registerBtn);
 
         this._clearErrors();
+        if (!fullName) { this._showMsg('register-error', 'Le nom complet est obligatoire'); return; }
         if (!email || !password) { this._showMsg('register-error', 'Remplissez tous les champs'); return; }
         if (password.length < 8) { this._showMsg('register-error', 'Mot de passe trop court (8 min)'); return; }
 
@@ -389,7 +402,7 @@ class AuthModal {
             const res  = await fetch(`${CONFIG.API_URL}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, full_name: fullName })
             });
             const data = await res.json();
 
@@ -410,13 +423,13 @@ class AuthModal {
  * ==================== NAV USER STATE ====================
  */
 const NavUser = {
-    show(email) {
+    show(displayName) {
         const authLinks = document.querySelector(CONFIG.SELECTORS.navAuthLinks);
         const userBlock = document.querySelector(CONFIG.SELECTORS.navUser);
         const emailEl   = document.querySelector(CONFIG.SELECTORS.navUserEmail);
         if (authLinks) authLinks.style.display = 'none';
         if (userBlock) userBlock.classList.add('visible');
-        if (emailEl)   emailEl.textContent = email;
+        if (emailEl)   emailEl.textContent = displayName;
         // Attach logout
         document.querySelector(CONFIG.SELECTORS.navLogout)?.addEventListener('click', () => this.logout());
     },
@@ -427,7 +440,6 @@ const NavUser = {
         const userBlock = document.querySelector(CONFIG.SELECTORS.navUser);
         if (authLinks) authLinks.style.display = '';
         if (userBlock) userBlock.classList.remove('visible');
-        // If on protected page, redirect home
         if (window.location.pathname.includes('dashboard')) {
             window.location.href = 'index.html';
         }
@@ -440,7 +452,6 @@ const NavUser = {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 Sterve initialized');
 
-    // Core UI
     new Navigation();
     new ScrollToTop();
     new ScrollReveal();
@@ -449,13 +460,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Restore auth state
     if (Auth.isLoggedIn()) {
-        NavUser.show(Auth.getEmail());
+        const displayName = Auth.getName() || Auth.getEmail();
+        NavUser.show(displayName);
     }
 
     console.log('✅ All modules loaded');
 });
 
-// Expose globally for inline onclick (dashboard etc.)
+// Expose globally
 window.AUTH = Auth;
 window.NAV_USER = NavUser;
 window.openAuthModal = (tab = 'login') => {

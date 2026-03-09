@@ -6,13 +6,15 @@
 const API = 'https://api.sterveshop.cloud';
 
 /* ==================== STATE ==================== */
-let allArticles    = [];
-let currentFilter  = 'all';
-let currentArticleId = null; // article en cours après génération
+let allArticles      = [];
+let currentFilter    = 'all';
+let currentArticleId = null;
+let userQuota        = { plan: 'free', remaining: 3, generation_limit: 3, generation_count: 0 };
 
 /* ==================== UTILS ==================== */
 function getToken() { return localStorage.getItem('sterve_token'); }
 function getEmail() { return localStorage.getItem('sterve_email'); }
+function getName()  { return localStorage.getItem('sterve_name'); }
 
 function toast(msg, type = 'success') {
     const el = document.getElementById('toast');
@@ -55,10 +57,6 @@ async function apiRequest(path, options = {}) {
     return res;
 }
 
-/**
- * Normalise la réponse de /api/blog/me
- * L'API retourne une liste directe [] (pas un objet {articles, total})
- */
 function parseArticlesResponse(data) {
     if (Array.isArray(data)) return data;
     if (data && Array.isArray(data.articles)) return data.articles;
@@ -69,6 +67,7 @@ function parseArticlesResponse(data) {
 function logout() {
     localStorage.removeItem('sterve_token');
     localStorage.removeItem('sterve_email');
+    localStorage.removeItem('sterve_name');
     window.location.href = 'index.html';
 }
 
@@ -76,22 +75,65 @@ function initAuth() {
     const token = getToken();
     if (!token) { window.location.href = 'index.html'; return false; }
 
-    const email = getEmail() || '';
-    const initial = email.charAt(0).toUpperCase();
+    const email   = getEmail() || '';
+    const name    = getName()  || '';
+    const display = name || email.split('@')[0];
+    const initial = display.charAt(0).toUpperCase();
 
-    // Sidebar user info
-    const emailEl   = document.getElementById('sidebar-email');
-    const avatarEl  = document.getElementById('sidebar-avatar');
-    const greetEl   = document.getElementById('greeting-name');
+    const emailEl  = document.getElementById('sidebar-email');
+    const avatarEl = document.getElementById('sidebar-avatar');
+    const greetEl  = document.getElementById('greeting-name');
 
     if (emailEl)  emailEl.textContent  = email;
     if (avatarEl) avatarEl.textContent = initial;
-    if (greetEl)  greetEl.textContent  = email.split('@')[0];
+    if (greetEl)  greetEl.textContent  = display;
 
-    // Logout buttons
     document.getElementById('sidebar-logout')?.addEventListener('click', logout);
-
     return true;
+}
+
+/* ==================== QUOTA ==================== */
+async function loadQuota() {
+    try {
+        const res = await apiRequest('/api/auth/quota');
+        if (!res || !res.ok) return;
+        const data = await res.json();
+        userQuota = data;
+        renderQuota();
+    } catch(e) {
+        console.error('loadQuota error:', e);
+    }
+}
+
+function renderQuota() {
+    const el      = document.getElementById('stat-quota');
+    const planEl  = document.getElementById('sidebar-plan');
+    const limitEl = document.getElementById('quota-limit-label');
+
+    if (el) {
+        const target = userQuota.remaining;
+        const dur    = 900;
+        const t0     = performance.now();
+        const tick   = (now) => {
+            const p = Math.min((now - t0) / dur, 1);
+            el.textContent = Math.round(p * target);
+            if (p < 1) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+    }
+
+    if (planEl) {
+        planEl.textContent = userQuota.plan === 'pro' ? 'Plan Pro' : 'Plan Gratuit';
+        planEl.className   = userQuota.plan === 'pro'
+            ? 'sidebar__plan sidebar__plan--pro'
+            : 'sidebar__plan';
+    }
+
+    if (limitEl) {
+        limitEl.textContent = userQuota.plan === 'pro'
+            ? 'Illimité'
+            : `${userQuota.generation_count}/${userQuota.generation_limit} ce mois`;
+    }
 }
 
 /* ==================== SIDEBAR MOBILE ==================== */
@@ -108,38 +150,32 @@ function initSidebar() {
 
 /* ==================== VIEW SWITCHING ==================== */
 const VIEWS = {
-    overview:  { el: 'view-overview',  label: 'Vue d\'ensemble' },
-    generate:  { el: 'view-generate',  label: 'Générer un article' },
-    articles:  { el: 'view-articles',  label: 'Mes articles' }
+    overview: { el: 'view-overview', label: 'Vue d\'ensemble' },
+    generate: { el: 'view-generate', label: 'Générer un article' },
+    articles: { el: 'view-articles', label: 'Mes articles' }
 };
 
 function switchView(viewName) {
-    // Hide all
     Object.values(VIEWS).forEach(v => {
         const el = document.getElementById(v.el);
         if (el) el.style.display = 'none';
     });
 
-    // Show target
     const view = VIEWS[viewName];
     if (!view) return;
     const el = document.getElementById(view.el);
     if (el) { el.style.display = 'block'; el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; }
 
-    // Update breadcrumb
     const bc = document.getElementById('topbar-current');
     if (bc) bc.textContent = view.label;
 
-    // Update sidebar active link
     document.querySelectorAll('.sidebar__nav-link[data-view]').forEach(link => {
         link.classList.toggle('active', link.dataset.view === viewName);
     });
 
-    // Sidebar close on mobile
     document.getElementById('sidebar')?.classList.remove('open');
     document.getElementById('sidebar-overlay')?.classList.remove('show');
 
-    // Load data for view
     if (viewName === 'overview') loadOverview();
     if (viewName === 'articles') loadArticles();
 }
@@ -160,7 +196,6 @@ async function loadOverview() {
         if (!res) return;
         const data = await res.json();
 
-        // FIX : l'API retourne une liste directe, pas {articles, total}
         const articles  = parseArticlesResponse(data);
         const total     = articles.length;
         const published = articles.filter(a => a.is_published).length;
@@ -171,11 +206,9 @@ async function loadOverview() {
         document.getElementById('stat-drafts')?.setAttribute('data-count', drafts);
 
         animateStatValues();
+        await loadQuota();
 
-        // Recent articles (last 5)
-        const recent = articles.slice(0, 5);
-        renderRecentArticles(recent);
-
+        renderRecentArticles(articles.slice(0, 5));
         allArticles = articles;
     } catch(e) {
         console.error('loadOverview error:', e);
@@ -187,9 +220,9 @@ function animateStatValues() {
         const el = document.getElementById(id);
         if (!el) return;
         const target = parseInt(el.dataset.count || '0');
-        const dur = 900;
-        const t0  = performance.now();
-        const tick = (now) => {
+        const dur    = 900;
+        const t0     = performance.now();
+        const tick   = (now) => {
             const p = Math.min((now - t0) / dur, 1);
             el.textContent = Math.round(p * target);
             if (p < 1) requestAnimationFrame(tick);
@@ -208,16 +241,15 @@ function renderRecentArticles(articles) {
         return;
     }
     if (emptyEl) emptyEl.style.display = 'none';
-
     list.innerHTML = articles.map(a => articleCardHTML(a, 'list')).join('');
     attachCardListeners(list);
 }
 
 /* ==================== LOAD ARTICLES ==================== */
 async function loadArticles() {
-    const loading   = document.getElementById('articles-loading');
-    const emptyEl   = document.getElementById('articles-empty');
-    const grid      = document.getElementById('articles-grid');
+    const loading = document.getElementById('articles-loading');
+    const emptyEl = document.getElementById('articles-empty');
+    const grid    = document.getElementById('articles-grid');
 
     if (loading) loading.style.display = 'flex';
     if (emptyEl) emptyEl.style.display = 'none';
@@ -227,8 +259,6 @@ async function loadArticles() {
         const res = await apiRequest('/api/blog/me?page=1&limit=50');
         if (!res) return;
         const data = await res.json();
-
-        // FIX : l'API retourne une liste directe, pas {articles, total}
         allArticles = parseArticlesResponse(data);
         renderArticlesGrid();
     } catch(e) {
@@ -239,9 +269,7 @@ async function loadArticles() {
     }
 }
 
-function filterArticles() {
-    renderArticlesGrid();
-}
+function filterArticles() { renderArticlesGrid(); }
 
 function setFilter(btn) {
     document.querySelectorAll('.articles-filter-tab').forEach(b => b.classList.remove('active'));
@@ -257,12 +285,8 @@ function renderArticlesGrid() {
     if (!grid) return;
 
     let filtered = allArticles;
-
-    // Filter by status
     if (currentFilter === 'published') filtered = filtered.filter(a => a.is_published);
     if (currentFilter === 'draft')     filtered = filtered.filter(a => !a.is_published);
-
-    // Filter by search
     if (search) {
         filtered = filtered.filter(a =>
             (a.title || '').toLowerCase().includes(search) ||
@@ -300,7 +324,9 @@ function articleCardHTML(article, mode = 'list') {
                 </div>
             </div>
             <div class="article-card__actions">
-                ${!isPublished ? `<button class="article-card__action article-card__action--publish" title="Publier" onclick="togglePublish(${article.id}, true)">✓</button>` : `<button class="article-card__action" title="Dépublier" onclick="togglePublish(${article.id}, false)">◌</button>`}
+                ${!isPublished
+                    ? `<button class="article-card__action article-card__action--publish" title="Publier" onclick="togglePublish(${article.id}, true)">✓</button>`
+                    : `<button class="article-card__action" title="Dépublier" onclick="togglePublish(${article.id}, false)">◌</button>`}
                 <button class="article-card__action" title="Modifier" onclick="openEditModal(${article.id})">✏</button>
                 <button class="article-card__action article-card__action--danger" title="Supprimer" onclick="deleteArticle(${article.id})">✕</button>
             </div>
@@ -321,7 +347,9 @@ function articleCardHTML(article, mode = 'list') {
             </div>
         </div>
         <div class="article-card__actions" style="align-self:flex-end">
-            ${!isPublished ? `<button class="article-card__action article-card__action--publish" title="Publier" onclick="togglePublish(${article.id}, true)">✓</button>` : `<button class="article-card__action" title="Dépublier" onclick="togglePublish(${article.id}, false)">◌</button>`}
+            ${!isPublished
+                ? `<button class="article-card__action article-card__action--publish" title="Publier" onclick="togglePublish(${article.id}, true)">✓</button>`
+                : `<button class="article-card__action" title="Dépublier" onclick="togglePublish(${article.id}, false)">◌</button>`}
             <button class="article-card__action" title="Modifier" onclick="openEditModal(${article.id})">✏</button>
             <button class="article-card__action article-card__action--danger" title="Supprimer" onclick="deleteArticle(${article.id})">✕</button>
         </div>
@@ -344,18 +372,28 @@ async function quickGenerate() {
 
     if (!topic) { document.getElementById('quick-topic')?.focus(); return; }
 
+    if (userQuota.remaining <= 0) {
+        toast(`Quota mensuel atteint (${userQuota.generation_limit}/mois). Passez au plan Pro.`, 'error');
+        return;
+    }
+
     btn.disabled         = true;
     status.style.display = 'flex';
     stText.textContent   = 'Génération en cours...';
 
     try {
-        const res  = await apiRequest('/api/blog/generate', {
+        const res = await apiRequest('/api/blog/generate', {
             method: 'POST',
             body:   JSON.stringify({ topic, tone })
         });
         if (!res) return;
 
-        if (res.status === 429) { toast('Limite atteinte (5/heure). Réessayez plus tard.', 'error'); return; }
+        if (res.status === 429) {
+            const data = await res.json();
+            toast(data.detail || 'Quota mensuel atteint. Passez au plan Pro.', 'error');
+            await loadQuota();
+            return;
+        }
 
         const data = await res.json();
         if (!res.ok) throw new Error(data.detail || 'Erreur');
@@ -364,7 +402,6 @@ async function quickGenerate() {
         toast(`✓ Article généré : "${data.title}"`, 'success');
         document.getElementById('quick-topic').value = '';
 
-        // Refresh stats
         setTimeout(() => {
             loadOverview();
             status.style.display = 'none';
@@ -379,8 +416,7 @@ async function quickGenerate() {
 
 /* ==================== FULL GENERATE (Generate view) ==================== */
 function showGenState(state) {
-    const states = ['gen-idle','gen-loading','gen-output'];
-    states.forEach(id => {
+    ['gen-idle','gen-loading','gen-output'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = id === state ? 'block' : 'none';
     });
@@ -402,10 +438,10 @@ async function animateSteps(steps) {
 }
 
 async function generateArticle() {
-    const topic  = document.getElementById('gen-topic')?.value.trim();
-    const tone   = document.getElementById('gen-tone')?.value;
-    const btn    = document.getElementById('gen-btn');
-    const errEl  = document.getElementById('gen-error');
+    const topic = document.getElementById('gen-topic')?.value.trim();
+    const tone  = document.getElementById('gen-tone')?.value;
+    const btn   = document.getElementById('gen-btn');
+    const errEl = document.getElementById('gen-error');
 
     errEl.style.display = 'none';
     if (!topic) {
@@ -415,21 +451,23 @@ async function generateArticle() {
         return;
     }
 
-    btn.disabled = true;
+    if (userQuota.remaining <= 0) {
+        errEl.textContent   = `Quota mensuel atteint (${userQuota.generation_limit}/mois). Passez au plan Pro pour un accès illimité.`;
+        errEl.style.display = 'block';
+        return;
+    }
 
-    // Reset steps
+    btn.disabled = true;
     for (let i = 1; i <= 5; i++) {
         const s = document.getElementById(`step-${i}`);
-        if (s) { s.classList.remove('active','done'); }
+        if (s) s.classList.remove('active','done');
     }
 
     showGenState('gen-loading');
-
-    // Animate steps while API runs
     const stepAnim = animateSteps([1,2,3,4,5]);
 
     try {
-        const res  = await apiRequest('/api/blog/generate', {
+        const res = await apiRequest('/api/blog/generate', {
             method: 'POST',
             body:   JSON.stringify({ topic, tone })
         });
@@ -439,8 +477,10 @@ async function generateArticle() {
 
         if (res.status === 429) {
             showGenState('gen-idle');
-            errEl.textContent   = 'Limite atteinte (5 articles/heure). Réessayez plus tard.';
+            const data = await res.json();
+            errEl.textContent   = data.detail || 'Quota mensuel atteint.';
             errEl.style.display = 'block';
+            await loadQuota();
             return;
         }
 
@@ -449,7 +489,6 @@ async function generateArticle() {
 
         currentArticleId = data.id;
 
-        // Fill output
         document.getElementById('gen-out-title').textContent    = data.title   || '';
         document.getElementById('gen-out-slug').textContent     = data.slug    || '';
         document.getElementById('gen-out-excerpt').textContent  = data.excerpt || '';
@@ -459,7 +498,6 @@ async function generateArticle() {
         document.getElementById('gen-out-words').textContent   = `${words} mots`;
         document.getElementById('gen-out-content').textContent = stripMarkdown(data.content);
 
-        // Edit button — remove old listener before adding new one
         const editBtn = document.getElementById('gen-edit-btn');
         if (editBtn) {
             const newBtn = editBtn.cloneNode(true);
@@ -470,6 +508,7 @@ async function generateArticle() {
         showGenState('gen-output');
         toast('✓ Article généré et sauvegardé !', 'success');
         allArticles.unshift(data);
+        await loadQuota();
 
     } catch(e) {
         console.error(e);
@@ -500,7 +539,7 @@ function generateAnother() {
 /* ==================== CRUD ==================== */
 async function togglePublish(id, publish) {
     try {
-        const res  = await apiRequest(`/api/blog/${id}`, {
+        const res = await apiRequest(`/api/blog/${id}`, {
             method: 'PUT',
             body:   JSON.stringify({ is_published: publish })
         });
@@ -508,11 +547,9 @@ async function togglePublish(id, publish) {
 
         toast(publish ? '✓ Article publié !' : '◌ Article dépublié.', 'success');
 
-        // Update local cache
         const idx = allArticles.findIndex(a => a.id === id);
         if (idx !== -1) allArticles[idx].is_published = publish;
 
-        // Re-render
         const currentView = document.querySelector('.sidebar__nav-link.active')?.dataset.view;
         if (currentView === 'articles') renderArticlesGrid();
         if (currentView === 'overview') renderRecentArticles(allArticles.slice(0, 5));
@@ -586,7 +623,6 @@ async function saveArticle() {
             return;
         }
 
-        // Update local cache
         const idx = allArticles.findIndex(a => a.id === id);
         if (idx !== -1) allArticles[idx] = { ...allArticles[idx], ...data };
 
@@ -609,19 +645,16 @@ document.addEventListener('DOMContentLoaded', () => {
     initSidebar();
     initNavLinks();
 
-    // Edit modal close
     document.getElementById('edit-modal-close')?.addEventListener('click', closeEditModal);
     document.getElementById('edit-modal')?.addEventListener('click', (e) => {
         if (e.target === document.getElementById('edit-modal')) closeEditModal();
     });
 
-    // Load initial view
     loadOverview();
-
     console.log('✅ Dashboard loaded');
 });
 
-// Expose globally for inline onclick
+// Expose globally
 window.switchView      = switchView;
 window.quickGenerate   = quickGenerate;
 window.generateArticle = generateArticle;
