@@ -20,7 +20,7 @@ async def publish_to_tiktok(request: PublishRequest):
 
     payload = {
         "video_id": request.video_id,
-        "video_url": f"http://tiktok-backend:8000/videos/{request.video_id}.mp4",
+        "video_url": f"https://api.tiktok.sterveshop.cloud/api/download/{request.video_id}",
         "description": request.description,
         "tags": request.tags,
         "platform": "tiktok"
