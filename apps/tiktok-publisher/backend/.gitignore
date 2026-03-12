@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+storage/videos/*
+storage/audio/*
+storage/images/*
+storage/temp/*
+*.mp4
+*.mp3
+*.jpg
+*.srt
