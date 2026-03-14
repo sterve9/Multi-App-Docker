@@ -134,6 +134,8 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
             "prompt": prompt,
             "aspect_ratio": "9:16",
             "duration": str(duration),
+            "mode": "std",
+            "multi_shots": False,
             "sound": False
         }
     }
