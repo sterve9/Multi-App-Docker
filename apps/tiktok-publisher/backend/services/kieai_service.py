@@ -84,7 +84,6 @@ async def generate_multiple_images(
     Retourne la liste des chemins des images générées avec succès.
     """
 
-    # Variations de scènes pour chaque segment
     variations = [
         f"{base_prompt}, close-up portrait shot, warm candlelight, intimate atmosphere",
         f"{base_prompt}, flat lay overhead view, natural ingredients spread on dark wood",
@@ -100,7 +99,6 @@ async def generate_multiple_images(
         for i in range(count)
     ]
 
-    # Lancement en parallèle
     tasks = [
         generate_image(prompt, path)
         for prompt, path in zip(selected, output_paths)
@@ -108,7 +106,6 @@ async def generate_multiple_images(
 
     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-    # Ne garder que les succès
     valid_paths = []
     for i, result in enumerate(results):
         if isinstance(result, Exception):
@@ -124,7 +121,7 @@ async def generate_multiple_images(
 
 
 async def generate_video(prompt: str, output_path: str, duration: int = 5) -> str:
-    """Génère une vidéo courte via Kie.ai (Veo3 Fast)"""
+    """Génère une vidéo courte via Kie.ai (Kling 3.0)"""
 
     headers = {
         "Authorization": f"Bearer {KIE_AI_API_KEY}",
@@ -132,14 +129,18 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
     }
 
     payload = {
-        "prompt": prompt,
-        "aspectRatio": "9:16",
-        "model": "veo3-fast"
+        "model": "kling-3.0/video",
+        "input": {
+            "prompt": prompt,
+            "aspect_ratio": "9:16",
+            "duration": str(duration),
+            "sound": False
+        }
     }
 
     async with httpx.AsyncClient(timeout=300.0) as client:
         response = await client.post(
-            f"{KIE_AI_BASE_URL}/video/veo3/generate",
+            f"{KIE_AI_BASE_URL}/jobs/createTask",
             headers=headers,
             json=payload
         )
@@ -147,7 +148,7 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
         data = response.json()
 
         if data.get("code") != 200:
-            raise Exception(f"Kie.ai video error: {data.get('msg', 'Unknown error')}")
+            raise Exception(f"Kie.ai Kling error: {data.get('msg', 'Unknown error')}")
 
         task_id = data["data"]["taskId"]
 
@@ -155,29 +156,25 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
         for _ in range(120):
             await asyncio.sleep(5)
             status_resp = await client.get(
-                f"{KIE_AI_BASE_URL}/video/veo3/record-info",
+                f"{KIE_AI_BASE_URL}/jobs/detail",
                 headers=headers,
                 params={"taskId": task_id}
             )
             status_data = status_resp.json()
             record = status_data.get("data", {})
 
-            success_flag = record.get("successFlag")
             status = record.get("status")
 
-            if success_flag == 1 or status == "SUCCESS":
-                result_urls = record.get("response", {}).get("resultUrls", [])
-                if result_urls:
-                    video_url = result_urls[0]
+            if status == "SUCCESS":
+                works = record.get("output", {}).get("works", [])
+                if works:
+                    video_url = works[0].get("resource", {}).get("resource")
                     break
-                video_url = record.get("response", {}).get("url")
-                if video_url:
-                    break
-            elif success_flag == -1 or status == "FAILED":
-                raise Exception(f"Kie.ai video failed: {record.get('errorMessage')}")
+            elif status == "FAILED":
+                raise Exception(f"Kling generation failed: {record.get('failedMsg')}")
 
         if not video_url:
-            raise Exception("Kie.ai video generation timeout")
+            raise Exception("Kling video generation timeout")
 
         vid_response = await client.get(video_url)
         async with aiofiles.open(output_path, "wb") as f:
