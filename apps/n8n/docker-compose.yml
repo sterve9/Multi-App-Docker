@@ -9,6 +9,9 @@ services:
     env_file:
       - .env
 
+    environment:
+      - N8N_CUSTOM_EXTENSIONS=@chariow/n8n-nodes-chariow
+
     volumes:
       - n8n_data:/home/node/.n8n
 
