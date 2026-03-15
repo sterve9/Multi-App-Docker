@@ -10,7 +10,8 @@ services:
       - .env
 
     environment:
-      - N8N_CUSTOM_EXTENSIONS=@chariow/n8n-nodes-chariow
+      - N8N_COMMUNITY_PACKAGES_ENABLED=true
+      - N8N_COMMUNITY_PACKAGES_ALLOW_TOOL_USAGE=true
 
     volumes:
       - n8n_data:/home/node/.n8n
