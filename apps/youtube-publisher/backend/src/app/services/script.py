@@ -54,11 +54,11 @@ THÈME DE LA SÉRIE : Les secrets cachés dans un couple — comment le manque d
 
 SUJET DE CET ÉPISODE {episode_number} : "{topic}"
 
-Crée un script complet pour une vidéo de 7-10 minutes.
-Le script doit avoir exactement 18 scènes.
+Crée un script complet pour une vidéo de 6-8 minutes.
+Le script doit avoir exactement 12 scènes.
 
 RÈGLES IMPORTANTES :
-1. Chaque narration : minimum 80 mots, style storytelling immersif, voix de narrateur omniscient
+1. Chaque narration : minimum 55 mots, style storytelling immersif, voix de narrateur omniscient
 2. Les personnages s'appellent TOUJOURS Kofi et Ama
 3. L'histoire doit être captivante, avec des rebondissements
 4. Chaque épisode doit se terminer sur un cliffhanger ou une révélation
@@ -66,7 +66,7 @@ RÈGLES IMPORTANTES :
 6. Les image_prompts doivent TOUJOURS décrire Kofi et Ama avec leurs caractéristiques physiques exactes
 
 DESCRIPTION YOUTUBE : Doit inclure à la fin exactement ce texte :
-"🔗 Le rituel naturel dont parle Kofi : https://myfurbrush.com/rituelancestral7jours"
+"🔗 Le rituel naturel dont parle Kofi : {settings.AFFILIATE_LINK}"
 
 Réponds UNIQUEMENT en JSON strict, sans texte avant ou après :
 {{

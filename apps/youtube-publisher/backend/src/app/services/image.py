@@ -53,17 +53,18 @@ async def upload_reference_to_kie(client: httpx.AsyncClient, image_path: str) ->
     content_type = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
     response = await client.post(
-        "https://api.kie.ai/api/v1/file/upload",
+        "https://api.kie.ai/api/file-stream-upload",
         headers=headers,
         files={"file": (filename, image_data, content_type)},
+        data={"uploadPath": "characters"},
         timeout=60
     )
 
     data = response.json()
-    if data.get("code") != 200:
+    if not data.get("success") and data.get("code") != 200:
         raise Exception(f"Upload image référence échoué : {data.get('msg')}")
 
-    url = data["data"]["url"]
+    url = data["data"]["downloadUrl"]
     logger.info(f"Image référence uploadée : {url}")
     return url
 
@@ -139,21 +140,20 @@ async def generate_single_image_premium(
             for _ in range(120):
                 await asyncio.sleep(5)
                 status_resp = await client.get(
-                    f"{KIE_AI_BASE_URL}/jobs/detail",
+                    f"{KIE_AI_BASE_URL}/jobs/recordInfo",
                     headers=headers,
                     params={"taskId": task_id}
                 )
                 status_data = status_resp.json()
                 record = status_data.get("data", {})
-                status = record.get("status")
+                state = record.get("state")
 
-                if status == "SUCCESS":
-                    works = record.get("output", {}).get("works", [])
-                    if works:
-                        video_url = works[0].get("resource", {}).get("resource")
-                        break
-                elif status == "FAILED":
-                    raise Exception(f"Kling génération échouée scène {scene_num}: {record.get('failedMsg')}")
+                if state == "success":
+                    import json as _json
+                    video_url = _json.loads(record["resultJson"])["resultUrls"][0]
+                    break
+                elif state == "fail":
+                    raise Exception(f"Kling génération échouée scène {scene_num}: {record.get('failMsg')}")
 
             if not video_url:
                 raise Exception(f"Kling timeout scène {scene_num}")
@@ -173,10 +173,24 @@ async def generate_single_image_economique(
     scene_num: int
 ) -> str:
     """
-    Génère une image via Replicate Flux (format économique).
+    Génère une image via kie.ai Flux-2 Pro (format économique).
     Retourne l'URL de l'image.
     """
-    await asyncio.sleep(scene_num * 2)
+    import json as _json
+
+    headers = {
+        "Authorization": f"Bearer {settings.KIE_AI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "model": "flux-2/pro-text-to-image",
+        "input": {
+            "prompt": prompt,
+            "aspect_ratio": "16:9",
+            "resolution": "1K"
+        }
+    }
 
     last_exception = None
 
@@ -187,54 +201,41 @@ async def generate_single_image_economique(
                 logger.info(f"Scène {scene_num} — retry {attempt}/{MAX_RETRIES-1} dans {delay}s...")
                 await asyncio.sleep(delay)
 
-            async with httpx.AsyncClient() as client:
+            async with httpx.AsyncClient(timeout=60.0) as client:
                 response = await client.post(
-                    "https://api.replicate.com/v1/models/black-forest-labs/flux-1.1-pro-ultra/predictions",
-                    headers={
-                        "Authorization": f"Bearer {settings.REPLICATE_API_TOKEN}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "input": {
-                            "prompt": prompt,
-                            "aspect_ratio": "16:9",
-                            "output_format": "jpg",
-                            "output_quality": 90
-                        }
-                    },
-                    timeout=60
+                    f"{KIE_AI_BASE_URL}/jobs/createTask",
+                    headers=headers,
+                    json=payload
                 )
-                prediction = response.json()
+                data = response.json()
 
-                if "id" not in prediction:
-                    error_detail = prediction.get("detail", str(prediction))
-                    if "credit" in str(error_detail).lower() or "insufficient" in str(error_detail).lower():
-                        raise Exception(f"Replicate crédit insuffisant scène {scene_num}: {prediction}")
-                    raise ValueError(f"Replicate no ID scène {scene_num}: {prediction}")
+                if data.get("code") != 200:
+                    raise Exception(f"kie.ai erreur scène {scene_num}: {data.get('msg')}")
 
-                pred_id = prediction["id"]
-                logger.info(f"Scène {scene_num} — prediction Replicate lancée : {pred_id}")
+                task_id = data["data"]["taskId"]
+                logger.info(f"Scène {scene_num} — task image lancée : {task_id}")
 
-                for _ in range(40):
+                for _ in range(120):
                     await asyncio.sleep(5)
                     status_resp = await client.get(
-                        f"https://api.replicate.com/v1/predictions/{pred_id}",
-                        headers={"Authorization": f"Bearer {settings.REPLICATE_API_TOKEN}"}
+                        f"{KIE_AI_BASE_URL}/jobs/recordInfo",
+                        headers=headers,
+                        params={"taskId": task_id}
                     )
-                    data = status_resp.json()
+                    record = status_resp.json().get("data", {})
+                    state = record.get("state")
 
-                    if data["status"] == "succeeded":
+                    if state == "success":
+                        url = _json.loads(record["resultJson"])["resultUrls"][0]
                         logger.info(f"Scène {scene_num} — image générée ✅ (tentative {attempt + 1})")
-                        return data["output"]
-                    elif data["status"] == "failed":
-                        raise ValueError(f"Replicate génération échouée scène {scene_num}")
+                        return url
+                    elif state == "fail":
+                        raise Exception(f"kie.ai génération échouée scène {scene_num}: {record.get('failMsg')}")
 
-                raise ValueError(f"Replicate timeout scène {scene_num}")
+                raise Exception(f"kie.ai timeout scène {scene_num}")
 
         except Exception as e:
             last_exception = e
-            if "credit" in str(e).lower() or "insufficient" in str(e).lower():
-                raise
             logger.warning(f"Scène {scene_num} — tentative {attempt + 1}/{MAX_RETRIES} échouée : {e}")
 
     raise Exception(f"Scène {scene_num} échouée après {MAX_RETRIES} tentatives : {last_exception}")
@@ -276,13 +277,16 @@ async def generate_images(scenes: list, format: str = "premium") -> list:
                 await asyncio.sleep(2)
 
     else:
-        # Format économique — images Replicate
-        for scene in scenes:
-            url = await generate_single_image_economique(
-                scene["image_prompt"],
-                scene["scene_number"]
-            )
-            results.append(url)
-            await asyncio.sleep(3)
+        # Format économique — images kie.ai en parallèle (max 5 simultanés)
+        semaphore = asyncio.Semaphore(5)
+
+        async def bounded(scene):
+            async with semaphore:
+                return await generate_single_image_economique(
+                    scene["image_prompt"],
+                    scene["scene_number"]
+                )
+
+        results = await asyncio.gather(*[bounded(s) for s in scenes])
 
     return results

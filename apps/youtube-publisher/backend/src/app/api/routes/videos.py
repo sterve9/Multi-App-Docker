@@ -6,7 +6,7 @@ from typing import List, Optional
 import os
 from app.core.database import get_db
 from app.models.video import Video, VideoStatus
-from app.schemas.video import VideoCreateRequest, VideoResponse
+from app.schemas.video import VideoCreateRequest, VideoResponse, VideoPatchRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/videos", tags=["Videos"])
@@ -49,14 +49,12 @@ def download_video(video_id: int, db: Session = Depends(get_db)):
     )
 
 @router.patch("/{video_id}", response_model=VideoResponse)
-def update_video(video_id: int, payload: dict, db: Session = Depends(get_db)):
+def update_video(video_id: int, payload: VideoPatchRequest, db: Session = Depends(get_db)):
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=404, detail="Vidéo non trouvée")
-    allowed = ["youtube_url", "youtube_video_id", "status"]
-    for field, value in payload.items():
-        if field in allowed:
-            setattr(video, field, value)
+    for field, value in payload.model_dump(exclude_none=True).items():
+        setattr(video, field, value)
     db.commit()
     db.refresh(video)
     return video

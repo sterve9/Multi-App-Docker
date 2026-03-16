@@ -35,7 +35,7 @@ async def notify_video_ready(video_id: int, title: str, youtube_url: str = None)
     if youtube_url:
         lines.append(f"▶️ <b>YouTube :</b> {youtube_url}")
     else:
-        lines.append(f"📥 <b>Download :</b> https://api.youtube.sterveshop.cloud/api/videos/{video_id}/download")
+        lines.append(f"📥 <b>Download :</b> {settings.BASE_URL}/api/videos/{video_id}/download")
     await send_telegram("\n".join(lines))
 
 

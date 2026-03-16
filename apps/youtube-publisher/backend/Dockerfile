@@ -7,6 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src/ .
-RUN mkdir -p /app/outputs/audio /app/outputs/videos /app/outputs/temp
+COPY assets/ /app/assets/
+RUN mkdir -p /app/outputs/audio /app/outputs/videos /app/outputs/temp /app/outputs/thumbnails
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

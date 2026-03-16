@@ -23,11 +23,11 @@ MUSIC_STYLES = {
 
 def get_kenburns_filter(duration: int) -> str:
     effects = [
-        f"scale=8000:-1,zoompan=z='min(zoom+0.0015,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
-        f"scale=8000:-1,zoompan=z='if(lte(zoom,1.0),1.3,max(1.0,zoom-0.0015))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
-        f"scale=8000:-1,zoompan=z='min(zoom+0.001,1.2)':x='if(lte(zoom,1.0),0,x+1)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
-        f"scale=8000:-1,zoompan=z='min(zoom+0.001,1.2)':x='if(gte(x,iw-iw/zoom),iw-iw/zoom,x+2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
-        f"scale=8000:-1,zoompan=z='min(zoom+0.001,1.2)':x='iw/2-(iw/zoom/2)':y='if(lte(zoom,1.0),0,y+1)':d={duration*25}:s=1920x1080:fps=25",
+        f"scale=3840:-1,zoompan=z='min(zoom+0.0015,1.3)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
+        f"scale=3840:-1,zoompan=z='if(lte(zoom,1.0),1.3,max(1.0,zoom-0.0015))':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
+        f"scale=3840:-1,zoompan=z='min(zoom+0.001,1.2)':x='if(lte(zoom,1.0),0,x+1)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
+        f"scale=3840:-1,zoompan=z='min(zoom+0.001,1.2)':x='if(gte(x,iw-iw/zoom),iw-iw/zoom,x+2)':y='ih/2-(ih/zoom/2)':d={duration*25}:s=1920x1080:fps=25",
+        f"scale=3840:-1,zoompan=z='min(zoom+0.001,1.2)':x='iw/2-(iw/zoom/2)':y='if(lte(zoom,1.0),0,y+1)':d={duration*25}:s=1920x1080:fps=25",
     ]
     return random.choice(effects)
 
@@ -225,17 +225,21 @@ async def assemble_video(
     image_urls: list,
     audio_files: list,
     style: str = "educatif",
-    title: str = ""
+    title: str = "",
+    video_format: str = "premium"
 ) -> dict:
     os.makedirs(VIDEO_DIR, exist_ok=True)
     os.makedirs(TEMP_DIR, exist_ok=True)
 
-    # ── Télécharger les images ────────────────────────────────────
+    is_premium = (video_format == "premium")
+
+    # ── Télécharger les visuels (vidéos pour premium, images pour économique) ──
     image_files = []
     async with httpx.AsyncClient() as client:
         for i, url in enumerate(image_urls):
-            img_path = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}.jpg"
-            response = await client.get(url, timeout=30)
+            ext = "mp4" if is_premium else "jpg"
+            img_path = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}.{ext}"
+            response = await client.get(url, timeout=60)
             with open(img_path, "wb") as f:
                 f.write(response.content)
             image_files.append(img_path)
@@ -257,35 +261,56 @@ async def assemble_video(
     if image_files and title:
         thumbnail_path = generate_thumbnail(video_id, title, image_files[0])
 
-    # ── Créer une vidéo par scène avec Ken Burns ──────────────────
-    scene_videos = []
-    for i, (img, audio) in enumerate(zip(image_files, audio_files)):
-        scene_video = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}.mp4"
-        duration = max(scenes[i].get("duration_seconds", 30), int(audio_durations[i]))
-        kenburns = get_kenburns_filter(duration)
+    # ── Créer une vidéo par scène (en parallèle, max 4 simultanées) ──
+    semaphore = asyncio.Semaphore(4)
 
-        cmd = [
-            "ffmpeg", "-y",
-            "-loop", "1",
-            "-i", img,
-            "-i", audio,
-            "-vf", kenburns,
-            "-c:v", "libx264",
-            "-c:a", "aac",
-            "-shortest",
-            "-pix_fmt", "yuv420p",
-            "-r", "25",
-            scene_video
-        ]
-        process = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        if process.returncode != 0:
-            raise Exception(f"FFmpeg scene {i+1} error: {stderr.decode()}")
-        scene_videos.append(scene_video)
+    async def build_scene(i, img, audio):
+        scene_video = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}_out.mp4"
+        async with semaphore:
+            if is_premium:
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-stream_loop", "-1", "-i", img,
+                    "-i", audio,
+                    "-map", "0:v", "-map", "1:a",
+                    "-c:v", "libx264", "-preset", "ultrafast",
+                    "-c:a", "aac",
+                    "-shortest",
+                    "-pix_fmt", "yuv420p",
+                    "-r", "25",
+                    scene_video
+                ]
+            else:
+                # Image statique simple — Ken Burns retiré, Remotion s'en chargera
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-loop", "1",
+                    "-i", img,
+                    "-i", audio,
+                    "-c:v", "libx264", "-preset", "ultrafast",
+                    "-tune", "stillimage",
+                    "-c:a", "aac",
+                    "-shortest",
+                    "-pix_fmt", "yuv420p",
+                    "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
+                    "-r", "25",
+                    scene_video
+                ]
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE
+            )
+            stdout, stderr = await process.communicate()
+            if process.returncode != 0:
+                raise Exception(f"FFmpeg scene {i+1} error: {stderr.decode()}")
+            logger.info(f"Scène {i+1} assemblée ✅")
+            return scene_video
+
+    scene_videos = await asyncio.gather(*[
+        build_scene(i, img, audio)
+        for i, (img, audio) in enumerate(zip(image_files, audio_files))
+    ])
 
     # ── Concaténer toutes les scènes ─────────────────────────────
     concat_file = f"{TEMP_DIR}/video_{video_id}_concat.txt"
@@ -297,7 +322,7 @@ async def assemble_video(
     cmd_concat = [
         "ffmpeg", "-y",
         "-f", "concat", "-safe", "0", "-i", concat_file,
-        "-c:v", "libx264", "-c:a", "aac",
+        "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac",
         "-pix_fmt", "yuv420p",
         "-movflags", "+faststart",
         raw_video
@@ -317,7 +342,7 @@ async def assemble_video(
         "ffmpeg", "-y",
         "-i", raw_video,
         "-vf", f"subtitles={ass_escaped}",
-        "-c:v", "libx264", "-c:a", "copy",
+        "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "copy",
         "-pix_fmt", "yuv420p",
         subtitled_video
     ]

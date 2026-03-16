@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
     ANTHROPIC_API_KEY: str
-    REPLICATE_API_TOKEN: str
+    KIE_AI_API_KEY: str
     ELEVENLABS_API_KEY: str
     ELEVENLABS_VOICE_ID: str = "21m00Tcm4TlvDq8ikWAM"
     N8N_WEBHOOK_URL: str = ""
@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     YOUTUBE_REFRESH_TOKEN: str = ""
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
+    BASE_URL: str = "https://api.youtube.sterveshop.cloud"
+    AFFILIATE_LINK: str = "https://myfurbrush.com/rituelancestral7jours"
+    REMOTION_SERVICE_URL: str = ""
 
     class Config:
         env_file = ".env"

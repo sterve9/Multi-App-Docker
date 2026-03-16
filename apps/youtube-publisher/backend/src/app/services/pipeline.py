@@ -27,8 +27,8 @@ async def trigger_n8n_webhook(video_id: int, title: str, description: str, tags:
                     "tags": tags,
                     "video_path": video_path,
                     "thumbnail_path": thumbnail_path,
-                    "download_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/download",
-                    "thumbnail_url": f"https://api.youtube.sterveshop.cloud/api/videos/{video_id}/thumbnail" if thumbnail_path else None,
+                    "download_url": f"{settings.BASE_URL}/api/videos/{video_id}/download",
+                    "thumbnail_url": f"{settings.BASE_URL}/api/videos/{video_id}/thumbnail" if thumbnail_path else None,
                 },
                 timeout=30
             )

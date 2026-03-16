@@ -1,0 +1,10 @@
+.env
+outputs/
+__pycache__/
+*.pyc
+*.pyo
+.git/
+.claude/
+*.md
+.env.*
+!.env.example
