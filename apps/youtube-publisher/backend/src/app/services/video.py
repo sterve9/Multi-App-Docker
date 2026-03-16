@@ -5,6 +5,7 @@ import random
 import logging
 from PIL import Image, ImageDraw, ImageFont
 import textwrap
+from app.services.remotion import render_ken_burns
 
 logger = logging.getLogger(__name__)
 
@@ -281,19 +282,25 @@ async def assemble_video(
                     scene_video
                 ]
             else:
-                # Image statique simple — Ken Burns retiré, Remotion s'en chargera
+                # Format économique : Remotion génère le Ken Burns, puis FFmpeg mixe l'audio
+                duration_ms = int(audio_durations[i] * 1000)
+                ken_burns_path = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}_kb.mp4"
+                await render_ken_burns(
+                    image_path=img,
+                    duration_ms=duration_ms,
+                    output_path=ken_burns_path,
+                    direction=i % 3,  # alterne les directions Ken Burns
+                )
+                # Merger la vidéo animée avec l'audio de narration
                 cmd = [
                     "ffmpeg", "-y",
-                    "-loop", "1",
-                    "-i", img,
+                    "-i", ken_burns_path,
                     "-i", audio,
+                    "-map", "0:v", "-map", "1:a",
                     "-c:v", "libx264", "-preset", "ultrafast",
-                    "-tune", "stillimage",
                     "-c:a", "aac",
                     "-shortest",
                     "-pix_fmt", "yuv420p",
-                    "-vf", "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2",
-                    "-r", "25",
                     scene_video
                 ]
             process = await asyncio.create_subprocess_exec(
