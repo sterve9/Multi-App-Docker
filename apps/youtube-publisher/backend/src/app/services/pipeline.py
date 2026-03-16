@@ -47,8 +47,9 @@ async def _assemble_and_publish(video_id: int, video, images, audio_files, db):
         scenes=video.script,
         image_urls=images,
         audio_files=audio_files,
-        style=video.style or "educatif",
+        style=video.style or "storytelling",
         title=video.title or video.topic,
+        video_format=video.format or "premium",
     )
 
     video.final_video_path = result["video_path"]
@@ -62,7 +63,6 @@ async def _assemble_and_publish(video_id: int, video, images, audio_files, db):
 
     logger.info(f"✅ Pipeline terminé pour vidéo {video_id}")
 
-    # 🔔 Notification Telegram
     await notify_video_ready(
         video_id=video_id,
         title=video.title,
@@ -87,16 +87,32 @@ async def run_pipeline(video_id: int):
 
         video.status = VideoStatus.SCRIPTING
         db.commit()
-        script_data = await generate_script(video.topic, video.style)
+
+        # Générer le script avec contexte épisode
+        script_data = await generate_script(
+            topic=video.topic,
+            style=video.style or "cinematique",
+            episode_number=video.episode_number or 1,
+            previous_summary=video.previous_summary
+        )
+
         video.title = script_data["title"]
         video.description = script_data["description"]
         video.script = script_data["scenes"]
         video.tags = script_data["tags"]
+
+        # Sauvegarder le résumé de cet épisode pour le suivant
+        if script_data.get("episode_summary"):
+            video.previous_summary = script_data["episode_summary"]
+
         db.commit()
 
         video.status = VideoStatus.GENERATING_IMAGES
         db.commit()
-        images = await generate_images(video.script)
+
+        # Générer les visuels selon le format
+        video_format = video.format or "premium"
+        images = await generate_images(video.script, format=video_format)
         video.scenes_images = images
         db.commit()
 
@@ -114,7 +130,6 @@ async def run_pipeline(video_id: int):
         video.status = VideoStatus.FAILED
         video.error_message = str(e)
         db.commit()
-        # 🔔 Notification Telegram erreur
         await notify_video_failed(
             video_id=video_id,
             title=getattr(video, "title", None) or getattr(video, "topic", ""),
@@ -170,11 +185,11 @@ async def run_pipeline_from_assembly(video_id: int):
         video = db.query(Video).filter(Video.id == video_id).first()
 
         if not video.script:
-            raise Exception("Script manquant, impossible de reprendre depuis l'assemblage")
+            raise Exception("Script manquant")
         if not video.scenes_images:
-            raise Exception("Images manquantes, impossible de reprendre depuis l'assemblage")
+            raise Exception("Images manquantes")
         if not video.scenes_audio:
-            raise Exception("Audio manquant, impossible de reprendre depuis l'assemblage")
+            raise Exception("Audio manquant")
 
         logger.info(f"▶ Resume vidéo {video_id} depuis l'assemblage")
 
