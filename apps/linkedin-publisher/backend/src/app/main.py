@@ -29,6 +29,7 @@ async def lifespan(app: FastAPI):
     wait_for_db()
     # Drop anciens types/tables incompatibles si nécessaire
     with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS posts CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS linkedin_posts CASCADE"))
         conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
         conn.execute(text("DROP TYPE IF EXISTS poststatus CASCADE"))
