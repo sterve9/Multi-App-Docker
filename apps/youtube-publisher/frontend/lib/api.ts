@@ -11,29 +11,32 @@ export type VideoStatus =
   | "published"
   | "failed";
 
+export type VideoFormat = "economique" | "premium";
+
 export interface Video {
-  id: string;
+  id: number;
   title: string;
-  description?: string;
-  tags?: string[];
   status: VideoStatus;
+  format: VideoFormat;
   topic?: string;
-  script?: unknown;
-  scenes_images?: string[];
-  scenes_audio?: string[];
-  final_video_path?: string;
+  style?: string;
+  serie_id?: string;
+  episode_number: number;
+  thumbnail_path?: string;
   youtube_url?: string;
+  youtube_video_id?: string;
   error_message?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
 }
 
 export interface CreateVideoPayload {
   topic: string;
-  title?: string;
-  description?: string;
-  tags?: string[];
   style?: string;
+  format?: VideoFormat;
+  serie_id?: string;
+  episode_number?: number;
+  previous_summary?: string;
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -49,12 +52,12 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  listVideos:    ()                        => request<Video[]>("/api/videos"),
-  getVideo:      (id: string)              => request<Video>(`/api/videos/${id}`),
-  createVideo:   (data: CreateVideoPayload)=> request<Video>("/api/videos", { method: "POST", body: JSON.stringify(data) }),
-  generateVideo: (id: string)              => request<void>(`/api/generate/${id}`, { method: "POST" }),
-  resumeVideo:   (id: string)              => request<void>(`/api/generate/${id}/resume`, { method: "POST" }),
-  updateVideo:   (id: string, data: Partial<Video>) => request<Video>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
-  deleteVideo:   (id: string)              => request<void>(`/api/videos/${id}`, { method: "DELETE" }),
-  getDownloadUrl:(id: string)              => `${API_URL}/api/videos/${id}/download`,
+  listVideos:    ()                              => request<Video[]>("/api/videos"),
+  getVideo:      (id: number)                   => request<Video>(`/api/videos/${id}`),
+  createVideo:   (data: CreateVideoPayload)     => request<{ video_id: number; message: string }>("/api/generate/create", { method: "POST", body: JSON.stringify(data) }),
+  resumeVideo:   (id: number)                   => request<void>(`/api/generate/${id}/resume`, { method: "POST" }),
+  updateVideo:   (id: number, data: { youtube_url?: string; youtube_video_id?: string; status?: VideoStatus }) => request<Video>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteVideo:   (id: number)                   => request<void>(`/api/videos/${id}`, { method: "DELETE" }),
+  getDownloadUrl:(id: number)                   => `${API_URL}/api/videos/${id}/download`,
+  getThumbnailUrl:(thumbnail_path: string)      => `${API_URL}/api/videos/thumbnail?path=${encodeURIComponent(thumbnail_path)}`,
 };

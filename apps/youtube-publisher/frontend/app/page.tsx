@@ -106,8 +106,13 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [videos, fetchVideos]);
 
-  const handleCreated = (video: Video) => setVideos((p) => [video, ...p]);
-  const handleDelete  = (id: string)   => setVideos((p) => p.filter((v) => v.id !== id));
+  const handleCreated = useCallback(async (videoId: number) => {
+    try {
+      const video = await api.getVideo(videoId);
+      setVideos((p) => [video, ...p]);
+    } catch { /* ignore */ }
+  }, []);
+  const handleDelete  = (id: number)   => setVideos((p) => p.filter((v) => v.id !== id));
   const handleRefresh = (updated: Video) => setVideos((p) => p.map((v) => v.id === updated.id ? updated : v));
 
   const stats = {
@@ -157,8 +162,7 @@ export default function Dashboard() {
       const searchOk = q === ""
         ? true
         : (v.title ?? "").toLowerCase().includes(q) ||
-          (v.topic ?? "").toLowerCase().includes(q) ||
-          (v.description ?? "").toLowerCase().includes(q);
+          (v.topic ?? "").toLowerCase().includes(q);
 
       return statusOk && dateOk && searchOk;
     });

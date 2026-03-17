@@ -1,0 +1,27 @@
+name: Deploy YouTube Publisher
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "apps/youtube-publisher/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd ${{ secrets.DEPLOY_PATH }}
+            git pull origin master
+            cd apps/youtube-publisher
+            docker compose up --build -d backend frontend
+            docker compose ps
+            echo "Deploiement YouTube Publisher termine"

@@ -6,7 +6,10 @@ class Settings(BaseSettings):
     VERSION: str = "1.0.0"
     DEBUG: bool = False
     DATABASE_URL: str
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "https://app.youtube.sterveshop.cloud",
+    ]
     ANTHROPIC_API_KEY: str
     KIE_AI_API_KEY: str
     ELEVENLABS_API_KEY: str

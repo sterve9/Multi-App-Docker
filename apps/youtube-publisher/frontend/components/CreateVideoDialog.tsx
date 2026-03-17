@@ -10,22 +10,27 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { api, Video } from "@/lib/api";
+import { api, VideoFormat } from "@/lib/api";
 import { Plus, Loader2, Sparkles } from "lucide-react";
 
 interface Props {
-  onCreated: (video: Video) => void;
+  onCreated: (videoId: number) => void;
 }
 
+const STYLES = [
+  { value: "storytelling", label: "Storytelling" },
+  { value: "documentaire", label: "Documentaire" },
+  { value: "educatif",     label: "Éducatif" },
+  { value: "motivation",   label: "Motivation" },
+];
+
 export function CreateVideoDialog({ onCreated }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen]     = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [topic, setTopic] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [tags, setTags] = useState("");
+  const [error, setError]   = useState("");
+  const [topic, setTopic]   = useState("");
+  const [style, setStyle]   = useState("storytelling");
+  const [format, setFormat] = useState<VideoFormat>("economique");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -33,19 +38,12 @@ export function CreateVideoDialog({ onCreated }: Props) {
     setLoading(true);
     setError("");
     try {
-      const video = await api.createVideo({
-        topic: topic.trim(),
-        title: title.trim() || undefined,
-        description: description.trim() || undefined,
-        tags: tags ? tags.split(",").map((t) => t.trim()).filter(Boolean) : undefined,
-      });
-      await api.generateVideo(video.id);
-      onCreated({ ...video, status: "scripting" });
+      const res = await api.createVideo({ topic: topic.trim(), style, format });
+      onCreated(res.video_id);
       setOpen(false);
       setTopic("");
-      setTitle("");
-      setDescription("");
-      setTags("");
+      setStyle("storytelling");
+      setFormat("economique");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
@@ -76,38 +74,60 @@ export function CreateVideoDialog({ onCreated }: Props) {
             <Input
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="Ex: L'histoire secrète de la pizza napolitaine"
+              placeholder="Ex: Kofi découvre le secret d'Ama..."
               className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-red-500"
               required
             />
           </div>
+
           <div className="space-y-1.5">
-            <label className="text-sm text-zinc-400">Titre (optionnel)</label>
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Laisse vide pour que Claude le génère"
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-red-500"
-            />
+            <label className="text-sm text-zinc-400">Style</label>
+            <div className="grid grid-cols-2 gap-2">
+              {STYLES.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setStyle(s.value)}
+                  className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                    style === s.value
+                      ? "border-red-500 bg-red-950/40 text-red-300"
+                      : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
           </div>
+
           <div className="space-y-1.5">
-            <label className="text-sm text-zinc-400">Description (optionnel)</label>
-            <Textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Description YouTube..."
-              rows={3}
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-red-500 resize-none"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-zinc-400">Tags (séparés par des virgules)</label>
-            <Input
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="pizza, histoire, cuisine italienne"
-              className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus-visible:ring-red-500"
-            />
+            <label className="text-sm text-zinc-400">Format</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setFormat("economique")}
+                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                  format === "economique"
+                    ? "border-red-500 bg-red-950/40 text-red-300"
+                    : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                <div className="font-medium">Économique</div>
+                <div className="text-[10px] opacity-60 mt-0.5">Images + Ken Burns</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormat("premium")}
+                className={`px-3 py-2 rounded-lg text-sm border transition-colors ${
+                  format === "premium"
+                    ? "border-red-500 bg-red-950/40 text-red-300"
+                    : "border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-zinc-600"
+                }`}
+              >
+                <div className="font-medium">Premium</div>
+                <div className="text-[10px] opacity-60 mt-0.5">Clips Kling 3.0</div>
+              </button>
+            </div>
           </div>
 
           {error && (

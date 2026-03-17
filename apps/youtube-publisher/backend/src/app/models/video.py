@@ -51,6 +51,7 @@ class Video(Base):
     thumbnail_path    = Column(String(500), nullable=True)
     subtitles_path    = Column(String(500), nullable=True)
     youtube_url       = Column(String(500), nullable=True)
+    youtube_video_id  = Column(String(200), nullable=True)
 
     created_at        = Column(DateTime(timezone=True), server_default=func.now())
     updated_at        = Column(DateTime(timezone=True), onupdate=func.now())

@@ -37,6 +37,7 @@ class VideoResponse(BaseModel):
     final_video_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
     youtube_url: Optional[str] = None
+    youtube_video_id: Optional[str] = None
     status: VideoStatus
     error_message: Optional[str] = None
     created_at: datetime

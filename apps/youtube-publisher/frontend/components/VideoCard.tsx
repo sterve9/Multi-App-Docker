@@ -8,7 +8,7 @@ import { useState } from "react";
 
 interface Props {
   video: Video;
-  onDelete: (id: string) => void;
+  onDelete: (id: number) => void;
   onRefresh: (video: Video) => void;
 }
 
@@ -181,10 +181,6 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
       {/* Pipeline progress — processing only */}
       {isProcessing && <PipelineProgress currentStatus={video.status} />}
 
-      {/* Description */}
-      {video.description && !isProcessing && (
-        <p className="text-xs text-zinc-500 line-clamp-2 mb-3 leading-relaxed">{video.description}</p>
-      )}
 
       {/* Error */}
       {isFailed && video.error_message && (
@@ -202,19 +198,6 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         </div>
       )}
 
-      {/* Tags */}
-      {video.tags && video.tags.length > 0 && !isProcessing && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {video.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="text-[10px] px-2 py-0.5 bg-zinc-800 text-zinc-400 rounded-full border border-zinc-700/60">
-              #{tag}
-            </span>
-          ))}
-          {video.tags.length > 3 && (
-            <span className="text-[10px] px-2 py-0.5 text-zinc-600">+{video.tags.length - 3}</span>
-          )}
-        </div>
-      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
