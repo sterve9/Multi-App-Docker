@@ -1,57 +1,40 @@
-"""
-Modèle Post - Posts LinkedIn
-"""
 import enum
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Text, DateTime, Enum
 from sqlalchemy.sql import func
 from app.core.database import Base
 
 
 class PostStatus(str, enum.Enum):
-    DRAFT = "draft"
-    PROCESSING = "processing"
-    READY = "ready"
-    PUBLISHED = "published"
-    FAILED = "failed"
+    draft      = "draft"
+    processing = "processing"
+    ready      = "ready"
+    uploading  = "uploading"
+    published  = "published"
+    failed     = "failed"
 
 
-class PostType(str, enum.Enum):
-    MILESTONE = "milestone"
-    UPDATE = "update"
-    LEARNING = "learning"
+class Post(Base):
+    __tablename__ = "posts"
 
+    id    = Column(Integer, primary_key=True, index=True)
+    topic = Column(Text, nullable=False)
 
-class LinkedInPost(Base):
-    __tablename__ = "linkedin_posts"
+    # Contenu généré par Claude
+    hook              = Column(Text, nullable=True)
+    reflection        = Column(Text, nullable=True)
+    image_prompt      = Column(Text, nullable=True)
+    processed_content = Column(Text, nullable=True)  # texte final pour LinkedIn
 
-    id = Column(Integer, primary_key=True, index=True)
+    # Image
+    image_filename = Column(String(255), nullable=True)  # fichier local dans /app/outputs/images/
 
-    # Relation
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    user = relationship("User", back_populates="posts")
-
-    # Contenu brut
-    raw_content = Column(Text, nullable=False)
-    post_type = Column(Enum(PostType), nullable=False)
-
-    # Contenu traité par Claude
-    processed_content = Column(Text, nullable=True)
-    title = Column(String(255), nullable=True)
-    bullets = Column(JSON, nullable=True)  # ["bullet1", "bullet2", "bullet3"]
-
-    # Images
-    image_prompt = Column(Text, nullable=True)
-    replicate_image_url = Column(String(500), nullable=True)
-    final_image_path = Column(String(500), nullable=True)
+    # Pipeline
+    status        = Column(Enum(PostStatus), default=PostStatus.draft, nullable=False)
+    error_message = Column(Text, nullable=True)
 
     # Publication
-    status = Column(Enum(PostStatus), default=PostStatus.DRAFT, nullable=False)
-    scheduled_for = Column(DateTime(timezone=True), nullable=True)
-    published_at = Column(DateTime(timezone=True), nullable=True)
-
-    # IDs externes
     linkedin_post_id = Column(String(255), nullable=True)
+    published_at     = Column(DateTime(timezone=True), nullable=True)
 
     # Metadata
     created_at = Column(DateTime(timezone=True), server_default=func.now())

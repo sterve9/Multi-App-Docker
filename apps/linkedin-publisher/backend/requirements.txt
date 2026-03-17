@@ -6,21 +6,12 @@ python-dotenv==1.0.1
 # Database
 sqlalchemy==2.0.35
 psycopg2-binary==2.9.10
-alembic==1.14.0
 
 # Validation
 pydantic==2.10.1
-email-validator==2.2.0
 
 # HTTP Client
 httpx==0.28.1
-requests==2.32.3
 
 # AI
 anthropic==0.81.0
-
-# Image Processing
-Pillow==11.0.0
-
-# Replicate
-replicate==1.0.4

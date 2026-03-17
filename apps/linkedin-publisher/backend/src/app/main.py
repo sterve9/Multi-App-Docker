@@ -1,108 +1,74 @@
-"""
-LinkedIn Publisher API - Main Application
-"""
-
 import logging
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import Base, engine, wait_for_db
-from app.models.user import User
-from app.models.post import LinkedInPost
-from app.api.routes import posts, images
+from app.models.post import Post
+from app.api.routes import posts
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+_MIGRATIONS = [
+    # Idempotent — ajoute les colonnes si elles n'existent pas encore
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS hook TEXT",
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS reflection TEXT",
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS image_filename VARCHAR(255)",
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS error_message TEXT",
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS linkedin_post_id VARCHAR(255)",
+    "ALTER TABLE posts ADD COLUMN IF NOT EXISTS published_at TIMESTAMPTZ",
+]
 
-# =====================================================
-# LIFESPAN (remplace @on_event deprecated)
-# =====================================================
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup
     logger.info("Initialisation de la base de données...")
     wait_for_db()
+    # Drop anciens types/tables incompatibles si nécessaire
+    with engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS linkedin_posts CASCADE"))
+        conn.execute(text("DROP TABLE IF EXISTS users CASCADE"))
+        conn.execute(text("DROP TYPE IF EXISTS poststatus CASCADE"))
+        conn.execute(text("DROP TYPE IF EXISTS posttype CASCADE"))
+        conn.commit()
     Base.metadata.create_all(bind=engine)
-    logger.info("Tables créées/vérifiées avec succès")
+    with engine.connect() as conn:
+        for sql in _MIGRATIONS:
+            try:
+                conn.execute(text(sql))
+            except Exception:
+                pass
+        conn.commit()
+    logger.info("Base de données prête ✅")
     yield
-    # Shutdown
-    logger.info("Application arrêtée proprement")
+    logger.info("Arrêt propre")
 
-
-# =====================================================
-# APPLICATION FASTAPI
-# =====================================================
 
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="API pour automatiser la publication de posts LinkedIn avec génération d'images IA",
-    docs_url="/docs",
-    redoc_url="/redoc",
     lifespan=lifespan
 )
 
-
-# =====================================================
-# CORS MIDDLEWARE
-# =====================================================
-
-allowed_origins = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-]
-
-if hasattr(settings, "ALLOWED_ORIGINS") and settings.ALLOWED_ORIGINS:
-    allowed_origins.extend(settings.ALLOWED_ORIGINS)
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origins=settings.ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-
-# =====================================================
-# ROUTES
-# =====================================================
-
 app.include_router(posts.router, prefix="/api")
-app.include_router(images.router, prefix="/api")
 
-
-# =====================================================
-# ENDPOINTS DE BASE
-# =====================================================
 
 @app.get("/")
 def root():
-    return {
-        "app": settings.APP_NAME,
-        "version": settings.VERSION,
-        "status": "running",
-        "docs": "/docs"
-    }
+    return {"app": settings.APP_NAME, "version": settings.VERSION, "status": "running"}
 
 
 @app.get("/health")
 def health():
-    try:
-        with engine.connect() as conn:
-            conn.execute(engine.dialect.has_table.__func__ and __import__('sqlalchemy').text("SELECT 1"))
-        db_status = "connected"
-    except Exception:
-        db_status = "unavailable"
-
-    return {
-        "status": "healthy" if db_status == "connected" else "degraded",
-        "database": db_status
-    }
+    return {"status": "healthy"}

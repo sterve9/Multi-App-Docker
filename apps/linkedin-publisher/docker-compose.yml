@@ -8,11 +8,10 @@ services:
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@linkedin-db:5432/linkedin_publisher
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - REPLICATE_API_TOKEN=${REPLICATE_API_TOKEN}
+      - KIE_AI_API_KEY=${KIE_AI_API_KEY}
       - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - BASE_URL=https://api.linkedin.sterveshop.cloud
       - DEBUG=${DEBUG:-False}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
     depends_on:
       postgres:
         condition: service_healthy
@@ -21,6 +20,7 @@ services:
       - internal
     volumes:
       - image_outputs:/app/outputs
+      - reference_photo:/app/assets/reference
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -81,3 +81,4 @@ networks:
 volumes:
   postgres_data:
   image_outputs:
+  reference_photo:

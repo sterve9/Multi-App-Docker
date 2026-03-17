@@ -1,35 +1,32 @@
-"""
-Schémas Pydantic pour les requêtes Posts
-"""
-from pydantic import BaseModel, Field
-from typing import Optional, List
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime
-from app.models.post import PostStatus, PostType
+from app.models.post import PostStatus
 
 
 class PostCreateRequest(BaseModel):
-    """Requête pour créer un nouveau post"""
-    raw_content: str = Field(
-        ...,
-        description="Contenu brut du post (votre idée)",
-        min_length=10,
-        max_length=5000
-    )
-    post_type: PostType = Field(..., description="Type de post")
-    user_id: int = Field(..., description="ID de l'utilisateur")
+    topic: str
+
+
+class PostPatchRequest(BaseModel):
+    status:           Optional[PostStatus] = None
+    linkedin_post_id: Optional[str]        = None
+    error_message:    Optional[str]        = None
 
 
 class PostResponse(BaseModel):
-    """Réponse d'un post"""
-    id: int
-    user_id: int
-    raw_content: str
-    post_type: PostType
-    processed_content: Optional[str] = None
-    title: Optional[str] = None
-    bullets: Optional[List[str]] = None
-    status: PostStatus
-    created_at: datetime
+    id:                int
+    topic:             str
+    hook:              Optional[str]      = None
+    reflection:        Optional[str]      = None
+    image_prompt:      Optional[str]      = None
+    processed_content: Optional[str]      = None
+    image_filename:    Optional[str]      = None
+    status:            PostStatus
+    error_message:     Optional[str]      = None
+    linkedin_post_id:  Optional[str]      = None
+    published_at:      Optional[datetime] = None
+    created_at:        datetime
+    updated_at:        Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
