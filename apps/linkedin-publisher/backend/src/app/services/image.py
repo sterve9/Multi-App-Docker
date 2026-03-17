@@ -13,155 +13,91 @@ KIE_BASE_URL = "https://api.kie.ai/api/v1"
 MAX_RETRIES  = 3
 RETRY_DELAYS = [5, 15, 30]
 
+REFERENCE_DIR = os.path.dirname(settings.REFERENCE_PHOTO_PATH)  # /app/assets/reference
 
-async def upload_reference_photo(client: httpx.AsyncClient) -> str | None:
-    """Upload la photo de référence vers kie.ai et retourne l'URL temporaire."""
-    path = settings.REFERENCE_PHOTO_PATH
+
+async def upload_photo(client: httpx.AsyncClient, path: str) -> str | None:
+    """Upload une photo vers kie.ai et retourne l'URL temporaire."""
     if not os.path.exists(path):
-        logger.warning(f"Photo de référence introuvable : {path}")
         return None
 
     with open(path, "rb") as f:
-        image_data = f.read()
+        data = f.read()
 
     filename     = os.path.basename(path)
     content_type = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
-    logger.info(f"Upload référence : {path} ({len(image_data)} bytes)")
 
     response = await client.post(
         "https://api.kie.ai/api/file-stream-upload",
         headers={"Authorization": f"Bearer {settings.KIE_AI_API_KEY}"},
-        files={"file": (filename, image_data, content_type)},
+        files={"file": (filename, data, content_type)},
         data={"uploadPath": "reference"},
         timeout=60
     )
-    data = response.json()
-    if not data.get("success"):
-        logger.warning(f"Upload référence échoué : {data}")
+    resp = response.json()
+    if not resp.get("success"):
+        logger.warning(f"Upload échoué pour {filename}: {resp}")
         return None
 
-    url = data["data"]["downloadUrl"]
-    logger.info(f"Photo référence uploadée : {url}")
+    url = resp["data"]["downloadUrl"]
+    logger.info(f"Uploadé: {filename} → {url}")
     return url
 
 
-def extract_frame_from_video(video_path: str, output_path: str, second: float = 0.5) -> bool:
-    """Extrait un frame d'une vidéo avec FFmpeg. Retourne True si succès."""
+async def get_reference_urls(client: httpx.AsyncClient) -> list[str]:
+    """
+    Retourne les URLs kie.ai de toutes les photos de référence trouvées.
+    Cherche photo1.jpg, photo2.jpg, photo3.jpg... et photo.jpg en fallback.
+    Minimum 2 URLs requis pour kling_elements.
+    """
+    if not os.path.exists(REFERENCE_DIR):
+        logger.warning(f"Dossier référence introuvable: {REFERENCE_DIR}")
+        return []
+
+    # Cherche toutes les photos dans le dossier (triées)
+    photos = sorted([
+        os.path.join(REFERENCE_DIR, f)
+        for f in os.listdir(REFERENCE_DIR)
+        if f.lower().endswith((".jpg", ".jpeg", ".png"))
+    ])
+
+    if not photos:
+        logger.warning("Aucune photo de référence trouvée")
+        return []
+
+    logger.info(f"Photos de référence trouvées: {[os.path.basename(p) for p in photos]}")
+
+    # Upload toutes en parallèle
+    tasks   = [upload_photo(client, p) for p in photos]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    urls    = [r for r in results if isinstance(r, str)]
+
+    logger.info(f"{len(urls)}/{len(photos)} photos uploadées avec succès")
+    return urls
+
+
+def extract_frame(video_path: str, output_path: str, second: float = 0.5) -> bool:
+    """Extrait un frame d'une vidéo avec FFmpeg."""
     try:
         result = subprocess.run(
-            [
-                "ffmpeg", "-y",
-                "-ss", str(second),
-                "-i", video_path,
-                "-vframes", "1",
-                "-q:v", "2",
-                "-f", "image2",
-                output_path
-            ],
+            ["ffmpeg", "-y", "-ss", str(second), "-i", video_path,
+             "-vframes", "1", "-q:v", "2", "-f", "image2", output_path],
             capture_output=True, text=True, timeout=30
         )
         if result.returncode != 0:
             logger.warning(f"FFmpeg stderr: {result.stderr[-300:]}")
-            return False
         return os.path.exists(output_path) and os.path.getsize(output_path) > 0
     except Exception as e:
         logger.warning(f"Erreur extraction frame: {e}")
         return False
 
 
-async def generate_image_with_face(
-    client: httpx.AsyncClient,
-    headers: dict,
-    image_prompt: str,
-    post_id: int,
-    reference_url: str
-) -> str:
-    """
-    Génère une image avec le vrai visage via Kling 2.6 Image-to-Video.
-    Upload la photo → génère clip 5s → extrait frame → retourne chemin local.
-    """
-    os.makedirs(settings.IMAGE_OUTPUT_DIR, exist_ok=True)
-
-    payload = {
-        "model": "kling-2.6/image-to-video",
-        "input": {
-            "prompt": image_prompt,
-            "image_urls": [reference_url],
-            "sound": False,
-            "duration": "5"
-        }
-    }
-    logger.info(f"Post {post_id} — Kling I2V avec visage réel, prompt: {image_prompt[:80]}...")
-
-    response = await client.post(
-        f"{KIE_BASE_URL}/jobs/createTask",
-        headers=headers, json=payload, timeout=60
-    )
-    response.raise_for_status()
-    data = response.json()
-    if data.get("code") != 200:
-        raise Exception(f"Kling I2V erreur: {data.get('msg')}")
-
-    task_id = data["data"]["taskId"]
-    logger.info(f"Post {post_id} — task Kling I2V lancée: {task_id}")
-
-    # Polling (max 10 min)
-    video_url = None
-    for poll_i in range(120):
-        await asyncio.sleep(5)
-        status_resp = await client.get(
-            f"{KIE_BASE_URL}/jobs/recordInfo",
-            headers=headers, params={"taskId": task_id}
-        )
-        record = status_resp.json().get("data", {})
-        state  = record.get("state")
-        if poll_i % 6 == 0:
-            logger.info(f"Post {post_id} — I2V état {state} (poll {poll_i})")
-        if state == "success":
-            video_url = _json.loads(record["resultJson"])["resultUrls"][0]
-            break
-        elif state == "fail":
-            raise Exception(f"Kling I2V échoué: {record.get('failMsg')}")
-
-    if not video_url:
-        raise Exception(f"Kling I2V timeout post {post_id}")
-
-    logger.info(f"Post {post_id} — vidéo générée: {video_url}")
-
-    # Télécharger la vidéo dans un fichier temporaire
-    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
-        video_path = tmp.name
-
-    try:
-        video_resp = await client.get(video_url, timeout=120)
-        video_resp.raise_for_status()
-        with open(video_path, "wb") as f:
-            f.write(video_resp.content)
-        logger.info(f"Post {post_id} — vidéo téléchargée ({len(video_resp.content)} bytes)")
-
-        # Extraire le frame à 0.5s (évite le fade-in)
-        filename = f"post_{post_id}.jpg"
-        output_path = os.path.join(settings.IMAGE_OUTPUT_DIR, filename)
-        if not extract_frame_from_video(video_path, output_path, second=0.5):
-            # Fallback : frame 0
-            extract_frame_from_video(video_path, output_path, second=0.0)
-
-        if not os.path.exists(output_path):
-            raise Exception("Extraction frame échouée")
-
-        logger.info(f"Post {post_id} — frame extrait → {output_path}")
-        return filename
-
-    finally:
-        if os.path.exists(video_path):
-            os.unlink(video_path)
-
-
 async def generate_image(image_prompt: str, post_id: int) -> str:
     """
-    Génère une image LinkedIn.
-    - Si photo de référence disponible → Kling 2.6 I2V (vrai visage garanti)
-    - Sinon → Google Imagen4 (photoréaliste mais visage générique)
+    Génère une image LinkedIn avec le vrai visage via kling_elements.
+    - Si 2+ photos dispo → kling-3.0/video avec kling_elements → extract frame (vrai visage)
+    - Si 1 photo dispo  → kling-2.6/image-to-video → extract frame
+    - Sinon             → google/imagen4 (fallback sans visage)
     """
     os.makedirs(settings.IMAGE_OUTPUT_DIR, exist_ok=True)
     headers = {
@@ -175,30 +111,57 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
         try:
             if attempt > 0:
                 delay = RETRY_DELAYS[attempt - 1]
-                logger.info(f"Post {post_id} — retry {attempt}/{MAX_RETRIES-1} dans {delay}s...")
+                logger.info(f"Post {post_id} — retry {attempt} dans {delay}s...")
                 await asyncio.sleep(delay)
 
             async with httpx.AsyncClient(timeout=300.0) as client:
 
-                # Essayer avec le vrai visage si la photo est disponible
-                reference_url = await upload_reference_photo(client)
+                reference_urls = await get_reference_urls(client)
 
-                if reference_url:
-                    filename = await generate_image_with_face(
-                        client, headers, image_prompt, post_id, reference_url
-                    )
-                    return filename
-
-                # Fallback Imagen4 si pas de photo de référence
-                logger.warning(f"Post {post_id} — pas de photo référence, fallback Imagen4")
-                payload = {
-                    "model": "google/imagen4",
-                    "input": {
-                        "prompt": image_prompt,
-                        "aspect_ratio": "9:16",
-                        "negative_prompt": "cartoon, anime, blurry, deformed, low quality, woman, female"
+                # ── Approche 1 : kling_elements (2+ photos) — meilleure cohérence ──
+                if len(reference_urls) >= 2:
+                    logger.info(f"Post {post_id} — kling_elements avec {len(reference_urls)} photos")
+                    payload = {
+                        "model": "kling-3.0/video",
+                        "input": {
+                            "prompt": f"professional LinkedIn portrait, confident expression, {image_prompt}, @user_reference",
+                            "aspect_ratio": "9:16",
+                            "duration": "5",
+                            "mode": "std",
+                            "multi_shots": False,
+                            "sound": False,
+                            "kling_elements": [{
+                                "name": "user_reference",
+                                "description": "The user, professional Black African man in his 30s",
+                                "element_input_urls": reference_urls
+                            }]
+                        }
                     }
-                }
+
+                # ── Approche 2 : image-to-video (1 photo) ──────────────────────────
+                elif len(reference_urls) == 1:
+                    logger.info(f"Post {post_id} — Kling I2V avec 1 photo")
+                    payload = {
+                        "model": "kling-2.6/image-to-video",
+                        "input": {
+                            "prompt": image_prompt,
+                            "image_urls": reference_urls,
+                            "sound": False,
+                            "duration": "5"
+                        }
+                    }
+
+                # ── Fallback : Imagen4 ──────────────────────────────────────────────
+                else:
+                    logger.warning(f"Post {post_id} — fallback Imagen4 (pas de photos)")
+                    payload = {
+                        "model": "google/imagen4",
+                        "input": {
+                            "prompt": image_prompt,
+                            "aspect_ratio": "9:16",
+                            "negative_prompt": "cartoon, anime, blurry, deformed, low quality"
+                        }
+                    }
 
                 response = await client.post(
                     f"{KIE_BASE_URL}/jobs/createTask",
@@ -207,13 +170,14 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                 response.raise_for_status()
                 data = response.json()
                 if data.get("code") != 200:
-                    raise Exception(f"Imagen4 erreur: {data.get('msg')}")
+                    raise Exception(f"kie.ai erreur: {data.get('msg')}")
 
                 task_id = data["data"]["taskId"]
-                logger.info(f"Post {post_id} — task Imagen4: {task_id}")
+                logger.info(f"Post {post_id} — task lancée: {task_id}")
 
-                image_url = None
-                for _ in range(120):
+                # Polling
+                result_url = None
+                for poll_i in range(120):
                     await asyncio.sleep(5)
                     status_resp = await client.get(
                         f"{KIE_BASE_URL}/jobs/recordInfo",
@@ -221,28 +185,52 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                     )
                     record = status_resp.json().get("data", {})
                     state  = record.get("state")
+                    if poll_i % 6 == 0:
+                        logger.info(f"Post {post_id} — état {state} (poll {poll_i})")
                     if state == "success":
-                        image_url = _json.loads(record["resultJson"])["resultUrls"][0]
+                        result_url = _json.loads(record["resultJson"])["resultUrls"][0]
                         break
                     elif state == "fail":
-                        raise Exception(f"Imagen4 échoué: {record.get('failMsg')}")
+                        raise Exception(f"Génération échouée: {record.get('failMsg')}")
 
-                if not image_url:
-                    raise Exception(f"Imagen4 timeout post {post_id}")
+                if not result_url:
+                    raise Exception(f"Timeout post {post_id}")
 
-                img_response = await client.get(image_url, timeout=60)
-                img_response.raise_for_status()
+                logger.info(f"Post {post_id} — résultat: {result_url}")
 
-                filename = f"post_{post_id}.png"
+                # Si vidéo → extraire le frame avec FFmpeg
+                is_video = reference_urls and payload.get("model") != "google/imagen4"
+                filename = f"post_{post_id}.jpg" if is_video else f"post_{post_id}.png"
                 filepath = os.path.join(settings.IMAGE_OUTPUT_DIR, filename)
-                with open(filepath, "wb") as f:
-                    f.write(img_response.content)
 
-                logger.info(f"Post {post_id} — Imagen4 sauvegardée: {filepath}")
+                if is_video:
+                    with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as tmp:
+                        video_path = tmp.name
+                    try:
+                        vid_resp = await client.get(result_url, timeout=120)
+                        vid_resp.raise_for_status()
+                        with open(video_path, "wb") as f:
+                            f.write(vid_resp.content)
+                        logger.info(f"Post {post_id} — vidéo téléchargée ({len(vid_resp.content)} bytes)")
+
+                        if not extract_frame(video_path, filepath, second=0.5):
+                            extract_frame(video_path, filepath, second=0.0)
+                        if not os.path.exists(filepath):
+                            raise Exception("Extraction frame échouée")
+                    finally:
+                        if os.path.exists(video_path):
+                            os.unlink(video_path)
+                else:
+                    img_resp = await client.get(result_url, timeout=60)
+                    img_resp.raise_for_status()
+                    with open(filepath, "wb") as f:
+                        f.write(img_resp.content)
+
+                logger.info(f"Post {post_id} — image sauvegardée: {filepath}")
                 return filename
 
         except Exception as e:
             last_exception = e
             logger.warning(f"Post {post_id} — tentative {attempt + 1}/{MAX_RETRIES} échouée: {e}")
 
-    raise Exception(f"Post {post_id} image échouée après {MAX_RETRIES} tentatives: {last_exception}")
+    raise Exception(f"Post {post_id} échoué après {MAX_RETRIES} tentatives: {last_exception}")
