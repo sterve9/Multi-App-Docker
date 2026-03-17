@@ -17,24 +17,34 @@ REFERENCE_DIR = os.path.dirname(settings.REFERENCE_PHOTO_PATH)  # /app/assets/re
 
 
 async def upload_photo(client: httpx.AsyncClient, path: str) -> str | None:
-    """Upload une photo vers kie.ai et retourne l'URL temporaire."""
+    """Upload une photo vers kie.ai via base64 et retourne l'URL temporaire."""
+    import base64
     if not os.path.exists(path):
         return None
 
     with open(path, "rb") as f:
-        data = f.read()
+        raw = f.read()
 
     filename     = os.path.basename(path)
-    content_type = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
+    b64_data     = base64.b64encode(raw).decode("utf-8")
 
     response = await client.post(
-        "https://api.kie.ai/api/file-stream-upload",
-        headers={"Authorization": f"Bearer {settings.KIE_AI_API_KEY}"},
-        files={"file": (filename, data, content_type)},
-        data={"uploadPath": "characters"},
+        "https://api.kie.ai/api/file-base64-upload",
+        headers={
+            "Authorization": f"Bearer {settings.KIE_AI_API_KEY}",
+            "Content-Type":  "application/json"
+        },
+        json={
+            "fileData":   b64_data,
+            "fileName":   filename,
+            "uploadPath": "characters"
+        },
         timeout=60
     )
+    logger.info(f"Upload base64 {filename}: status={response.status_code}")
     resp = response.json()
+    logger.info(f"Upload base64 response: {resp}")
+
     if not resp.get("success"):
         logger.warning(f"Upload échoué pour {filename}: {resp}")
         return None
