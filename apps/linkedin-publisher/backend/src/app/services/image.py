@@ -74,26 +74,16 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                 # Upload photo de référence
                 reference_url = await upload_reference_photo(client)
 
-                # Payload nano-banana-pro Image to Image
-                # strength faible (0.2) = conserve le visage, applique juste le style
-                input_data = {
-                    "prompt":        image_prompt,
-                    "aspect_ratio":  "9:16",
-                    "resolution":    "1K",
-                    "output_format": "png",
-                    "strength":      0.2   # 0=identique à la photo, 1=régénération totale
-                }
-
-                if reference_url:
-                    input_data["image_url"] = reference_url
-                    logger.info(f"Post {post_id} — img2img avec référence (strength=0.2) : {reference_url}")
-                else:
-                    logger.warning(f"Post {post_id} — pas de référence, text-to-image uniquement")
-
+                # Google Imagen4 — photoréaliste, professionnel, LinkedIn-ready
                 payload = {
-                    "model": "nano-banana-pro",
-                    "input": input_data
+                    "model": "google/imagen4",
+                    "input": {
+                        "prompt":          image_prompt,
+                        "aspect_ratio":    "9:16",
+                        "negative_prompt": "cartoon, anime, illustration, blurry, deformed, low quality, woman, female"
+                    }
                 }
+                logger.info(f"Post {post_id} — génération Imagen4")
 
                 logger.info(f"Post {post_id} — payload envoyé : {_json.dumps(payload, indent=2)}")
 
