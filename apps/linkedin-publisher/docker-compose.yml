@@ -9,8 +9,9 @@ services:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@linkedin-db:5432/linkedin_publisher
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       - KIE_AI_API_KEY=${KIE_AI_API_KEY}
-      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/linkedin-publish
       - BASE_URL=https://api.linkedin.sterveshop.cloud
+      - REFERENCE_PHOTO_PATH=/app/assets/reference/photo.jpg
       - DEBUG=${DEBUG:-False}
     depends_on:
       postgres:
@@ -20,7 +21,7 @@ services:
       - internal
     volumes:
       - image_outputs:/app/outputs
-      - reference_photo:/app/assets/reference
+      # photo de référence baked dans l'image Docker (assets/reference/photo.jpg)
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
@@ -81,4 +82,3 @@ networks:
 volumes:
   postgres_data:
   image_outputs:
-  reference_photo:
