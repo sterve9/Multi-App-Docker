@@ -31,7 +31,7 @@ async def upload_photo(client: httpx.AsyncClient, path: str) -> str | None:
         "https://api.kie.ai/api/file-stream-upload",
         headers={"Authorization": f"Bearer {settings.KIE_AI_API_KEY}"},
         files={"file": (filename, data, content_type)},
-        data={"uploadPath": "reference"},
+        data={"uploadPath": "characters"},
         timeout=60
     )
     resp = response.json()
@@ -77,11 +77,17 @@ async def get_reference_urls(client: httpx.AsyncClient) -> list[str]:
 
 
 def extract_frame(video_path: str, output_path: str, second: float = 0.5) -> bool:
-    """Extrait un frame d'une vidéo avec FFmpeg."""
+    """Extrait un frame d'une vidéo avec FFmpeg et crop au format 9:16."""
     try:
+        # Extrait le frame puis crop centre en 9:16
+        # Pour une vidéo 16:9 (1280x720) : crop h=720, w=405 (720*9/16) centré
         result = subprocess.run(
-            ["ffmpeg", "-y", "-ss", str(second), "-i", video_path,
-             "-vframes", "1", "-q:v", "2", "-f", "image2", output_path],
+            [
+                "ffmpeg", "-y", "-ss", str(second), "-i", video_path,
+                "-vframes", "1",
+                "-vf", "crop=ih*9/16:ih:(iw-ih*9/16)/2:0",
+                "-q:v", "2", "-f", "image2", output_path
+            ],
             capture_output=True, text=True, timeout=30
         )
         if result.returncode != 0:
@@ -125,7 +131,7 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                         "model": "kling-3.0/video",
                         "input": {
                             "prompt": f"professional LinkedIn portrait, confident expression, {image_prompt}, @user_reference",
-                            "aspect_ratio": "9:16",
+                            "aspect_ratio": "16:9",  # seul ratio supporté — frame crop 9:16 via FFmpeg
                             "duration": "5",
                             "mode": "std",
                             "multi_shots": False,
