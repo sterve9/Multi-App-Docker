@@ -6,20 +6,31 @@ const app = express();
 app.use(express.json({ limit: "10mb" }));
 
 const PORT = process.env.PORT || 3001;
+const BROWSER_EXECUTABLE = process.env.PUPPETEER_EXECUTABLE_PATH || "/usr/bin/chromium";
+const OUTPUTS_DIR = "/app/outputs";
 
-// Lazy-loaded Remotion renderer
+// Serve local output files over HTTP so Chromium can load them
+app.use("/outputs", express.static(OUTPUTS_DIR));
+
+// Lazy-loaded Remotion renderer (promise-safe singleton)
 let bundle = null;
+let bundlePromise = null;
 
 async function getBundle() {
   if (bundle) return bundle;
+  if (bundlePromise) return bundlePromise;
   const { bundle: createBundle } = await import("@remotion/bundler");
   console.log("Bundling Remotion composition...");
-  bundle = await createBundle({
+  bundlePromise = createBundle({
     entryPoint: path.join(__dirname, "src", "index.tsx"),
     webpackOverride: (config) => config,
+  }).then((b) => {
+    bundle = b;
+    bundlePromise = null;
+    console.log("Bundle ready.");
+    return b;
   });
-  console.log("Bundle ready.");
-  return bundle;
+  return bundlePromise;
 }
 
 app.get("/health", (req, res) => {
@@ -59,10 +70,21 @@ app.post("/render", async (req, res) => {
     const bundlePath = await getBundle();
     const { renderMedia, selectComposition } = await import("@remotion/renderer");
 
+    // Convert absolute path to HTTP URL served by this Express server
+    const relPath = image_path.startsWith(OUTPUTS_DIR)
+      ? image_path.slice(OUTPUTS_DIR.length)
+      : image_path;
+    const imageSrc = `http://localhost:${PORT}/outputs${relPath}`;
+
     const composition = await selectComposition({
       serveUrl: bundlePath,
       id: "KenBurns",
-      inputProps: { imageSrc: `file://${image_path}`, direction },
+      inputProps: { imageSrc, direction },
+      browserExecutable: BROWSER_EXECUTABLE,
+      chromiumOptions: {
+        disableWebSecurity: true,
+        disableSandbox: true,
+      },
     });
 
     await renderMedia({
@@ -76,9 +98,11 @@ app.post("/render", async (req, res) => {
       serveUrl: bundlePath,
       codec: "h264",
       outputLocation: output_path,
-      inputProps: { imageSrc: `file://${image_path}`, direction },
+      inputProps: { imageSrc, direction },
+      browserExecutable: BROWSER_EXECUTABLE,
       chromiumOptions: {
         disableWebSecurity: true,
+        disableSandbox: true,
       },
       envVariables: {},
       timeoutInMilliseconds: 120000,

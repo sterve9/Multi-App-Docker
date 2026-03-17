@@ -5,23 +5,14 @@ services:
     restart: unless-stopped
     ports:
       - "8002:8000"
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgresql+psycopg2://postgres:postgres@youtube-db:5432/youtube_publisher
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      - KIE_AI_API_KEY=${KIE_AI_API_KEY}
-      - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
-      - ELEVENLABS_VOICE_ID=${ELEVENLABS_VOICE_ID}
-      - N8N_WEBHOOK_URL=${N8N_WEBHOOK_URL}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
       - BASE_URL=${BASE_URL:-https://api.youtube.sterveshop.cloud}
       - AFFILIATE_LINK=${AFFILIATE_LINK:-https://myfurbrush.com/rituelancestral7jours}
-      - REMOTION_SERVICE_URL=http://youtube-remotion-renderer:3001
-      - DEBUG=${DEBUG:-False}
     depends_on:
       postgres:
-        condition: service_healthy
-      remotion:
         condition: service_healthy
     networks:
       - traefik-network
