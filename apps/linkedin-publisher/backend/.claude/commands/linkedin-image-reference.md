@@ -17,6 +17,31 @@ Sa photo de référence est baked dans l'image Docker : `/app/assets/reference/p
 
 ---
 
+## ✅ Solution actuelle — VRAI VISAGE GARANTI
+
+**Approche** : Kling 2.6 Image-to-Video + extraction de frame FFmpeg
+1. Upload `photo.jpg` → kie.ai → URL temporaire
+2. `kling-2.6/image-to-video` avec `image_urls: [reference_url]` → clip 5s du vrai visage
+3. FFmpeg extrait le frame à t=0.5s → image PNG LinkedIn
+4. Le visage est garanti car le modèle ANIME la photo originale
+
+```python
+payload = {
+    "model": "kling-2.6/image-to-video",
+    "input": {
+        "prompt": image_prompt,    # décrit l'ambiance/mouvement
+        "image_urls": [reference_url],
+        "sound": False,
+        "duration": "5"
+    }
+}
+# Puis: ffmpeg -ss 0.5 -i video.mp4 -vframes 1 output.jpg
+```
+
+**Fallback** : `google/imagen4` si photo non disponible
+
+---
+
 ## Solution actuelle (fallback acceptable)
 
 **Modèle** : `google/imagen4`
