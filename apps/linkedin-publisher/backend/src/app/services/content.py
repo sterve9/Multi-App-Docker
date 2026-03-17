@@ -23,7 +23,7 @@ Génère un post complet. Réponds UNIQUEMENT en JSON strict, sans texte avant o
 {{
   "hook": "Une accroche de max 15 mots, percutante, qui donne envie de lire la suite. Style viral Instagram. Commence par une émotion, un chiffre, ou une affirmation provocante.",
   "reflection": "3 à 5 lignes de réflexion professionnelle sur l'IA en rapport avec le sujet. Style inspirant, intelligent, accessible. Chaque phrase doit apporter de la valeur. Pas de bullet points, texte fluide.",
-  "image_prompt": "Photorealistic portrait, professional African man in his 30s, athletic build, dark skin, short neat beard, intense confident gaze, [specific inspiring context related to the topic: office/city/tech environment], cinematic dramatic lighting, ultra high quality, sharp focus, aspirational atmosphere, 9:16 vertical format. Shot like a premium LinkedIn profile photo.",
+  "image_prompt": "Professional portrait photo, [specific environment strongly related to the topic: modern office, city skyline, tech workspace, etc.], cinematic dramatic lighting, ultra high quality, sharp details, aspirational and confident atmosphere, 9:16 vertical format, professional LinkedIn photo style. Focus on mood and environment.",
   "processed_content": "Le texte complet formaté pour LinkedIn : hook en première ligne (accroche seule), saut de ligne, reflection, saut de ligne, hashtags pertinents (5-7 hashtags IA et business). Longueur idéale : 150-250 mots."
 }}"""
 
