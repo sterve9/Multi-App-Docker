@@ -42,13 +42,17 @@ CONTEXTE DE L'ÉPISODE PRÉCÉDENT (épisode {episode_number - 1}) :
 Tu DOIS faire référence à ce qui s'est passé avant. L'histoire continue là où elle s'est arrêtée.
 """
 
-    prompt = f"""Tu es un scénariste expert en histoires dramatiques de couple pour YouTube francophone Afrique.
+    prompt = f"""Tu es un scénariste expert en storytelling émotionnel pour YouTube francophone Afrique.
+Tu travailles pour une chaîne dont l'objectif est de vendre un programme digital de rituel naturel pour la virilité masculine.
 
 PERSONNAGES FIXES (toujours les mêmes dans toute la série) :
 - Kofi : {CHARACTERS['homme']['description']}
 - Ama : {CHARACTERS['femme']['description']}
 
-THÈME DE LA SÉRIE : Les secrets cachés dans un couple — comment le manque de virilité et d'énergie de l'homme détruit progressivement la relation amoureuse. Histoires intenses, émotionnelles, réalistes.
+OBJECTIF STRATÉGIQUE DE LA CHAÎNE :
+Chaque vidéo doit raconter une histoire vraie et émotionnelle montrant comment la baisse de virilité de Kofi détruit silencieusement son foyer — sa relation avec Ama, sa confiance, sa place d'homme.
+Le spectateur qui vit la même situation doit se reconnaître, ressentir l'urgence d'agir, et cliquer sur le lien en description pour trouver la solution.
+La dernière scène doit TOUJOURS contenir un CTA vocal naturel orientant le spectateur vers la description.
 
 {continuity_context}
 
@@ -60,18 +64,19 @@ Le script doit avoir exactement 5 scènes.
 RÈGLES IMPORTANTES :
 1. Chaque narration : minimum 60 mots, style storytelling immersif, voix de narrateur omniscient
 2. Les personnages s'appellent TOUJOURS Kofi et Ama
-3. L'histoire doit être captivante, avec des rebondissements
-4. Chaque épisode doit se terminer sur un cliffhanger ou une révélation
-5. Intégrer subtilement le thème de la vitalité masculine et ses effets sur le couple
+3. L'histoire doit être captivante, émotionnelle, réaliste — le spectateur doit se reconnaître
+4. Les 4 premières scènes montrent la douleur, la honte, les conséquences de la baisse de virilité
+5. La 5ème scène (dernière) : Kofi trouve une solution. Le narrateur dit naturellement quelque chose comme :
+   "Si tu vis ce que Kofi a vécu, sache qu'il existe un rituel naturel qui a changé sa vie. Le lien est dans la description."
 6. Les image_prompts doivent TOUJOURS décrire Kofi et Ama avec leurs caractéristiques physiques exactes
 
 DESCRIPTION YOUTUBE : Doit inclure à la fin exactement ce texte :
-"🔗 Le rituel naturel dont parle Kofi : {settings.AFFILIATE_LINK}"
+"🔗 Le rituel naturel qui a sauvé Kofi : {settings.AFFILIATE_LINK}"
 
 Réponds UNIQUEMENT en JSON strict, sans texte avant ou après :
 {{
   "title": "Titre accrocheur YouTube Épisode {episode_number} (max 70 chars, inclure 'Ep.{episode_number}')",
-  "description": "Description YouTube 150 mots + lien produit à la fin",
+  "description": "Description YouTube 150 mots racontant brièvement l'histoire + lien produit à la fin",
   "episode_summary": "Résumé en 3 phrases de ce qui s'est passé dans cet épisode (pour la continuité)",
   "tags": ["tag1", "tag2", "tag3", "tag4", "tag5", "tag6", "tag7", "tag8"],
   "scenes": [

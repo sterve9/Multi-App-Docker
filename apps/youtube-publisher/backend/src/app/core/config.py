@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHAT_ID: str = ""
     BASE_URL: str = "https://api.youtube.sterveshop.cloud"
-    AFFILIATE_LINK: str = "https://myfurbrush.com/rituelancestral7jours"
+    AFFILIATE_LINK: str = "https://rituel.sterveshop.cloud"
     REMOTION_SERVICE_URL: str = ""
 
     class Config:
