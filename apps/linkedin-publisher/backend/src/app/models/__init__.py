@@ -1,7 +1,3 @@
-"""
-Database Models
-"""
-from app.models.user import User
-from app.models.post import LinkedInPost
+from app.models.post import Post
 
-__all__ = ["User", "LinkedInPost"]
+__all__ = ["Post"]
