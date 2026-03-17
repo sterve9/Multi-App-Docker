@@ -1,0 +1,12 @@
+{
+  "projectSettings": {
+    "linkedin-image-reference": {
+      "description": "Référence complète pour l'image de profil LinkedIn (photo utilisateur, modèles face-reference, leçons apprises)",
+      "file": ".claude/commands/linkedin-image-reference.md"
+    },
+    "linkedin-debug": {
+      "description": "Guide de debug LinkedIn Publisher — erreurs fréquentes, commandes serveur, n8n workflow",
+      "file": ".claude/commands/linkedin-debug.md"
+    }
+  }
+}
