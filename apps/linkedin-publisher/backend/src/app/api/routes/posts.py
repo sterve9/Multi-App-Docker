@@ -80,7 +80,9 @@ async def publish_post(post_id: int, db: Session = Depends(get_db)):
 
     try:
         async with httpx.AsyncClient(timeout=30) as client:
-            await client.post(settings.N8N_WEBHOOK_URL, json={"post_id": post.id})
+            resp = await client.post(settings.N8N_WEBHOOK_URL, json={"post_id": post.id})
+            logger.info(f"n8n webhook status: {resp.status_code} — {resp.text[:200]}")
+            resp.raise_for_status()
     except Exception as e:
         logger.error(f"Erreur webhook n8n post {post_id}: {e}")
         post.status = PostStatus.ready
