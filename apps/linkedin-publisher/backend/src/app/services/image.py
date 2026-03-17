@@ -25,6 +25,8 @@ async def upload_reference_photo(client: httpx.AsyncClient) -> str | None:
     filename     = os.path.basename(path)
     content_type = "image/jpeg" if filename.lower().endswith((".jpg", ".jpeg")) else "image/png"
 
+    logger.info(f"Upload référence : {path} ({len(image_data)} bytes)")
+
     response = await client.post(
         "https://api.kie.ai/api/file-stream-upload",
         headers={"Authorization": f"Bearer {settings.KIE_AI_API_KEY}"},
@@ -32,9 +34,14 @@ async def upload_reference_photo(client: httpx.AsyncClient) -> str | None:
         data={"uploadPath": "reference"},
         timeout=60
     )
+
+    logger.info(f"Upload status: {response.status_code}")
     data = response.json()
-    if not data.get("success") and data.get("code") != 200:
-        logger.warning(f"Upload référence échoué : {data.get('msg')}")
+    logger.info(f"Upload response: {data}")
+
+    # La réponse kie.ai n'a pas toujours de champ "code"
+    if not data.get("success"):
+        logger.warning(f"Upload référence échoué : {data.get('msg', data)}")
         return None
 
     url = data["data"]["downloadUrl"]
@@ -44,7 +51,7 @@ async def upload_reference_photo(client: httpx.AsyncClient) -> str | None:
 
 async def generate_image(image_prompt: str, post_id: int) -> str:
     """
-    Génère une image via kie.ai nano-banana-pro (Image to Image si référence dispo).
+    Génère une image via kie.ai nano-banana-pro (Image to Image avec référence).
     Télécharge l'image localement et retourne le nom du fichier.
     """
     os.makedirs(settings.IMAGE_OUTPUT_DIR, exist_ok=True)
@@ -74,13 +81,22 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                     "resolution":    "1K",
                     "output_format": "png"
                 }
+
                 if reference_url:
-                    input_data["image_url"] = reference_url
+                    # Nano-banana-pro Image to Image : tester image_url + image_urls
+                    input_data["image_url"]  = reference_url
+                    input_data["image_urls"] = [reference_url]
+                    input_data["strength"]   = 0.75  # maintenir la ressemblance
+                    logger.info(f"Post {post_id} — référence incluse : {reference_url}")
+                else:
+                    logger.warning(f"Post {post_id} — pas de référence, génération text-to-image")
 
                 payload = {
                     "model": "nano-banana-pro",
                     "input": input_data
                 }
+
+                logger.info(f"Post {post_id} — payload envoyé : {_json.dumps(payload, indent=2)}")
 
                 # Création de la tâche
                 response = await client.post(
@@ -89,6 +105,8 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                     json=payload,
                     timeout=60
                 )
+                logger.info(f"Post {post_id} — createTask status: {response.status_code}")
+                logger.info(f"Post {post_id} — createTask response: {response.text}")
                 response.raise_for_status()
                 data = response.json()
 
@@ -100,7 +118,7 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
 
                 # Polling
                 image_url = None
-                for _ in range(120):
+                for poll_i in range(120):
                     await asyncio.sleep(5)
                     status_resp = await client.get(
                         f"{KIE_BASE_URL}/jobs/recordInfo",
@@ -110,8 +128,12 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
                     record = status_resp.json().get("data", {})
                     state  = record.get("state")
 
+                    if poll_i % 6 == 0:  # log toutes les 30s
+                        logger.info(f"Post {post_id} — état {state} (poll {poll_i}), progress={record.get('progress')}")
+
                     if state == "success":
                         image_url = _json.loads(record["resultJson"])["resultUrls"][0]
+                        logger.info(f"Post {post_id} — image générée : {image_url}")
                         break
                     elif state == "fail":
                         raise Exception(f"Génération échouée : {record.get('failMsg')}")
