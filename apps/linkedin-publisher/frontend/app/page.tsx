@@ -185,8 +185,9 @@ function PostCard({
                 </button>
               )}
               {/* Retry */}
-              {isFailed && (
+              {(isFailed || post.status === "uploading") && (
                 <button onClick={handleRetry} disabled={retrying}
+                  title={post.status === "uploading" ? "Débloquer et relancer" : "Réessayer"}
                   className="p-1.5 text-amber-500 hover:text-amber-300 hover:bg-amber-950/40 rounded-lg transition-colors">
                   <RotateCcw className={`w-3.5 h-3.5 ${retrying ? "animate-spin" : ""}`} />
                 </button>

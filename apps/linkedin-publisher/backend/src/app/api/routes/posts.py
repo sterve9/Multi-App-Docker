@@ -101,7 +101,7 @@ async def retry_post(
     post = db.query(Post).filter(Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post introuvable")
-    if post.status not in [PostStatus.failed, PostStatus.draft]:
+    if post.status not in [PostStatus.failed, PostStatus.draft, PostStatus.uploading]:
         raise HTTPException(status_code=400, detail=f"Impossible de relancer un post '{post.status}'")
     post.status        = PostStatus.draft
     post.error_message = None
