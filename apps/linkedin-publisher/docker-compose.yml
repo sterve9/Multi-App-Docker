@@ -21,7 +21,6 @@ services:
       - internal
     volumes:
       - image_outputs:/app/outputs
-      # photo de référence baked dans l'image Docker (assets/reference/photo.jpg)
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
