@@ -1,10 +1,12 @@
 import logging
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 from app.core.database import get_db
+from app.core.config import settings
 from app.models.video import Video, VideoStatus
 from app.schemas.video import VideoCreateRequest, VideoResponse, VideoPatchRequest
 
@@ -31,6 +33,47 @@ def get_video(video_id: int, db: Session = Depends(get_db)):
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=404, detail="Vidéo non trouvée")
+    return video
+
+@router.get("/thumbnail")
+def get_thumbnail(path: str):
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Miniature introuvable")
+    return FileResponse(path=path, media_type="image/jpeg")
+
+@router.post("/{video_id}/publish", response_model=VideoResponse)
+async def publish_video(video_id: int, db: Session = Depends(get_db)):
+    video = db.query(Video).filter(Video.id == video_id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Vidéo non trouvée")
+    if video.status != VideoStatus.ready:
+        raise HTTPException(status_code=400, detail="La vidéo doit être au statut 'ready' pour être publiée")
+    if not settings.N8N_WEBHOOK_URL:
+        raise HTTPException(status_code=500, detail="N8N_WEBHOOK_URL non configuré")
+
+    # Passage en statut uploading
+    video.status = VideoStatus.uploading
+    db.commit()
+    db.refresh(video)
+
+    # Déclenchement du workflow n8n
+    try:
+        async with httpx.AsyncClient(timeout=30) as client:
+            await client.post(settings.N8N_WEBHOOK_URL, json={
+                "video_id":          video.id,
+                "title":             video.title,
+                "description":       video.description,
+                "tags":              video.tags,
+                "final_video_path":  video.final_video_path,
+                "thumbnail_path":    video.thumbnail_path,
+            })
+    except Exception as e:
+        logger.error(f"Erreur webhook n8n pour vidéo {video_id}: {e}")
+        video.status = VideoStatus.ready
+        db.commit()
+        db.refresh(video)
+        raise HTTPException(status_code=502, detail=f"Impossible de joindre n8n : {e}")
+
     return video
 
 @router.get("/{video_id}/download")

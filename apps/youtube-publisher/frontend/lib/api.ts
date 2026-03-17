@@ -56,6 +56,7 @@ export const api = {
   getVideo:      (id: number)                   => request<Video>(`/api/videos/${id}`),
   createVideo:   (data: CreateVideoPayload)     => request<{ video_id: number; message: string }>("/api/generate/create", { method: "POST", body: JSON.stringify(data) }),
   resumeVideo:   (id: number)                   => request<void>(`/api/generate/${id}/resume`, { method: "POST" }),
+  publishVideo:  (id: number)                   => request<Video>(`/api/videos/${id}/publish`, { method: "POST" }),
   updateVideo:   (id: number, data: { youtube_url?: string; youtube_video_id?: string; status?: VideoStatus }) => request<Video>(`/api/videos/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   deleteVideo:   (id: number)                   => request<void>(`/api/videos/${id}`, { method: "DELETE" }),
   getDownloadUrl:(id: number)                   => `${API_URL}/api/videos/${id}/download`,

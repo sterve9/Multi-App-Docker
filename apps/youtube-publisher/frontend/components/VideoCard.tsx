@@ -3,7 +3,7 @@
 import { Video, api } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle, CheckCircle2, Mic, ImageIcon, Film, Upload } from "lucide-react";
+import { Download, Trash2, ExternalLink, RefreshCw, Clock, RotateCcw, AlertTriangle, CheckCircle2, Mic, ImageIcon, Film, Upload, Play, X } from "lucide-react";
 import { useState } from "react";
 
 interface Props {
@@ -110,7 +110,9 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
   const [deleting,   setDeleting]   = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [resuming,   setResuming]   = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const [showError,  setShowError]  = useState(false);
+  const [preview,    setPreview]    = useState(false);
 
   const isProcessing = PROCESSING_STATUSES.includes(video.status);
   const isFailed     = video.status === "failed";
@@ -134,6 +136,16 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
     } finally { setRefreshing(false); }
   }
 
+  async function handlePublish() {
+    if (!confirm("Lancer la publication sur YouTube ?")) return;
+    setPublishing(true);
+    try {
+      const updated = await api.publishVideo(video.id);
+      onRefresh(updated);
+    } catch (e) { console.error(e); }
+    finally { setPublishing(false); }
+  }
+
   async function handleResume() {
     if (!confirm("Reprendre le pipeline là où il s'est arrêté ?")) return;
     setResuming(true);
@@ -147,6 +159,33 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
   }
 
   return (
+    <>
+    {/* ── Preview modal ── */}
+    {preview && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+        onClick={() => setPreview(false)}
+      >
+        <div className="relative w-full max-w-3xl mx-4" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setPreview(false)}
+            className="absolute -top-10 right-0 text-zinc-400 hover:text-white flex items-center gap-1.5 text-sm"
+          >
+            <X className="w-4 h-4" /> Fermer
+          </button>
+          <video
+            src={api.getDownloadUrl(video.id)}
+            controls
+            autoPlay
+            className="w-full rounded-xl border border-zinc-700 bg-black"
+          />
+          <p className="mt-2 text-xs text-zinc-500 text-center truncate">
+            {video.title || video.topic}
+          </p>
+        </div>
+      </div>
+    )}
+
     <div className={`group relative bg-zinc-900 border rounded-xl p-5 transition-all duration-200
       ${isFailed     ? "border-red-900/60 hover:border-red-800" : ""}
       ${isProcessing ? "border-blue-900/40 hover:border-blue-800/60" : ""}
@@ -219,6 +258,21 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
               {resuming ? "Reprise..." : "Relancer"}
             </Button>
           )}
+          {isReady && (
+            <Button size="sm" variant="ghost" onClick={() => setPreview(true)}
+              className="h-7 px-2 text-xs text-violet-400 hover:text-violet-300 hover:bg-violet-950/50 gap-1">
+              <Play className="w-3.5 h-3.5" />Aperçu
+            </Button>
+          )}
+          {isReady && (
+            <Button size="sm" variant="ghost" onClick={handlePublish} disabled={publishing}
+              className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-950/50 gap-1">
+              {publishing
+                ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                : <Upload className="w-3.5 h-3.5" />}
+              {publishing ? "Envoi..." : "Publier"}
+            </Button>
+          )}
           {(isReady || isPublished) && (
             <Button size="sm" variant="ghost" asChild
               className="h-7 px-2 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/50">
@@ -242,5 +296,6 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         </div>
       </div>
     </div>
+    </>
   );
 }
