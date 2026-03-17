@@ -264,17 +264,20 @@ async def generate_images(scenes: list, format: str = "premium") -> list:
                     except Exception as e:
                         logger.warning(f"Upload référence échoué pour {ref_path}: {e}")
 
-        # Générer les vidéos scène par scène
-        async with httpx.AsyncClient(timeout=600.0) as client:
-            for scene in scenes:
-                url = await generate_single_image_premium(
-                    client,
-                    scene["image_prompt"],
-                    scene["scene_number"],
-                    reference_urls
-                )
-                results.append(url)
-                await asyncio.sleep(2)
+        # Générer les vidéos en parallèle (max 3 simultanées)
+        semaphore = asyncio.Semaphore(3)
+
+        async def bounded_premium(scene):
+            async with semaphore:
+                async with httpx.AsyncClient(timeout=600.0) as client:
+                    return await generate_single_image_premium(
+                        client,
+                        scene["image_prompt"],
+                        scene["scene_number"],
+                        reference_urls
+                    )
+
+        results = list(await asyncio.gather(*[bounded_premium(s) for s in scenes]))
 
     else:
         # Format économique — images kie.ai en parallèle (max 5 simultanés)

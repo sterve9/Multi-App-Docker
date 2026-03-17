@@ -54,11 +54,11 @@ THÈME DE LA SÉRIE : Les secrets cachés dans un couple — comment le manque d
 
 SUJET DE CET ÉPISODE {episode_number} : "{topic}"
 
-Crée un script complet pour une vidéo de 6-8 minutes.
-Le script doit avoir exactement 12 scènes.
+Crée un script complet pour une vidéo de 2-3 minutes.
+Le script doit avoir exactement 5 scènes.
 
 RÈGLES IMPORTANTES :
-1. Chaque narration : minimum 55 mots, style storytelling immersif, voix de narrateur omniscient
+1. Chaque narration : minimum 60 mots, style storytelling immersif, voix de narrateur omniscient
 2. Les personnages s'appellent TOUJOURS Kofi et Ama
 3. L'histoire doit être captivante, avec des rebondissements
 4. Chaque épisode doit se terminer sur un cliffhanger ou une révélation
