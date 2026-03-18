@@ -6,6 +6,19 @@
 <title>Rituel Ancestral — Retrouvez Votre Énergie en 7 Jours</title>
 <meta name="description" content="Ce rituel vieux de 3000 ans utilisé par les guerriers africains redonne à des milliers d'hommes modernes l'énergie qu'ils croyaient perdue. 4 ingrédients naturels. Accès immédiat.">
 
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
+n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
+document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','4009568915963637');
+fbq('track','PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=4009568915963637&ev=PageView&noscript=1"/></noscript>
+
   <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/images/favicon-32.png">
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon-180.png">
@@ -632,12 +645,57 @@ footer a:hover {
 .final-tier-price { font-family: 'Cinzel', serif; font-size: 22px; color: var(--creme); font-weight: 700; margin-bottom: 16px; }
 @media (max-width: 600px) { .final-cta-grid { grid-template-columns: 1fr; } }
 
-/* ── CHARIOW WIDGET ── */
-#chariow-express, #chariow-profonde, #chariow-pack,
-#chariow-final-express, #chariow-final-profonde, #chariow-final-pack {
-  display: block;
-  width: 100%;
-  margin-top: 0;
+/* ── WHATSAPP FLOTTANT ── */
+.wa-float {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: #25D366; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(37,211,102,0.45);
+  text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+}
+.wa-float:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(37,211,102,0.6); }
+.wa-float svg { width: 30px; height: 30px; fill: #fff; }
+
+/* ── TOAST NOTIFICATION ── */
+.toast-notif {
+  position: fixed; bottom: 90px; left: 20px; z-index: 9998;
+  background: var(--fond2); border: 1px solid rgba(200,145,42,0.3);
+  padding: 12px 16px; max-width: 260px;
+  display: flex; align-items: center; gap: 12px;
+  transform: translateX(-120%); transition: transform 0.4s ease;
+  pointer-events: none;
+}
+.toast-notif.show { transform: translateX(0); }
+.toast-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--marron2); display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.toast-text { font-size: 12px; color: var(--texte2); line-height: 1.5; }
+.toast-text strong { color: var(--creme); display: block; font-size: 13px; }
+.toast-text span { color: var(--or); font-size: 11px; }
+
+/* ── AVANT / APRÈS ── */
+.avant-apres-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-top: 40px;
+}
+.avant-col { padding: 28px 24px; }
+.avant-col.avant { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); }
+.avant-col.apres { background: rgba(200,145,42,0.05); border: 1px solid rgba(200,145,42,0.2); }
+.avant-col-title {
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 3px;
+  margin-bottom: 20px; padding-bottom: 12px;
+  border-bottom: 1px solid rgba(200,145,42,0.15);
+}
+.avant-col.avant .avant-col-title { color: var(--texte2); }
+.avant-col.apres .avant-col-title { color: var(--or); }
+.avant-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 14px; font-size: 14px; color: var(--texte); line-height: 1.5;
+}
+.avant-item-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+@media (max-width: 600px) {
+  .avant-apres-grid { grid-template-columns: 1fr; }
 }
 
 </style>
@@ -828,6 +886,37 @@ footer a:hover {
         <div class="ing-name cinzel">Citron Frais</div>
         <div class="ing-dose">5ml / jour</div>
         <div class="ing-desc">Détox, absorption optimale, clarté mentale</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════
+     AVANT / APRÈS
+══════════════════════════════════════════════ -->
+<section style="background:var(--fond2);">
+  <div class="container">
+    <div class="section-tag cinzel" style="text-align:center;">La Transformation</div>
+    <h2 class="section-title" style="text-align:center;">Avant le rituel · Après le rituel</h2>
+    <div class="sep" style="margin-bottom:0;"></div>
+    <div class="avant-apres-grid">
+      <div class="avant-col avant">
+        <div class="avant-col-title">AVANT — Sans le Rituel</div>
+        <div class="avant-item"><span class="avant-item-icon">😴</span>Tu te réveilles épuisé même après 8h de sommeil</div>
+        <div class="avant-item"><span class="avant-item-icon">☕</span>Le café est obligatoire — mais il ne fait plus vraiment effet</div>
+        <div class="avant-item"><span class="avant-item-icon">🌫️</span>Brouillard mental, concentration difficile toute la journée</div>
+        <div class="avant-item"><span class="avant-item-icon">📉</span>Libido et vitalité en baisse constante</div>
+        <div class="avant-item"><span class="avant-item-icon">💊</span>Compléments et boissons énergisantes sans résultat durable</div>
+        <div class="avant-item"><span class="avant-item-icon">😤</span>Irritabilité, manque de patience avec tes proches</div>
+      </div>
+      <div class="avant-col apres">
+        <div class="avant-col-title">APRÈS — Avec le Rituel</div>
+        <div class="avant-item"><span class="avant-item-icon">⚡</span>Réveil naturel, énergie présente dès les premières minutes</div>
+        <div class="avant-item"><span class="avant-item-icon">🧠</span>Focus mental clair, idées fluides, décisions rapides</div>
+        <div class="avant-item"><span class="avant-item-icon">🔥</span>Vitalité retrouvée — endurance physique et mentale</div>
+        <div class="avant-item"><span class="avant-item-icon">🌙</span>Sommeil plus profond, récupération réelle</div>
+        <div class="avant-item"><span class="avant-item-icon">💪</span>Confiance et présence renforcées au quotidien</div>
+        <div class="avant-item"><span class="avant-item-icon">🍯</span>5 minutes par matin — 4 ingrédients naturels, zéro chimique</div>
       </div>
     </div>
   </div>
@@ -1089,6 +1178,16 @@ footer a:hover {
           <p>La Cure Express (7 jours) est votre introduction au rituel — elle active votre corps et vous montre ce qu'il est capable de faire. Les effets sont réels mais temporaires si vous vous arrêtez là. La Cure Profonde (40 jours) va jusqu'au bout : recalibrage hormonal complet avec 2 ingrédients supplémentaires (curcuma + pastèque) pour une transformation permanente.</p>
         </div>
       </div>
+      <div class="faq-item">
+        <div class="faq-question" onclick="toggleFaq(this)">
+          <span class="faq-q-text">Quels moyens de paiement sont acceptés ?</span>
+          <span class="faq-icon">+</span>
+        </div>
+        <div class="faq-answer">
+          <p>Tous les moyens de paiement sont acceptés : <strong style="color:var(--creme);">Wave, Orange Money, MTN MoMo</strong> pour le mobile money, <strong style="color:var(--creme);">Visa et Mastercard</strong> pour les cartes bancaires, et <strong style="color:var(--creme);">Crypto</strong> (Bitcoin, USDT, etc.). Le paiement est 100% sécurisé et l'accès est immédiat après confirmation.</p>
+        </div>
+      </div>
+
       <div style="text-align:center; margin-top:40px; padding-top:32px; border-top:1px solid rgba(200,145,42,0.12);">
         <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:18px; color:var(--or); margin-bottom:20px;">
           Tu as encore une question ? Le rituel répond mieux que les mots.
@@ -1206,7 +1305,56 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
   }
   setInterval(tick, 1000); tick();
 })();
+
+// ── TOAST NOTIFICATIONS ──
+(function() {
+  var purchases = [
+    { name: 'Kofi A.', city: 'Accra', product: 'Cure Express' },
+    { name: 'Ibrahim S.', city: 'Bamako', product: 'Pack Complet' },
+    { name: 'Seydou D.', city: 'Dakar', product: 'Cure Profonde' },
+    { name: 'Emeka N.', city: 'Lagos', product: 'Cure Express' },
+    { name: 'Oumar B.', city: 'Conakry', product: 'Pack Complet' },
+    { name: 'Kwame T.', city: 'Abidjan', product: 'Cure Profonde' },
+    { name: 'Cheikh M.', city: 'Dakar', product: 'Cure Express' },
+    { name: 'Abdou F.', city: 'Lomé', product: 'Pack Complet' },
+    { name: 'Moustapha K.', city: 'Douala', product: 'Cure Profonde' },
+    { name: 'Jean-Pierre A.', city: 'Cotonou', product: 'Cure Express' }
+  ];
+  var toast = document.getElementById('toastNotif');
+  var toastName = document.getElementById('toastName');
+  var toastProduct = document.getElementById('toastProduct');
+  var idx = 0;
+  function showToast() {
+    var p = purchases[idx % purchases.length];
+    toastName.textContent = p.name + ' · ' + p.city;
+    toastProduct.textContent = 'vient d\'acheter : ' + p.product;
+    toast.classList.add('show');
+    setTimeout(function() { toast.classList.remove('show'); }, 3500);
+    idx++;
+  }
+  setTimeout(function() {
+    showToast();
+    setInterval(showToast, 12000);
+  }, 6000);
+})();
 </script>
+
+<!-- WhatsApp floating button -->
+<a href="https://wa.me/21620706595?text=Bonjour%2C%20j%27ai%20une%20question%20sur%20le%20Rituel%20Ancestral"
+   class="wa-float" target="_blank" rel="noopener" aria-label="Contactez-nous sur WhatsApp">
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+  </svg>
+</a>
+
+<!-- Toast notification -->
+<div class="toast-notif" id="toastNotif">
+  <div class="toast-avatar">👤</div>
+  <div class="toast-text">
+    <strong id="toastName"></strong>
+    <span id="toastProduct"></span>
+  </div>
+</div>
 
 </body>
 </html>
