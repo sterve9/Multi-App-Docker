@@ -11,6 +11,18 @@
   <link rel="apple-touch-icon" sizes="180x180" href="assets/images/favicon-180.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Cinzel:wght@400;600;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<script>
+(function() {
+  var s = document.createElement('script');
+  s.src = 'https://js.chariow.com/v1/widget.min.js';
+  s.async = true;
+  document.head.appendChild(s);
+  var l = document.createElement('link');
+  l.rel = 'stylesheet';
+  l.href = 'https://js.chariow.com/v1/widget.min.css';
+  document.head.appendChild(l);
+})();
+</script>
 
 <style>
 :root {
@@ -584,6 +596,62 @@ footer a:hover {
   .ticker-item { font-size: 9px; letter-spacing: 2px; }
 }
 
+/* ── HERO TRUST ROW ── */
+.hero-trust-row {
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  margin-top: 20px; font-size: 12px; color: var(--texte2); letter-spacing: 1px;
+}
+@media (max-width: 600px) {
+  .hero-trust-row { flex-direction: column; gap: 8px; align-items: center; }
+}
+
+/* ── COUNTDOWN TIMER URGENCE ── */
+.offre-urgence {
+  text-align: center; margin-bottom: 32px; padding: 16px 24px;
+  border: 1px solid rgba(200,145,42,0.25);
+  background: rgba(200,145,42,0.04);
+}
+.urgence-label { font-size: 10px; letter-spacing: 3px; color: var(--or); margin-bottom: 12px; }
+.urgence-timer { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.timer-block { font-family: 'Cinzel', serif; font-size: 32px; color: var(--creme); min-width: 52px; text-align: center; line-height: 1; }
+.timer-block small { display: block; font-size: 9px; letter-spacing: 2px; color: var(--texte2); margin-top: 4px; }
+.timer-sep { font-family: 'Cinzel', serif; font-size: 28px; color: var(--or); }
+
+/* ── TÉMOIGNAGES AGGREGATE ── */
+.temo-aggregate { display: flex; justify-content: center; align-items: center; gap: 32px; margin-bottom: 40px; flex-wrap: wrap; }
+.temo-stat { text-align: center; }
+.temo-stat-num { font-family: 'Cinzel', serif; font-size: 28px; color: var(--or); font-weight: 700; }
+.temo-stat-label { font-size: 10px; letter-spacing: 2px; color: var(--texte2); margin-top: 4px; }
+.temo-stat-div { width: 1px; height: 40px; background: rgba(200,145,42,0.2); }
+@media (max-width: 600px) { .temo-stat-div { display: none; } }
+
+/* ── FINAL CTA GRID ── */
+.final-cta-grid {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 16px; margin-top: 32px;
+}
+.final-cta-tier {
+  padding: 20px 16px; border: 1px solid rgba(200,145,42,0.2);
+  background: rgba(255,255,255,0.02); text-align: center;
+}
+.final-cta-tier.featured-tier { border-color: var(--or); background: rgba(200,145,42,0.05); }
+.final-tier-badge {
+  font-size: 9px; letter-spacing: 2px; color: var(--marron);
+  background: var(--or); padding: 3px 10px;
+  display: inline-block; margin-bottom: 8px;
+}
+.final-tier-label { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--or); margin-bottom: 6px; }
+.final-tier-price { font-family: 'Cinzel', serif; font-size: 22px; color: var(--creme); font-weight: 700; margin-bottom: 16px; }
+@media (max-width: 600px) { .final-cta-grid { grid-template-columns: 1fr; } }
+
+/* ── CHARIOW WIDGET ── */
+#chariow-express, #chariow-profonde, #chariow-pack,
+#chariow-final-express, #chariow-final-profonde, #chariow-final-pack {
+  display: block;
+  width: 100%;
+  margin-top: 0;
+}
+
 </style>
 </head>
 
@@ -595,7 +663,7 @@ footer a:hover {
   <div class="sticky-bar-right">
     <span class="sticky-price">9 900 FCFA</span>
     <span class="sticky-price-new">5 900 FCFA</span>
-    <a href="https://myfurbrush.com/rituelancestral7jours" class="sticky-cta">Commander →</a>
+    <a href="#offres" class="sticky-cta">Commander →</a>
   </div>
 </div>
 
@@ -660,11 +728,11 @@ footer a:hover {
         <span class="price-new">5 900 FCFA</span>
         <span class="price-badge">-40%</span>
       </div>
-      <a href="https://myfurbrush.com/rituelancestral7jours" class="btn-primary">
+      <a href="#offres" class="btn-primary">
         <span class="btn-primary-icon">⚡</span>
-        Commencer le Rituel — Accès Immédiat
+        Choisir mon Programme — Accès Immédiat
       </a>
-      <a href="#offres" class="btn-secondary">Voir tous les programmes ↓</a>
+      <a href="#offres" class="btn-secondary">Comparer les 3 programmes ↓</a>
     </div>
 
     <div class="hero-proof">
@@ -672,6 +740,11 @@ footer a:hover {
       <div class="proof-text">
         <span class="proof-count">+2 400 hommes</span> ont déjà commencé leur rituel
       </div>
+    </div>
+    <div class="hero-trust-row">
+      <span>🔒 Paiement 100% sécurisé</span>
+      <span>⚡ Accès en moins de 2 minutes</span>
+      <span>🛡️ Remboursé si insatisfait</span>
     </div>
   </div>
 </section>
@@ -822,7 +895,24 @@ footer a:hover {
   <div class="container">
     <div class="section-tag cinzel" style="text-align:center;">Témoignages</div>
     <h2 class="section-title" style="text-align:center;">Ils ont fait le rituel</h2>
-    <div class="sep" style="margin-bottom:40px;"></div>
+    <div class="sep" style="margin-bottom:32px;"></div>
+
+    <div class="temo-aggregate">
+      <div class="temo-stat">
+        <div class="temo-stat-num">2 400+</div>
+        <div class="temo-stat-label cinzel">Hommes formés</div>
+      </div>
+      <div class="temo-stat-div"></div>
+      <div class="temo-stat">
+        <div class="temo-stat-num">4.9/5</div>
+        <div class="temo-stat-label cinzel">Note moyenne</div>
+      </div>
+      <div class="temo-stat-div"></div>
+      <div class="temo-stat">
+        <div class="temo-stat-num">94%</div>
+        <div class="temo-stat-label cinzel">Poursuivent en Cure Profonde</div>
+      </div>
+    </div>
 
     <div class="temo-grid">
       <div class="temo-card">
@@ -857,6 +947,17 @@ footer a:hover {
     <div class="sep" style="margin-bottom:12px;"></div>
     <p class="section-sub" style="text-align:center;">Commence où tu en es. Va aussi loin que tu veux.</p>
 
+    <div class="offre-urgence">
+      <div class="urgence-label cinzel">⏳ OFFRE LIMITÉE — SE TERMINE DANS</div>
+      <div class="urgence-timer">
+        <div class="timer-block"><span id="timer-h">23</span><small>H</small></div>
+        <div class="timer-sep">:</div>
+        <div class="timer-block"><span id="timer-m">47</span><small>MIN</small></div>
+        <div class="timer-sep">:</div>
+        <div class="timer-block"><span id="timer-s">12</span><small>SEC</small></div>
+      </div>
+    </div>
+
     <div class="offres-grid">
 
       <!-- CURE EXPRESS -->
@@ -876,7 +977,17 @@ footer a:hover {
         <div class="offre-price-old">9 900 FCFA</div>
         <div class="offre-price">5 900 FCFA</div>
         <div class="offre-price-sub">Accès immédiat</div>
-        <a href="https://myfurbrush.com/rituelancestral7jours" class="btn-offre cinzel">Commencer le Rituel →</a>
+        <div id="chariow-express"
+             data-product-id="prd_38tneg"
+             data-store-domain="myfurbrush.com"
+             data-style="tap"
+             data-border-style="rounded"
+             data-cta-width="full"
+             data-background-color="#0E0804"
+             data-cta-animation="shine"
+             data-locale="fr"
+             data-primary-color="#C8912A">
+        </div>
       </div>
 
       <!-- CURE PROFONDE -->
@@ -898,7 +1009,17 @@ footer a:hover {
         <div class="offre-price-old">19 900 FCFA</div>
         <div class="offre-price">11 900 FCFA</div>
         <div class="offre-price-sub">Accès immédiat</div>
-        <a href="https://myfurbrush.com/cureprofonde40jours" class="btn-offre cinzel">Démarrer la Transformation →</a>
+        <div id="chariow-profonde"
+             data-product-id="prd_yso2sz"
+             data-store-domain="myfurbrush.com"
+             data-style="tap"
+             data-border-style="rounded"
+             data-cta-width="full"
+             data-background-color="#0E0804"
+             data-cta-animation="shine"
+             data-locale="fr"
+             data-primary-color="#C8912A">
+        </div>
       </div>
 
       <!-- PACK COMPLET -->
@@ -920,7 +1041,17 @@ footer a:hover {
         <div class="offre-price-old">29 900 FCFA</div>
         <div class="offre-price">17 900 FCFA</div>
         <div class="offre-price-sub">Accès immédiat · à vie</div>
-        <a href="https://myfurbrush.com/packcompletancestral" class="btn-offre cinzel">Obtenir le Pack Complet →</a>
+        <div id="chariow-pack"
+             data-product-id="prd_x9mo8x"
+             data-store-domain="myfurbrush.com"
+             data-style="tap"
+             data-border-style="rounded"
+             data-cta-width="full"
+             data-background-color="#0E0804"
+             data-cta-animation="none"
+             data-locale="fr"
+             data-primary-color="#C8912A">
+        </div>
       </div>
 
     </div>
@@ -1000,6 +1131,15 @@ footer a:hover {
           <p>La Cure Express (7 jours) est votre introduction au rituel — elle active votre corps et vous montre ce qu'il est capable de faire. Les effets sont réels mais temporaires si vous vous arrêtez là. La Cure Profonde (40 jours) va jusqu'au bout : recalibrage hormonal complet avec 2 ingrédients supplémentaires (curcuma + pastèque) pour une transformation permanente.</p>
         </div>
       </div>
+      <div style="text-align:center; margin-top:40px; padding-top:32px; border-top:1px solid rgba(200,145,42,0.12);">
+        <p style="font-family:'Cormorant Garamond',serif; font-style:italic; font-size:18px; color:var(--or); margin-bottom:20px;">
+          Tu as encore une question ? Le rituel répond mieux que les mots.
+        </p>
+        <a href="#offres" class="btn-primary" style="display:inline-flex;">
+          <span class="btn-primary-icon">🍯</span>
+          Commencer maintenant
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -1014,20 +1154,45 @@ footer a:hover {
       Commence ce soir.<br>
       <em class="serif" style="font-style:italic;color:var(--or);">Ressens la différence dès demain matin.</em>
     </h2>
-    <p class="cta-final-sub">Le rituel prend 5 minutes. L'énergie dure toute la journée.</p>
+    <p class="cta-final-sub">5 minutes ce soir. L'énergie commence demain matin.</p>
 
-    <div class="cta-block">
-      <div class="price-hero">
-        <span class="price-old">9 900 FCFA</span>
-        <span class="price-new">5 900 FCFA</span>
-        <span class="price-badge">-40%</span>
+    <div class="final-cta-grid">
+      <div class="final-cta-tier">
+        <div class="final-tier-label cinzel">Cure Express · 7J</div>
+        <div class="final-tier-price">5 900 FCFA</div>
+        <div id="chariow-final-express"
+             data-product-id="prd_38tneg"
+             data-store-domain="myfurbrush.com"
+             data-style="tap" data-border-style="rounded"
+             data-cta-width="full" data-background-color="#0E0804"
+             data-cta-animation="shine" data-locale="fr"
+             data-primary-color="#C8912A"></div>
       </div>
-      <a href="https://myfurbrush.com/rituelancestral7jours" class="btn-primary">
-        <span class="btn-primary-icon">⚡</span>
-        Commencer le Rituel — Accès Immédiat
-      </a>
+      <div class="final-cta-tier featured-tier">
+        <div class="final-tier-badge cinzel">Recommandé</div>
+        <div class="final-tier-label cinzel">Cure Profonde · 40J</div>
+        <div class="final-tier-price">11 900 FCFA</div>
+        <div id="chariow-final-profonde"
+             data-product-id="prd_yso2sz"
+             data-store-domain="myfurbrush.com"
+             data-style="tap" data-border-style="rounded"
+             data-cta-width="full" data-background-color="#0E0804"
+             data-cta-animation="shine" data-locale="fr"
+             data-primary-color="#C8912A"></div>
+      </div>
+      <div class="final-cta-tier">
+        <div class="final-tier-label cinzel">Pack Complet · Lifetime</div>
+        <div class="final-tier-price">17 900 FCFA</div>
+        <div id="chariow-final-pack"
+             data-product-id="prd_x9mo8x"
+             data-store-domain="myfurbrush.com"
+             data-style="tap" data-border-style="rounded"
+             data-cta-width="full" data-background-color="#0E0804"
+             data-cta-animation="none" data-locale="fr"
+             data-primary-color="#C8912A"></div>
+      </div>
     </div>
-    <p class="cta-final-garantie">🛡️ Satisfait ou remboursé 7 jours · 100% naturel · Téléchargement instantané</p>
+    <p class="cta-final-garantie">🛡️ Satisfait ou remboursé 7 jours · Sans question · 100% naturel · Accès instantané</p>
   </div>
 </section>
 
@@ -1077,6 +1242,30 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
   el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
   observer.observe(el);
 });
+
+// ── COUNTDOWN TIMER ──
+(function() {
+  var key = 'rituel_timer_end';
+  var end = localStorage.getItem(key);
+  if (!end || Date.now() > parseInt(end)) {
+    end = Date.now() + 23 * 3600 * 1000 + 47 * 60 * 1000;
+    localStorage.setItem(key, end);
+  }
+  function tick() {
+    var diff = parseInt(localStorage.getItem(key)) - Date.now();
+    if (diff <= 0) {
+      localStorage.setItem(key, Date.now() + 23 * 3600 * 1000 + 47 * 60 * 1000);
+      diff = 23 * 3600 * 1000 + 47 * 60 * 1000;
+    }
+    var h = Math.floor(diff / 3600000);
+    var m = Math.floor((diff % 3600000) / 60000);
+    var s = Math.floor((diff % 60000) / 1000);
+    document.getElementById('timer-h').textContent = String(h).padStart(2,'0');
+    document.getElementById('timer-m').textContent = String(m).padStart(2,'0');
+    document.getElementById('timer-s').textContent = String(s).padStart(2,'0');
+  }
+  setInterval(tick, 1000); tick();
+})();
 </script>
 
 </body>
