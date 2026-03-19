@@ -234,15 +234,25 @@ async def assemble_video(
 
     is_premium = (video_format == "premium")
 
-    # ── Télécharger les visuels (vidéos pour premium, images pour économique) ──
+    # ── Télécharger ou copier les visuels ────────────────────────────────────
     image_files = []
-    async with httpx.AsyncClient() as client:
-        for i, url in enumerate(image_urls):
+    async with httpx.AsyncClient(follow_redirects=True, timeout=120) as client:
+        for i, url_or_path in enumerate(image_urls):
             ext = "mp4" if is_premium else "jpg"
             img_path = f"{TEMP_DIR}/video_{video_id}_scene_{i+1}.{ext}"
-            response = await client.get(url, timeout=60)
-            with open(img_path, "wb") as f:
-                f.write(response.content)
+            if url_or_path.startswith("/") or url_or_path.startswith("./"):
+                # Chemin local — copie directe
+                import shutil
+                shutil.copy2(url_or_path, img_path)
+                logger.info(f"Scène {i+1} — visuel copié depuis disque local")
+            else:
+                # URL distante — téléchargement
+                response = await client.get(url_or_path)
+                if response.status_code != 200:
+                    raise Exception(f"Téléchargement visuel scène {i+1} échoué : HTTP {response.status_code} — URL: {url_or_path}")
+                with open(img_path, "wb") as f:
+                    f.write(response.content)
+                logger.info(f"Scène {i+1} — visuel téléchargé ({len(response.content)} bytes)")
             image_files.append(img_path)
 
     # ── Récupérer les durées réelles des audios ───────────────────

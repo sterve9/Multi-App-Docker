@@ -168,15 +168,20 @@ async def generate_single_image_premium(
     raise Exception(f"Scène {scene_num} échouée après {MAX_RETRIES} tentatives : {last_exception}")
 
 
+IMAGES_DIR = "/app/outputs/images"
+
+
 async def generate_single_image_economique(
     prompt: str,
     scene_num: int
 ) -> str:
     """
     Génère une image via kie.ai Flux-2 Pro (format économique).
-    Retourne l'URL de l'image.
+    Télécharge l'image localement et retourne le chemin local.
     """
     import json as _json
+
+    os.makedirs(IMAGES_DIR, exist_ok=True)
 
     headers = {
         "Authorization": f"Bearer {settings.KIE_AI_API_KEY}",
@@ -227,8 +232,15 @@ async def generate_single_image_economique(
 
                     if state == "success":
                         url = _json.loads(record["resultJson"])["resultUrls"][0]
-                        logger.info(f"Scène {scene_num} — image générée ✅ (tentative {attempt + 1})")
-                        return url
+                        # Télécharger immédiatement pour éviter l'expiration de l'URL
+                        dl = await client.get(url, follow_redirects=True, timeout=120)
+                        if dl.status_code != 200:
+                            raise Exception(f"Téléchargement image scène {scene_num} échoué: HTTP {dl.status_code}")
+                        local_path = f"{IMAGES_DIR}/scene_{scene_num}_{task_id}.jpg"
+                        with open(local_path, "wb") as f:
+                            f.write(dl.content)
+                        logger.info(f"Scène {scene_num} — image sauvegardée localement ✅ ({len(dl.content)} bytes)")
+                        return local_path
                     elif state == "fail":
                         raise Exception(f"kie.ai génération échouée scène {scene_num}: {record.get('failMsg')}")
 
