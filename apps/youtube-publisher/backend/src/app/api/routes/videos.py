@@ -46,13 +46,13 @@ async def publish_video(video_id: int, db: Session = Depends(get_db)):
     video = db.query(Video).filter(Video.id == video_id).first()
     if not video:
         raise HTTPException(status_code=404, detail="Vidéo non trouvée")
-    if video.status != VideoStatus.ready:
+    if video.status != VideoStatus.READY:
         raise HTTPException(status_code=400, detail="La vidéo doit être au statut 'ready' pour être publiée")
     if not settings.N8N_WEBHOOK_URL:
         raise HTTPException(status_code=500, detail="N8N_WEBHOOK_URL non configuré")
 
     # Passage en statut uploading
-    video.status = VideoStatus.uploading
+    video.status = VideoStatus.UPLOADING
     db.commit()
     db.refresh(video)
 
@@ -71,7 +71,7 @@ async def publish_video(video_id: int, db: Session = Depends(get_db)):
             })
     except Exception as e:
         logger.error(f"Erreur webhook n8n pour vidéo {video_id}: {e}")
-        video.status = VideoStatus.ready
+        video.status = VideoStatus.READY
         db.commit()
         db.refresh(video)
         raise HTTPException(status_code=502, detail=f"Impossible de joindre n8n : {e}")
