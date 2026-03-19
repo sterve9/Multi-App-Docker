@@ -15,12 +15,23 @@ export default function VideoProgress() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-8 text-center">
-        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 ${
+          videoStatus === 'error' ? 'bg-red-500/10' : 'bg-amber-500/10'
+        }`}>
+          {videoStatus === 'error'
+            ? <span className="text-3xl">⚠️</span>
+            : <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />}
         </div>
 
-        <h2 className="text-2xl font-bold text-white mb-2">Génération en cours</h2>
-        <p className="text-zinc-400 mb-8">{videoMessage || 'Initialisation...'}</p>
+        <h2 className={`text-2xl font-bold mb-2 ${videoStatus === 'error' ? 'text-red-400' : 'text-white'}`}>
+          {videoStatus === 'error' ? 'Erreur de génération' : 'Génération en cours'}
+        </h2>
+        <p className={`mb-8 text-sm ${videoStatus === 'error' ? 'text-red-400' : 'text-zinc-400'}`}>
+          {videoMessage || 'Initialisation...'}
+          {videoStatus === 'error' && (
+            <span className="block mt-2 text-zinc-400">↩ Retour au script dans quelques secondes…</span>
+          )}
+        </p>
 
         {/* Barre de progression */}
         <div className="bg-zinc-800 rounded-full h-3 mb-8 overflow-hidden">

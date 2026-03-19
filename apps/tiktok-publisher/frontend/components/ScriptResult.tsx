@@ -24,6 +24,7 @@ export default function ScriptResult() {
         if (status.status === 'done' || status.status === 'error') {
           clearInterval(interval)
           if (status.status === 'done') setStep('preview')
+          else setStep('script') // retour au script si erreur
           setLoading(false)
         }
       }, 2000)
