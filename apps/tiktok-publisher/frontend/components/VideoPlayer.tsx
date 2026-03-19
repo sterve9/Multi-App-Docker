@@ -1,29 +1,30 @@
 'use client'
 import { useState } from 'react'
-import { Download, Send, RotateCcw, CheckCircle } from 'lucide-react'
-import { publishVideo, getVideoUrl } from '@/lib/api'
+import { Download, RotateCcw, Copy, Check, Facebook } from 'lucide-react'
+import { getVideoUrl } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 
 export default function VideoPlayer() {
-  const [publishing, setPublishing] = useState(false)
-  const [published, setPublished] = useState(false)
+  const [copiedSales, setCopiedSales] = useState(false)
+  const [copiedTags, setCopiedTags] = useState(false)
   const { videoId, script, reset } = useAppStore()
 
   if (!videoId) return null
 
   const videoUrl = getVideoUrl(videoId)
 
-  const handlePublish = async () => {
-    if (!script || !videoId) return
-    setPublishing(true)
-    try {
-      await publishVideo(videoId, script.description, script.tags)
-      setPublished(true)
-    } catch (e) {
-      alert('Erreur publication — vérifie ton webhook n8n')
-    } finally {
-      setPublishing(false)
-    }
+  const handleCopySales = () => {
+    if (!script) return
+    navigator.clipboard.writeText(script.sales_text)
+    setCopiedSales(true)
+    setTimeout(() => setCopiedSales(false), 2000)
+  }
+
+  const handleCopyTags = () => {
+    if (!script) return
+    navigator.clipboard.writeText(script.tags.join(' '))
+    setCopiedTags(true)
+    setTimeout(() => setCopiedTags(false), 2000)
   }
 
   return (
@@ -45,47 +46,66 @@ export default function VideoPlayer() {
         />
       </div>
 
-      {/* Infos */}
+      {/* Téléchargement — pleine largeur */}
+      <a
+        href={videoUrl}
+        download={`facebook-rituel-${videoId}.mp4`}
+        className="flex items-center justify-center gap-2 w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all text-lg"
+      >
+        <Download className="w-6 h-6" /> Télécharger la vidéo
+      </a>
+
+      {/* Texte de vente — prêt à coller sur Facebook */}
       {script && (
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-3">
-          <div>
-            <div className="text-xs text-zinc-500 mb-1">Description</div>
-            <p className="text-zinc-200 text-sm">{script.description}</p>
-          </div>
-          <div>
-            <div className="text-xs text-zinc-500 mb-2">Tags</div>
-            <div className="flex flex-wrap gap-1">
-              {script.tags.map((tag, i) => (
-                <span key={i} className="bg-zinc-800 text-amber-400 text-xs px-2 py-1 rounded-full">{tag}</span>
-              ))}
+        <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs font-medium text-blue-400 uppercase tracking-wider">
+              <Facebook className="w-4 h-4" /> Texte de vente — colle sur Facebook
             </div>
+            <button
+              onClick={handleCopySales}
+              className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              {copiedSales ? <><Check className="w-3 h-3" /> Copié !</> : <><Copy className="w-3 h-3" /> Copier</>}
+            </button>
+          </div>
+          <p className="text-zinc-200 text-sm leading-relaxed whitespace-pre-line">{script.sales_text}</p>
+          <div className="text-xs text-blue-500 pt-1 border-t border-blue-900/50">
+            🔗 https://rituel.sterveshop.cloud
           </div>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <a
-          href={videoUrl}
-          download={`tiktok-${videoId}.mp4`}
-          className="flex items-center justify-center gap-2 py-4 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-xl transition-all"
-        >
-          <Download className="w-5 h-5" /> Télécharger
-        </a>
+      {/* Hashtags */}
+      {script && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs font-medium text-zinc-400 uppercase tracking-wider">🏷️ Hashtags</div>
+            <button
+              onClick={handleCopyTags}
+              className="flex items-center gap-1 text-xs text-zinc-400 hover:text-white transition-colors"
+            >
+              {copiedTags ? <><Check className="w-3 h-3" /> Copié !</> : <><Copy className="w-3 h-3" /> Copier</>}
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1">
+            {script.tags.map((tag, i) => (
+              <span key={i} className="bg-zinc-800 text-amber-400 text-xs px-2 py-1 rounded-full">{tag}</span>
+            ))}
+          </div>
+        </div>
+      )}
 
-        <button
-          onClick={handlePublish}
-          disabled={publishing || published}
-          className="flex items-center justify-center gap-2 py-4 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-bold rounded-xl transition-all"
-        >
-          {published ? (
-            <><CheckCircle className="w-5 h-5" /> Publié !</>
-          ) : publishing ? (
-            <><RotateCcw className="w-5 h-5 animate-spin" /> Publication...</>
-          ) : (
-            <><Send className="w-5 h-5" /> Publier sur TikTok</>
-          )}
-        </button>
+      {/* Guide publication manuelle */}
+      <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+        <div className="text-xs font-medium text-zinc-500 uppercase tracking-wider mb-3">📋 Étapes de publication</div>
+        <ol className="space-y-2 text-sm text-zinc-400">
+          <li className="flex items-start gap-2"><span className="text-amber-500 font-bold">1.</span> Télécharge la vidéo ci-dessus</li>
+          <li className="flex items-start gap-2"><span className="text-amber-500 font-bold">2.</span> Ouvre Facebook → Créer une publication</li>
+          <li className="flex items-start gap-2"><span className="text-amber-500 font-bold">3.</span> Ajoute la vidéo téléchargée</li>
+          <li className="flex items-start gap-2"><span className="text-amber-500 font-bold">4.</span> Colle le texte de vente (bouton Copier ci-dessus)</li>
+          <li className="flex items-start gap-2"><span className="text-amber-500 font-bold">5.</span> Publie ou programme ta campagne 🚀</li>
+        </ol>
       </div>
     </div>
   )

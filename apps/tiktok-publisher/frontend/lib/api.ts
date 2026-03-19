@@ -16,6 +16,7 @@ export interface ScriptResponse {
   captions: string[]
   tags: string[]
   description: string
+  sales_text: string
 }
 
 export interface VideoGenerationRequest extends ScriptResponse {
@@ -43,11 +44,6 @@ export const generateVideo = async (data: VideoGenerationRequest): Promise<Video
 
 export const getVideoStatus = async (videoId: string): Promise<VideoStatus> => {
   const res = await API.get(`/api/status/${videoId}`)
-  return res.data
-}
-
-export const publishVideo = async (videoId: string, description: string, tags: string[]) => {
-  const res = await API.post('/api/publish', { video_id: videoId, description, tags })
   return res.data
 }
 

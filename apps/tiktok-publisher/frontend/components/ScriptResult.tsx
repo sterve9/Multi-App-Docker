@@ -1,11 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { Loader2, Video, Edit3, RotateCcw } from 'lucide-react'
+import { Loader2, Video, Edit3, RotateCcw, Copy, Check } from 'lucide-react'
 import { generateVideo, getVideoStatus } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 
 export default function ScriptResult() {
   const [loading, setLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const { script, setScript, format, duration, setStep, setVideoJob, updateVideoStatus, reset } = useAppStore()
 
   if (!script) return null
@@ -17,7 +18,6 @@ export default function ScriptResult() {
       const job = await generateVideo({ ...script, format, duration })
       setVideoJob(job.video_id)
 
-      // Polling statut
       const interval = setInterval(async () => {
         const status = await getVideoStatus(job.video_id)
         updateVideoStatus(status.status, status.progress, status.message, status.video_url)
@@ -33,6 +33,12 @@ export default function ScriptResult() {
     }
   }
 
+  const handleCopySalesText = () => {
+    navigator.clipboard.writeText(script.sales_text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
@@ -42,16 +48,23 @@ export default function ScriptResult() {
         </button>
       </div>
 
+      {/* Structure des 3 phases */}
+      <div className="grid grid-cols-3 gap-2 text-xs text-center">
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg py-2 text-amber-400 font-medium">⚡ HOOK</div>
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg py-2 text-blue-400 font-medium">📦 PRODUIT</div>
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg py-2 text-green-400 font-medium">💡 PROBLÈME/SOL.</div>
+      </div>
+
       {/* Hook */}
       <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-        <div className="text-xs font-medium text-amber-400 mb-1 uppercase tracking-wider">🎣 Hook</div>
+        <div className="text-xs font-medium text-amber-400 mb-1 uppercase tracking-wider">⚡ Hook — accroche</div>
         <p className="text-white font-medium">{script.hook}</p>
       </div>
 
-      {/* Script */}
+      {/* Script voix off */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
         <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider flex items-center gap-1">
-          <Edit3 className="w-3 h-3" /> Script voix off
+          <Edit3 className="w-3 h-3" /> Script voix off (Hook → Produit → Problème/Solution)
         </div>
         <textarea
           value={script.script}
@@ -62,7 +75,7 @@ export default function ScriptResult() {
 
       {/* Captions */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-        <div className="text-xs font-medium text-zinc-400 mb-3 uppercase tracking-wider">📝 Sous-titres</div>
+        <div className="text-xs font-medium text-zinc-400 mb-3 uppercase tracking-wider">📝 Sous-titres à l'écran</div>
         <div className="space-y-2">
           {script.captions.map((cap, i) => (
             <div key={i} className="flex items-center gap-2">
@@ -81,20 +94,37 @@ export default function ScriptResult() {
         </div>
       </div>
 
+      {/* Texte de vente Facebook */}
+      <div className="bg-blue-950/40 border border-blue-500/30 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-xs font-medium text-blue-400 uppercase tracking-wider">
+            📣 Texte de vente Facebook — prêt à publier
+          </div>
+          <button
+            onClick={handleCopySalesText}
+            className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+          >
+            {copied ? <><Check className="w-3 h-3" /> Copié !</> : <><Copy className="w-3 h-3" /> Copier</>}
+          </button>
+        </div>
+        <textarea
+          value={script.sales_text}
+          onChange={(e) => setScript({ ...script, sales_text: e.target.value })}
+          className="w-full bg-transparent text-zinc-200 text-sm leading-relaxed resize-none focus:outline-none min-h-36"
+        />
+        <div className="mt-2 text-xs text-blue-500">
+          🔗 Lien inclus : https://rituel.sterveshop.cloud
+        </div>
+      </div>
+
       {/* Tags */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-        <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">🏷️ Tags</div>
+        <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">🏷️ Hashtags Facebook</div>
         <div className="flex flex-wrap gap-2">
           {script.tags.map((tag, i) => (
             <span key={i} className="bg-zinc-800 text-amber-400 text-xs px-3 py-1 rounded-full">{tag}</span>
           ))}
         </div>
-      </div>
-
-      {/* Description */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-        <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">📄 Description TikTok</div>
-        <p className="text-zinc-200 text-sm">{script.description}</p>
       </div>
 
       <button

@@ -14,6 +14,7 @@ class ScriptResponse(BaseModel):
     tags: list[str]
     description: str
     hook: str
+    sales_text: str = ""
 
 class VideoGenerationRequest(BaseModel):
     script: str
@@ -21,6 +22,7 @@ class VideoGenerationRequest(BaseModel):
     tags: list[str]
     description: str
     hook: str
+    sales_text: str = ""
     format: Literal["image_animee", "video_ia"]
     duration: Literal["15", "30", "60"]
 

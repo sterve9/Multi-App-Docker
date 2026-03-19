@@ -32,8 +32,8 @@ export default function ScriptForm() {
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Créer une vidéo TikTok</h1>
-        <p className="text-zinc-400">Le script, les visuels et la voix off générés par IA</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Créer une vidéo pub Facebook</h1>
+        <p className="text-zinc-400">Script Hook → Produit → Problème/Solution · Visuels IA · Voix off · Texte de vente</p>
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
