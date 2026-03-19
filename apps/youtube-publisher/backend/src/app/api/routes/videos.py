@@ -60,12 +60,14 @@ async def publish_video(video_id: int, db: Session = Depends(get_db)):
     try:
         async with httpx.AsyncClient(timeout=30) as client:
             await client.post(settings.N8N_WEBHOOK_URL, json={
-                "video_id":          video.id,
-                "title":             video.title,
-                "description":       video.description,
-                "tags":              video.tags,
-                "final_video_path":  video.final_video_path,
-                "thumbnail_path":    video.thumbnail_path,
+                "video_id":       video.id,
+                "title":          video.title,
+                "description":    video.description,
+                "tags":           video.tags,
+                "video_path":     video.final_video_path,
+                "thumbnail_path": video.thumbnail_path,
+                "download_url":   f"{settings.BASE_URL}/api/videos/{video.id}/download",
+                "thumbnail_url":  f"{settings.BASE_URL}/api/videos/{video.id}/thumbnail" if video.thumbnail_path else None,
             })
     except Exception as e:
         logger.error(f"Erreur webhook n8n pour vidéo {video_id}: {e}")

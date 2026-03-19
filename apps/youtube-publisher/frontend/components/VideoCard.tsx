@@ -107,12 +107,13 @@ function PipelineProgress({ currentStatus }: { currentStatus: string }) {
 
 // ─── VideoCard ────────────────────────────────────────────────────────────────
 export function VideoCard({ video, onDelete, onRefresh }: Props) {
-  const [deleting,   setDeleting]   = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [resuming,   setResuming]   = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [showError,  setShowError]  = useState(false);
-  const [preview,    setPreview]    = useState(false);
+  const [deleting,      setDeleting]      = useState(false);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [resuming,      setResuming]      = useState(false);
+  const [publishing,    setPublishing]    = useState(false);
+  const [publishError,  setPublishError]  = useState<string | null>(null);
+  const [showError,     setShowError]     = useState(false);
+  const [preview,       setPreview]       = useState(false);
 
   const isProcessing = PROCESSING_STATUSES.includes(video.status);
   const isFailed     = video.status === "failed";
@@ -139,11 +140,15 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
   async function handlePublish() {
     if (!confirm("Lancer la publication sur YouTube ?")) return;
     setPublishing(true);
+    setPublishError(null);
     try {
       const updated = await api.publishVideo(video.id);
       onRefresh(updated);
-    } catch (e) { console.error(e); }
-    finally { setPublishing(false); }
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { detail?: string } }; message?: string })
+        ?.response?.data?.detail ?? (e as { message?: string })?.message ?? "Erreur lors de la publication";
+      setPublishError(msg);
+    } finally { setPublishing(false); }
   }
 
   async function handleResume() {
@@ -237,6 +242,14 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
         </div>
       )}
 
+
+      {/* Publish error */}
+      {publishError && (
+        <div className="mb-3 flex items-start gap-2 p-2.5 bg-red-950/40 border border-red-900/40 rounded-lg text-[11px] text-red-300">
+          <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-red-400" />
+          <span>{publishError}</span>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80">
