@@ -83,6 +83,15 @@ async def publish_video(video_id: int, db: Session = Depends(get_db)):
 
     return video
 
+@router.get("/{video_id}/thumbnail")
+def get_video_thumbnail(video_id: int, db: Session = Depends(get_db)):
+    video = db.query(Video).filter(Video.id == video_id).first()
+    if not video:
+        raise HTTPException(status_code=404, detail="Vidéo non trouvée")
+    if not video.thumbnail_path or not os.path.exists(video.thumbnail_path):
+        raise HTTPException(status_code=404, detail="Miniature introuvable")
+    return FileResponse(path=video.thumbnail_path, media_type="image/jpeg")
+
 @router.get("/{video_id}/download")
 def download_video(video_id: int, db: Session = Depends(get_db)):
     video = db.query(Video).filter(Video.id == video_id).first()
