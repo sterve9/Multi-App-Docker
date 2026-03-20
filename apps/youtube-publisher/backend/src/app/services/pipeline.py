@@ -69,15 +69,6 @@ async def _assemble_and_publish(video_id: int, video, images, audio_files, db):
         youtube_url=getattr(video, "youtube_url", None)
     )
 
-    await trigger_n8n_webhook(
-        video_id=video_id,
-        title=video.title,
-        description=video.description,
-        tags=video.tags or [],
-        video_path=result["video_path"],
-        thumbnail_path=result.get("thumbnail_path"),
-    )
-
 
 async def run_pipeline(video_id: int):
     """Pipeline complet depuis le début."""

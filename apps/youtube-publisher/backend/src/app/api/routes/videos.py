@@ -76,6 +76,11 @@ async def publish_video(video_id: int, db: Session = Depends(get_db)):
         db.refresh(video)
         raise HTTPException(status_code=502, detail=f"Impossible de joindre n8n : {e}")
 
+    # Webhook envoyé avec succès → marquer comme publié
+    video.status = VideoStatus.PUBLISHED
+    db.commit()
+    db.refresh(video)
+
     return video
 
 @router.get("/{video_id}/download")
