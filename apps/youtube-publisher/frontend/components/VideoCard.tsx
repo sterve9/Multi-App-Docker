@@ -22,7 +22,7 @@ function timeAgo(dateStr: string) {
   return `il y a ${Math.floor(hours / 24)}j`;
 }
 
-const PROCESSING_STATUSES = ["scripting", "generating_images", "generating_audio", "assembling", "uploading"];
+const PROCESSING_STATUSES = ["SCRIPTING", "GENERATING_IMAGES", "GENERATING_AUDIO", "ASSEMBLING", "UPLOADING"];
 
 // ─── Pipeline steps avec % de progression ────────────────────────────────────
 const PIPELINE_STEPS: {
@@ -31,18 +31,18 @@ const PIPELINE_STEPS: {
   icon: React.ReactNode;
   percent: number;
 }[] = [
-  { status: "scripting",         label: "Script",     icon: <Film className="w-3 h-3" />,      percent: 10 },
-  { status: "generating_images", label: "Images",     icon: <ImageIcon className="w-3 h-3" />, percent: 35 },
-  { status: "generating_audio",  label: "Audio",      icon: <Mic className="w-3 h-3" />,       percent: 60 },
-  { status: "assembling",        label: "Assemblage", icon: <RefreshCw className="w-3 h-3" />, percent: 80 },
-  { status: "uploading",         label: "Upload",     icon: <Upload className="w-3 h-3" />,    percent: 95 },
+  { status: "SCRIPTING",         label: "Script",     icon: <Film className="w-3 h-3" />,      percent: 10 },
+  { status: "GENERATING_IMAGES", label: "Images",     icon: <ImageIcon className="w-3 h-3" />, percent: 35 },
+  { status: "GENERATING_AUDIO",  label: "Audio",      icon: <Mic className="w-3 h-3" />,       percent: 60 },
+  { status: "ASSEMBLING",        label: "Assemblage", icon: <RefreshCw className="w-3 h-3" />, percent: 80 },
+  { status: "UPLOADING",         label: "Upload",     icon: <Upload className="w-3 h-3" />,    percent: 95 },
 ];
 
 const STEP_ORDER = PIPELINE_STEPS.map((s) => s.status);
 
 function getProgressPercent(status: string): number {
-  if (status === "ready" || status === "published") return 100;
-  if (status === "failed") return 0;
+  if (status === "READY" || status === "PUBLISHED") return 100;
+  if (status === "FAILED") return 0;
   const step = PIPELINE_STEPS.find((s) => s.status === status);
   return step?.percent ?? 0;
 }
@@ -116,9 +116,9 @@ export function VideoCard({ video, onDelete, onRefresh }: Props) {
   const [preview,       setPreview]       = useState(false);
 
   const isProcessing = PROCESSING_STATUSES.includes(video.status);
-  const isFailed     = video.status === "failed";
-  const isReady      = video.status === "ready";
-  const isPublished  = video.status === "published";
+  const isFailed     = video.status === "FAILED";
+  const isReady      = video.status === "READY";
+  const isPublished  = video.status === "PUBLISHED";
 
   async function handleDelete() {
     if (!confirm("Supprimer cette vidéo ?")) return;

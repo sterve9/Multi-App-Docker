@@ -9,12 +9,12 @@ import { RefreshCw, Youtube, Film, CheckCircle2, AlertCircle, XCircle, Loader2, 
 import { Button } from "@/components/ui/button";
 
 const PROCESSING_STATUSES: VideoStatus[] = [
-  "scripting", "generating_images", "generating_audio", "assembling", "uploading",
+  "SCRIPTING", "GENERATING_IMAGES", "GENERATING_AUDIO", "ASSEMBLING", "UPLOADING",
 ];
 
 const ALL_STATUSES: VideoStatus[] = [
-  "draft", "scripting", "generating_images", "generating_audio",
-  "assembling", "ready", "uploading", "published", "failed",
+  "DRAFT", "SCRIPTING", "GENERATING_IMAGES", "GENERATING_AUDIO",
+  "ASSEMBLING", "READY", "UPLOADING", "PUBLISHED", "FAILED",
 ];
 
 const DATE_FILTERS = [
@@ -118,15 +118,15 @@ export default function Dashboard() {
   const stats = {
     total:      videos.length,
     processing: videos.filter((v) => PROCESSING_STATUSES.includes(v.status)).length,
-    ready:      videos.filter((v) => v.status === "ready").length,
-    published:  videos.filter((v) => v.status === "published").length,
-    failed:     videos.filter((v) => v.status === "failed").length,
+    ready:      videos.filter((v) => v.status === "READY").length,
+    published:  videos.filter((v) => v.status === "PUBLISHED").length,
+    failed:     videos.filter((v) => v.status === "FAILED").length,
   };
 
   const filterByGroup = (group: "processing" | "ready" | "published" | "failed") => {
     const groupMap: Record<string, VideoStatus[]> = {
       processing: PROCESSING_STATUSES,
-      ready: ["ready"], published: ["published"], failed: ["failed"],
+      ready: ["READY"], published: ["PUBLISHED"], failed: ["FAILED"],
     };
     const statuses = groupMap[group];
     if (statuses.includes(filter as VideoStatus)) { setFilter("ALL"); }
@@ -139,7 +139,7 @@ export default function Dashboard() {
   const isGroupActive = (group: "processing" | "ready" | "published" | "failed") => {
     const groupMap: Record<string, VideoStatus[]> = {
       processing: PROCESSING_STATUSES,
-      ready: ["ready"], published: ["published"], failed: ["failed"],
+      ready: ["READY"], published: ["PUBLISHED"], failed: ["FAILED"],
     };
     return groupMap[group].includes(filter as VideoStatus);
   };

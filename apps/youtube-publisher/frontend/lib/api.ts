@@ -1,15 +1,15 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.youtube.sterveshop.cloud";
 
 export type VideoStatus =
-  | "draft"
-  | "scripting"
-  | "generating_images"
-  | "generating_audio"
-  | "assembling"
-  | "ready"
-  | "uploading"
-  | "published"
-  | "failed";
+  | "DRAFT"
+  | "SCRIPTING"
+  | "GENERATING_IMAGES"
+  | "GENERATING_AUDIO"
+  | "ASSEMBLING"
+  | "READY"
+  | "UPLOADING"
+  | "PUBLISHED"
+  | "FAILED";
 
 export type VideoFormat = "economique" | "premium";
 

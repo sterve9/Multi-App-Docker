@@ -5,15 +5,15 @@ from app.core.database import Base
 
 
 class VideoStatus(str, enum.Enum):
-    DRAFT             = "draft"
-    SCRIPTING         = "scripting"
-    GENERATING_IMAGES = "generating_images"
-    GENERATING_AUDIO  = "generating_audio"
-    ASSEMBLING        = "assembling"
-    READY             = "ready"
-    UPLOADING         = "uploading"
-    PUBLISHED         = "published"
-    FAILED            = "failed"
+    DRAFT             = "DRAFT"
+    SCRIPTING         = "SCRIPTING"
+    GENERATING_IMAGES = "GENERATING_IMAGES"
+    GENERATING_AUDIO  = "GENERATING_AUDIO"
+    ASSEMBLING        = "ASSEMBLING"
+    READY             = "READY"
+    UPLOADING         = "UPLOADING"
+    PUBLISHED         = "PUBLISHED"
+    FAILED            = "FAILED"
 
 
 class VideoFormat(str, enum.Enum):
