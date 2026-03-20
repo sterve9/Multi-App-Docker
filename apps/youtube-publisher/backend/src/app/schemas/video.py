@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
 from app.models.video import VideoStatus, VideoFormat
@@ -21,6 +21,13 @@ class VideoPatchRequest(BaseModel):
     youtube_url: Optional[str] = None
     youtube_video_id: Optional[str] = None
     status: Optional[VideoStatus] = None
+
+    @field_validator('status', mode='before')
+    @classmethod
+    def normalize_status(cls, v):
+        if isinstance(v, str):
+            return v.upper()
+        return v
 
 class VideoResponse(BaseModel):
     id: int
