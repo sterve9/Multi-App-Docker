@@ -26,10 +26,11 @@ async def generate_script(theme: str, format: str, duration: str) -> dict:
 Génère une vidéo pub Facebook sur ce thème : "{theme}"
 Format : {format} | Durée cible : {duration} secondes
 
-STRUCTURE OBLIGATOIRE DE LA VIDÉO (3 phases) :
+STRUCTURE OBLIGATOIRE DE LA VIDÉO (4 phases) :
 1. HOOK (2-3 sec max) — phrase choc qui arrête le scroll, question ou affirmation provocatrice
 2. PRODUIT (présentation directe) — nomme le Rituel Ancestral, les 4 ingrédients, 5 min par matin
 3. PROBLÈME → SOLUTION — le problème (fatigue, vitalité, brouillard mental) puis la solution concrète avec résultats
+4. CTA FINAL (obligatoire, dernières 3-5 secondes) — toujours terminer par une phrase qui pousse à cliquer sur le lien en description. Exemples : "Le lien est dans la description, clique maintenant." / "Découvre la formule complète dans la description." / "Tape le lien en description pour commencer dès demain."
 
 CONTRAINTE ABSOLUE SUR LA LONGUEUR DU SCRIPT :
 - Le script voix off doit faire EXACTEMENT entre {words} mots.
@@ -39,7 +40,7 @@ CONTRAINTE ABSOLUE SUR LA LONGUEUR DU SCRIPT :
 Réponds UNIQUEMENT en JSON valide avec cette structure exacte :
 {{
   "hook": "La phrase choc d'ouverture (max 8 mots, stoppe le scroll Facebook)",
-  "script": "Le script complet voix off en 3 phases HOOK→PRODUIT→PROBLÈME/SOLUTION ({words} mots MAX, ton direct, urgent, percutant, utilise 'tu')",
+  "script": "Le script complet voix off en 4 phases HOOK→PRODUIT→PROBLÈME/SOLUTION→CTA ({words} mots MAX, ton direct, urgent, percutant, utilise 'tu', DOIT se terminer par un appel à cliquer sur le lien en description)",
   "captions": {json.dumps([f"Caption courte {i+1}" for i in range(nb_captions)])},
   "tags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"],
   "description": "Accroche Facebook courte (100 caractères max, emojis, ton direct)",
