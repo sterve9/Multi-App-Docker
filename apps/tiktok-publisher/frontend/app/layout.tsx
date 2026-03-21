@@ -1,18 +1,19 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'TikTok Publisher',
-  description: 'Génère et publie des vidéos TikTok avec l\'IA',
-}
+  title: "TikTok Publisher",
+  description: "Génération de vidéos TikTok avec Remotion",
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} bg-zinc-950`}>{children}</body>
+      <body className="bg-gray-950 text-white min-h-screen">{children}</body>
     </html>
-  )
+  );
 }

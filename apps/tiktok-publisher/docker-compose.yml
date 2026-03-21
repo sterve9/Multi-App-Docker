@@ -1,85 +1,65 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: facebook-postgres
+    container_name: tiktok-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: facebook
-      POSTGRES_PASSWORD: facebook_secret
-      POSTGRES_DB: facebook_publisher
+      POSTGRES_USER: tiktok
+      POSTGRES_PASSWORD: tiktok_secret
+      POSTGRES_DB: tiktok_publisher
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - traefik-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U facebook -d facebook_publisher"]
+      test: ["CMD-SHELL", "pg_isready -U tiktok -d tiktok_publisher"]
       interval: 5s
       timeout: 5s
       retries: 10
 
-  redis:
-    image: redis:7-alpine
-    container_name: facebook-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
-    networks:
-      - traefik-network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-
-  facebook-backend:
+  tiktok-backend:
     build: ./backend
-    container_name: facebook-backend
+    container_name: tiktok-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
-        condition: service_healthy
     env_file:
       - ./backend/.env
-    
-      
     volumes:
       - ./storage:/app/storage
     networks:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.facebook-backend.rule=Host(`api.facebook.sterveshop.cloud`)"
-      - "traefik.http.routers.facebook-backend.entrypoints=websecure"
-      - "traefik.http.routers.facebook-backend.tls=true"
-      - "traefik.http.routers.facebook-backend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.facebook-backend.loadbalancer.server.port=8000"
+      - "traefik.http.routers.tiktok-backend.rule=Host(`api.tiktok.sterveshop.cloud`)"
+      - "traefik.http.routers.tiktok-backend.entrypoints=websecure"
+      - "traefik.http.routers.tiktok-backend.tls=true"
+      - "traefik.http.routers.tiktok-backend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.tiktok-backend.loadbalancer.server.port=8000"
 
-  facebook-frontend:
+  tiktok-frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Le frontend appelle le backend via son sous-domaine public
-        NEXT_PUBLIC_API_URL: https://api.facebook.sterveshop.cloud
-    container_name: facebook-frontend
+        NEXT_PUBLIC_API_URL: https://api.tiktok.sterveshop.cloud
+    container_name: tiktok-frontend
     restart: unless-stopped
     depends_on:
-      - facebook-backend
+      - tiktok-backend
     networks:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.facebook-frontend.rule=Host(`facebook.sterveshop.cloud`)"
-      - "traefik.http.routers.facebook-frontend.entrypoints=websecure"
-      - "traefik.http.routers.facebook-frontend.tls=true"
-      - "traefik.http.routers.facebook-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.facebook-frontend.loadbalancer.server.port=3000"
+      - "traefik.http.routers.tiktok-frontend.rule=Host(`app.tiktok.sterveshop.cloud`)"
+      - "traefik.http.routers.tiktok-frontend.entrypoints=websecure"
+      - "traefik.http.routers.tiktok-frontend.tls=true"
+      - "traefik.http.routers.tiktok-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.tiktok-frontend.loadbalancer.server.port=3000"
 
 volumes:
   postgres_data:
-  redis_data:
 
 networks:
   traefik-network:

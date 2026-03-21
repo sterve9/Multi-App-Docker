@@ -1,48 +1,73 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
+import { useEffect, useState } from "react";
+import { api, Video } from "@/lib/api";
+import Link from "next/link";
 
-export default function HomePage() {
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Brouillon",
+  GENERATING: "En cours…",
+  READY: "Prêt",
+  FAILED: "Échec",
+};
+
+const STATUS_COLOR: Record<string, string> = {
+  DRAFT: "text-gray-400",
+  GENERATING: "text-yellow-400 animate-pulse",
+  READY: "text-green-400",
+  FAILED: "text-red-400",
+};
+
+export default function HistoryPage() {
+  const [videos, setVideos] = useState<Video[]>([]);
+
+  useEffect(() => {
+    const load = () => api.listVideos().then(setVideos);
+    load();
+    const interval = setInterval(load, 3000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-6">
-      
-      {/* Logo */}
-      <div className="bg-yellow-500 rounded-2xl p-5 mb-6">
-        <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-black" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-        </svg>
+    <main className="max-w-2xl mx-auto p-8">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">Historique</h1>
+        <Link
+          href="/create"
+          className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg text-sm font-semibold transition"
+        >
+          + Nouvelle vidéo
+        </Link>
       </div>
 
-      {/* Titre */}
-      <h1 className="text-4xl font-bold text-white mb-2">TikTok Publisher</h1>
-      <p className="text-gray-400 text-lg mb-12">Génère et publie des vidéos TikTok avec l&apos;IA</p>
+      {videos.length === 0 && (
+        <p className="text-gray-500">Aucune vidéo générée pour l&apos;instant.</p>
+      )}
 
-      {/* Cards */}
-      <div className="grid grid-cols-2 gap-4 w-full max-w-lg">
-        
-        <Link href="/create" className="bg-yellow-500 hover:bg-yellow-400 text-black rounded-2xl p-8 flex flex-col gap-3 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M15 10l4.553-2.069A1 1 0 0121 8.871V15.13a1 1 0 01-1.447.9L15 14" />
-            <rect x="1" y="6" width="15" height="12" rx="2" ry="2" />
-          </svg>
-          <div>
-            <p className="font-bold text-lg">Créer une vidéo</p>
-            <p className="text-sm opacity-75">Script + visuels + voix off</p>
-          </div>
-        </Link>
-
-        <Link href="/history" className="bg-gray-800 hover:bg-gray-700 text-white rounded-2xl p-8 flex flex-col gap-3 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-          <div>
-            <p className="font-bold text-lg">Historique</p>
-            <p className="text-sm text-gray-400">Vidéos générées</p>
-          </div>
-        </Link>
-
-      </div>
-    </div>
-  )
+      <ul className="flex flex-col gap-3">
+        {videos.map((v) => (
+          <li
+            key={v.id}
+            className="bg-gray-800 rounded-xl p-4 flex items-center justify-between"
+          >
+            <div>
+              <p className="font-semibold">{v.title}</p>
+              <p className={`text-sm ${STATUS_COLOR[v.status] ?? "text-gray-400"}`}>
+                {STATUS_LABEL[v.status] ?? v.status}
+              </p>
+            </div>
+            {v.status === "READY" && v.video_path && (
+              <a
+                href={`${process.env.NEXT_PUBLIC_API_URL}/videos/${v.id}.mp4`}
+                download
+                className="px-3 py-1 bg-green-700 hover:bg-green-600 rounded-lg text-sm transition"
+              >
+                Télécharger
+              </a>
+            )}
+          </li>
+        ))}
+      </ul>
+    </main>
+  );
 }

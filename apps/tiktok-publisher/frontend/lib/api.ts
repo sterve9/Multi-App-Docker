@@ -1,51 +1,49 @@
-import axios from 'axios'
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const API = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
-})
-
-export interface ScriptRequest {
-  theme: string
-  format: 'image_animee' | 'video_ia'
-  duration: '15' | '30' | '60'
+export interface Video {
+  id: string;
+  title: string;
+  script: string | null;
+  duration_seconds: number;
+  audio_path: string | null;
+  video_path: string | null;
+  status: "DRAFT" | "GENERATING" | "READY" | "FAILED";
+  error_message: string | null;
+  created_at: string;
 }
 
-export interface ScriptResponse {
-  hook: string
-  script: string
-  captions: string[]
-  tags: string[]
-  description: string
-  sales_text: string
+export interface GenerateRequest {
+  title: string;
+  topic: string;
+  duration_seconds: number;
 }
 
-export interface VideoGenerationRequest extends ScriptResponse {
-  format: 'image_animee' | 'video_ia'
-  duration: '15' | '30' | '60'
-}
+export const api = {
+  async generate(data: GenerateRequest) {
+    const res = await fetch(`${BASE}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  },
 
-export interface VideoStatus {
-  video_id: string
-  status: 'pending' | 'processing' | 'done' | 'error'
-  progress: number
-  message: string
-  video_url?: string
-}
+  async listVideos(): Promise<Video[]> {
+    const res = await fetch(`${BASE}/api/videos`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  },
 
-export const generateScript = async (data: ScriptRequest): Promise<ScriptResponse> => {
-  const res = await API.post('/api/script', data)
-  return res.data
-}
+  async getVideo(id: string): Promise<Video> {
+    const res = await fetch(`${BASE}/api/videos/${id}`);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  },
 
-export const generateVideo = async (data: VideoGenerationRequest): Promise<VideoStatus> => {
-  const res = await API.post('/api/video', data)
-  return res.data
-}
-
-export const getVideoStatus = async (videoId: string): Promise<VideoStatus> => {
-  const res = await API.get(`/api/status/${videoId}`)
-  return res.data
-}
-
-export const getVideoUrl = (videoId: string) =>
-  `${process.env.NEXT_PUBLIC_API_URL}/api/download/${videoId}`
+  async deleteVideo(id: string) {
+    const res = await fetch(`${BASE}/api/videos/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  },
+};

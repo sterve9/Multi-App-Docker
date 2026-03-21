@@ -1,25 +1,22 @@
 FROM python:3.11-slim
 
-# FFmpeg
+WORKDIR /app
+
+# Dépendances système (ffmpeg pour assemblage vidéo + Node.js pour Remotion)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libass-dev \
     curl \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
-
-# Node.js pour Remotion
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs
-
-WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Créer les dossiers de stockage
-RUN mkdir -p storage/{videos,audio,images,temp}
+# Dossiers de stockage
+RUN mkdir -p /app/storage/videos /app/storage/audio /app/storage/images /app/storage/temp
 
 EXPOSE 8000
 

@@ -2,48 +2,48 @@ import asyncio
 import os
 import json
 
-async def render_with_remotion(
-    captions: list,
-    audio_path: str,
-    visuals_path: str,
-    output_path: str,
-    duration: int = 30
+REMOTION_DIR = "/app/remotion"
+OUTPUT_DIR = "/app/storage/videos"
+
+
+async def render_video(
+    video_id: str, script: str, audio_path: str, duration_seconds: int
 ) -> str:
-    """Lance le rendu Remotion pour les captions animées"""
+    """
+    Lance le rendu Remotion via CLI avec le script et l'audio ElevenLabs.
+    Retourne le chemin du fichier MP4 généré.
+    """
+    output_path = os.path.join(OUTPUT_DIR, f"{video_id}.mp4")
 
-    remotion_dir = "/app/remotion"
-
-    # Props à passer à Remotion
-    props = {
-        "captions": captions,
-        "audioPath": audio_path,
-        "visualsPath": visuals_path,
-        "durationInSeconds": duration
-    }
-
-    props_path = output_path.replace(".mp4", "_props.json")
-    with open(props_path, "w") as f:
-        json.dump(props, f)
+    props = json.dumps(
+        {
+            "script": script,
+            "audioSrc": audio_path,
+            "durationSeconds": duration_seconds,
+        }
+    )
 
     cmd = [
-        "npx", "remotion", "render",
-        "CaptionVideo",
+        "npx",
+        "remotion",
+        "render",
+        "TikTokVideo",
         output_path,
-        "--props", props_path,
-        "--overwrite"
+        "--props",
+        props,
+        "--log",
+        "error",
     ]
 
-    process = await asyncio.create_subprocess_exec(
+    proc = await asyncio.create_subprocess_exec(
         *cmd,
-        cwd=remotion_dir,
+        cwd=REMOTION_DIR,
         stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
+        stderr=asyncio.subprocess.PIPE,
     )
-    stdout, stderr = await process.communicate()
+    stdout, stderr = await proc.communicate()
 
-    if process.returncode != 0:
-        # Fallback sur FFmpeg si Remotion échoue
-        from .ffmpeg_service import assemble_video
-        return await assemble_video(audio_path, visuals_path, captions, output_path, duration)
+    if proc.returncode != 0:
+        raise RuntimeError(f"Remotion render failed: {stderr.decode()}")
 
     return output_path
