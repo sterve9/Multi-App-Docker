@@ -41,6 +41,7 @@ async def render_video(
         "npx",
         "remotion",
         "render",
+        "src/index.ts",
         "FacebookVideo",
         output_path,
         "--props",
