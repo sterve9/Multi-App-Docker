@@ -8,6 +8,7 @@ load_dotenv()
 router = APIRouter()
 
 N8N_WEBHOOK_URL = os.getenv("N8N_WEBHOOK_URL")
+BASE_URL = os.getenv("BASE_URL", "https://api.facebook.sterveshop.cloud")
 STORAGE_PATH = "/app/storage"
 
 @router.post("/publish")
@@ -20,7 +21,7 @@ async def publish_to_tiktok(request: PublishRequest):
 
     payload = {
         "video_id": request.video_id,
-        "video_url": f"https://api.tiktok.sterveshop.cloud/api/download/{request.video_id}",
+        "video_url": f"{BASE_URL}/api/download/{request.video_id}",
         "description": request.description,
         "tags": request.tags,
         "platform": "tiktok"
