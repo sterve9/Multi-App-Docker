@@ -26,12 +26,7 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
         "model": "google/imagen4",
         "input": {
             "prompt": image_prompt,
-            "aspect_ratio": "9:16",
-            "negative_prompt": (
-                "cartoon, anime, illustration, painting, drawing, "
-                "blurry, deformed, low quality, ugly, "
-                "woman, female, girl, feminine, white person, asian person"
-            )
+            "aspect_ratio": "9:16"
         }
     }
 
