@@ -46,6 +46,8 @@ async def render_video(
         output_path,
         "--props",
         props,
+        "--browser-executable",
+        "/usr/bin/chromium",
         "--log",
         "error",
     ]
