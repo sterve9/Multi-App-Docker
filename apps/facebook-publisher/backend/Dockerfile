@@ -1,11 +1,17 @@
 FROM python:3.11-slim
 
-# FFmpeg + curl + Node.js + Chrome headless deps
+# Étape 1 : outils de base + FFmpeg + Node.js 18 (depuis Debian Bookworm, stable)
 RUN apt-get update && apt-get install -y \
     ffmpeg \
-    libass-dev \
     curl \
     ca-certificates \
+    wget \
+    nodejs \
+    npm \
+    && rm -rf /var/lib/apt/lists/*
+
+# Étape 2 : dépendances système pour Chrome headless (Remotion)
+RUN apt-get update && apt-get install -y \
     fonts-liberation \
     libasound2t64 \
     libatk-bridge2.0-0 \
@@ -13,8 +19,6 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libcups2 \
     libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
     libgbm1 \
     libglib2.0-0 \
     libgtk-3-0 \
@@ -22,7 +26,6 @@ RUN apt-get update && apt-get install -y \
     libnss3 \
     libpango-1.0-0 \
     libx11-6 \
-    libx11-xcb1 \
     libxcb1 \
     libxcomposite1 \
     libxdamage1 \
@@ -32,10 +35,7 @@ RUN apt-get update && apt-get install -y \
     libxrender1 \
     libxss1 \
     libxtst1 \
-    wget \
     xdg-utils \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -54,8 +54,6 @@ RUN cd /app/remotion && rm -rf node_modules package-lock.json && npm install
 RUN cd /app/remotion && npx remotion browser ensure
 
 # Lien symbolique : remotion/public/storage → /app/storage
-# staticFile("storage/audio/x.mp3") résoudra vers /app/remotion/public/storage/audio/x.mp3
-# qui est en réalité /app/storage/audio/x.mp3 via le symlink
 RUN mkdir -p /app/remotion/public \
     && ln -s /app/storage /app/remotion/public/storage
 
