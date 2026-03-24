@@ -51,21 +51,30 @@ export default function ScriptResult() {
 
       {/* Structure des 3 phases */}
       <div className="grid grid-cols-3 gap-2 text-xs text-center">
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg py-2 text-amber-400 font-medium">⚡ HOOK</div>
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg py-2 text-blue-400 font-medium">📦 PRODUIT</div>
-        <div className="bg-green-500/10 border border-green-500/30 rounded-lg py-2 text-green-400 font-medium">💡 PROBLÈME/SOL.</div>
+        <div className="bg-red-500/10 border border-red-500/30 rounded-lg py-2 text-red-400 font-medium">💔 DOULEUR [0-3s]</div>
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg py-2 text-blue-400 font-medium">🔥 SOLUTION [3-20s]</div>
+        <div className="bg-green-500/10 border border-green-500/30 rounded-lg py-2 text-green-400 font-medium">👉 DOUBLE CTA [20s+]</div>
       </div>
 
+      {/* Heure de publication */}
+      {script.publication_hint && (
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl px-4 py-3 flex items-center gap-2">
+          <span className="text-orange-400 text-sm">🕙</span>
+          <span className="text-orange-300 text-sm font-medium">{script.publication_hint}</span>
+          <span className="text-orange-500/60 text-xs ml-1">— données réelles (+20% de portée)</span>
+        </div>
+      )}
+
       {/* Hook */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-        <div className="text-xs font-medium text-amber-400 mb-1 uppercase tracking-wider">⚡ Hook — accroche</div>
+      <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+        <div className="text-xs font-medium text-red-400 mb-1 uppercase tracking-wider">💔 Hook — douleur émotionnelle [0-3s]</div>
         <p className="text-white font-medium">{script.hook}</p>
       </div>
 
       {/* Script voix off */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
         <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider flex items-center gap-1">
-          <Edit3 className="w-3 h-3" /> Script voix off (Hook → Produit → Problème/Solution)
+          <Edit3 className="w-3 h-3" /> Script voix off (Douleur → Solution concrète → Double CTA)
         </div>
         <textarea
           value={script.script}
@@ -90,6 +99,9 @@ export default function ScriptResult() {
                 }}
                 className="flex-1 bg-zinc-800 text-zinc-200 text-sm px-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500"
               />
+              {i === 0 && (
+                <span className="text-xs text-red-400/70 whitespace-nowrap">= hook</span>
+              )}
             </div>
           ))}
         </div>
@@ -120,7 +132,10 @@ export default function ScriptResult() {
 
       {/* Tags */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-        <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider">🏷️ Hashtags Facebook</div>
+        <div className="text-xs font-medium text-zinc-400 mb-2 uppercase tracking-wider flex items-center justify-between">
+          <span>🏷️ Hashtags Facebook</span>
+          <span className="text-zinc-600 normal-case font-normal">rotation fixe prouvée</span>
+        </div>
         <div className="flex flex-wrap gap-2">
           {script.tags.map((tag, i) => (
             <span key={i} className="bg-zinc-800 text-amber-400 text-xs px-3 py-1 rounded-full">{tag}</span>

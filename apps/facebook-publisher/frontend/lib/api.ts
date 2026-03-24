@@ -17,6 +17,7 @@ export interface ScriptResponse {
   tags: string[]
   description: string
   sales_text: string
+  publication_hint?: string
 }
 
 export interface VideoGenerationRequest extends ScriptResponse {
