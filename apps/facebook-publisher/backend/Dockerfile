@@ -47,8 +47,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Code Python
 COPY . .
 
-# Dépendances Remotion
-RUN cd /app/remotion && npm install
+# Dépendances Remotion (rm node_modules pour forcer une install propre depuis package.json)
+RUN cd /app/remotion && rm -rf node_modules package-lock.json && npm install
+
+# Télécharger le binaire Chrome pour Remotion
+RUN cd /app/remotion && npx remotion browser ensure
 
 # Lien symbolique : remotion/public/storage → /app/storage
 # staticFile("storage/audio/x.mp3") résoudra vers /app/remotion/public/storage/audio/x.mp3
