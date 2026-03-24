@@ -21,41 +21,57 @@ async def generate_script(theme: str, format: str, duration: str) -> dict:
     words = config["words"]
     nb_captions = config["captions"]
 
-    prompt = f"""Tu es un expert en publicité Facebook vidéo pour la vitalité masculine naturelle. Tu crées des vidéos-pub courtes et percutantes axées produit pour le Rituel Ancestral (miel, gingembre, cannelle, citron).
+    # Types de hooks prouvés — Claude pioche dans cette liste en rotation
+    hook_types = """
+TYPES DE HOOKS PROUVÉS (choisir 1 en rotation, ne jamais répéter le même style deux fois) :
+  A. Douleur relationnelle   → "Ta femme [action négative] depuis [durée]..."
+  B. Honte/tabou             → "Je n'osais plus [action intime] devant ma femme..."
+  C. Curiosité choquante     → "Ce [ingrédient] que les médecins ne veulent pas que tu connaisses..."
+  D. Transformation rapide   → "En 3 jours, elle m'a demandé ce que j'avais changé..."
 
-Génère une vidéo pub Facebook sur ce thème : "{theme}"
-Format : {format} | Durée cible : {duration} secondes
+HOOKS INTERDITS (prouvés inefficaces, données réelles) :
+  ✗ Commencer par le nom du produit ("Rituel Ancestral...")
+  ✗ Commencer par un bénéfice générique ("Retrouve ta vitalité...", "Booste ton énergie...")
+  ✗ Question trop douce ("Tu veux plus d'énergie ?")"""
 
-STRUCTURE OBLIGATOIRE DE LA VIDÉO (4 phases) :
-1. HOOK (2-3 sec max) — phrase choc qui arrête le scroll, question ou affirmation provocatrice
-2. PRODUIT (présentation directe) — nomme le Rituel Ancestral, les 4 ingrédients, 5 min par matin
-3. PROBLÈME → SOLUTION — le problème (fatigue, vitalité, brouillard mental) puis la solution concrète avec résultats
-4. CTA FINAL (obligatoire, dernières 3-5 secondes) — toujours terminer par une phrase qui pousse à cliquer sur le lien en description. Exemples : "Le lien est dans la description, clique maintenant." / "Découvre la formule complète dans la description." / "Tape le lien en description pour commencer dès demain."
+    prompt = f"""Tu es un expert en Reels Facebook pour la vitalité masculine naturelle.
+Tu génères des scripts basés sur des données de performance réelles (rétention mesurée sur 4 Reels).
 
-CONTRAINTE ABSOLUE SUR LA LONGUEUR DU SCRIPT :
-- Le script voix off doit faire EXACTEMENT entre {words} mots.
-- Pas un mot de plus. Compte les mots avant de répondre.
-- ElevenLabs lit à 2.5 mots/seconde : si tu dépasses, la vidéo sera trop longue.
+Thème : "{theme}" | Format : {format} | Durée : {duration} secondes
 
-Réponds UNIQUEMENT en JSON valide avec cette structure exacte :
+{hook_types}
+
+STRUCTURE OBLIGATOIRE DU REEL (3 phases, {duration}s max) :
+1. HOOK DOULEUR ÉMOTIONNELLE [0-3s] — JAMAIS un bénéfice, TOUJOURS une souffrance vécue.
+   Choisir un type dans la liste ci-dessus. Max 8 mots. Arrête le scroll immédiatement.
+2. SOLUTION + DÉMONSTRATION CONCRÈTE [3-20s] — Montre le Rituel Ancestral en action.
+   Ingrédients (miel, gingembre, cannelle, citron), gestes précis, résultats en 3-7 jours.
+   Pas de promesses vagues : des faits concrets ("elle a remarqué en 3 jours").
+3. DOUBLE CTA FINAL [20s+] — Les 2 phrases suivantes, dans cet ordre EXACT :
+   "Le lien est dans le premier commentaire." puis "Suis la page pour la suite."
+
+CONTRAINTE LONGUEUR :
+- Script voix off : EXACTEMENT entre {words} mots (ElevenLabs = 2.5 mots/sec).
+- Compte les mots avant de répondre.
+
+Réponds UNIQUEMENT en JSON valide :
 {{
-  "hook": "La phrase choc d'ouverture (max 8 mots, stoppe le scroll Facebook)",
-  "script": "Le script complet voix off en 4 phases HOOK→PRODUIT→PROBLÈME/SOLUTION→CTA ({words} mots MAX, ton direct, urgent, percutant, utilise 'tu', DOIT se terminer par un appel à cliquer sur le lien en description)",
-  "captions": {json.dumps([f"Caption courte {i+1}" for i in range(nb_captions)])},
-  "tags": ["#tag1", "#tag2", "#tag3", "#tag4", "#tag5"],
-  "description": "Accroche Facebook courte (100 caractères max, emojis, ton direct)",
-  "sales_text": "Texte de vente complet Facebook prêt à copier-coller (4-6 lignes max) : commence par le hook, problème empathique, solution produit, résultats concrets dès J3, call-to-action avec ce lien exact : https://rituel.sterveshop.cloud — inclus 3-4 hashtags Facebook à la fin",
+  "hook": "Le hook DOULEUR ÉMOTIONNELLE exact (max 8 mots, type A/B/C/D)",
+  "script": "Script complet {words} mots : HOOK DOULEUR → SOLUTION CONCRÈTE → DOUBLE CTA. Utilise 'tu'. Terminer obligatoirement par : 'Le lien est dans le premier commentaire. Suis la page pour la suite.'",
+  "captions": {json.dumps(["[= hook exact de la vidéo]"] + [f"Caption courte {i+1}" for i in range(nb_captions - 1)])},
+  "tags": ["#vitalitemasculine", "#coupleepanoui", "#energienaturelle", "#bienetre"],
+  "description": "Accroche Facebook (100 car max, emojis, commence par le hook exact de la vidéo)",
+  "sales_text": "Texte de vente Facebook (4-6 lignes) : commence par le hook exact, problème empathique, solution concrète, résultats dès J3, lien : https://rituel.sterveshop.cloud\\n#vitalitemasculine #coupleepanoui #energienaturelle #bienetre",
+  "publication_hint": "Publier entre 10h00 et 11h30",
   "word_count": 0
 }}
 
 Règles absolues :
-- Utilise "tu" jamais "vous"
+- "tu" jamais "vous"
 - Phrases courtes, 1 idée par phrase
-- Le produit = Rituel Ancestral, 4 ingrédients naturels, 5 min chaque matin
-- Cible : homme francophone 25-50 ans, fatigué, vitalité en baisse
-- Le sales_text doit se terminer par le lien https://rituel.sterveshop.cloud
-
-Les captions sont les sous-titres à l'écran ({nb_captions} captions, 5-7 mots max chacune).
+- La 1ère caption = EXACTEMENT la même phrase que le hook
+- Les tags = toujours les 4 hashtags fournis, rien d'autre
+- Le sales_text commence par le hook exact de la vidéo
 Dans "word_count", mets le nombre exact de mots du script."""
 
     message = client.messages.create(
