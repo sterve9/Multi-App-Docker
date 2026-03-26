@@ -1339,6 +1339,196 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
 })();
 </script>
 
+<!-- ══════════════════════════════════════════════
+     MODAL CAPTURE LEADS
+══════════════════════════════════════════════ -->
+<style>
+/* ── MODAL OVERLAY ── */
+#modal-lead {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.82);
+  z-index: 9000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+#modal-lead.open { display: flex; }
+
+.modal-box {
+  background: linear-gradient(160deg, #1A0E05 0%, #0E0804 100%);
+  border: 1px solid rgba(200,145,42,0.35);
+  border-radius: 16px;
+  max-width: 460px;
+  width: 100%;
+  padding: 36px 32px 32px;
+  position: relative;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(200,145,42,0.1);
+  animation: fadeUp 0.35s ease;
+}
+.modal-close {
+  position: absolute; top: 14px; right: 18px;
+  font-size: 22px; color: var(--texte2);
+  cursor: pointer; background: none; border: none;
+  line-height: 1; padding: 4px;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--or); }
+.modal-gift-icon { font-size: 40px; text-align: center; margin-bottom: 8px; }
+.modal-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 26px; font-weight: 700;
+  color: var(--creme); text-align: center;
+  line-height: 1.2; margin-bottom: 8px;
+}
+.modal-sub {
+  color: var(--texte2); font-size: 14px;
+  text-align: center; margin-bottom: 24px;
+  line-height: 1.5;
+}
+.modal-sub strong { color: var(--or2); }
+.modal-field { margin-bottom: 14px; }
+.modal-field label {
+  display: block; font-size: 12px;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--texte2); margin-bottom: 6px;
+}
+.modal-field input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(200,145,42,0.3);
+  border-radius: 8px;
+  padding: 13px 16px;
+  font-size: 16px;
+  color: var(--creme);
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: 'Lato', sans-serif;
+}
+.modal-field input:focus { border-color: var(--or); }
+.modal-field input::placeholder { color: rgba(184,168,152,0.5); }
+.modal-submit {
+  width: 100%;
+  background: linear-gradient(135deg, var(--or) 0%, var(--or2) 100%);
+  color: #0E0804;
+  border: none; border-radius: 8px;
+  padding: 16px;
+  font-size: 16px; font-weight: 700;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.modal-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+.modal-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.modal-privacy {
+  font-size: 11px; color: var(--texte2);
+  text-align: center; margin-top: 12px;
+}
+
+/* ── STEP 2 : COUPON ── */
+#modal-step-coupon { display: none; }
+.coupon-check { font-size: 42px; text-align: center; margin-bottom: 10px; }
+.coupon-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 24px; font-weight: 700;
+  color: var(--creme); text-align: center;
+  margin-bottom: 6px;
+}
+.coupon-sub {
+  color: var(--texte2); font-size: 14px;
+  text-align: center; margin-bottom: 22px;
+}
+.coupon-box {
+  background: rgba(200,145,42,0.1);
+  border: 2px dashed var(--or);
+  border-radius: 10px;
+  padding: 18px 20px;
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.coupon-code {
+  font-family: 'Cinzel', serif;
+  font-size: 24px; font-weight: 700;
+  color: var(--or2); letter-spacing: 4px;
+}
+.coupon-copy {
+  background: var(--or); color: #0E0804;
+  border: none; border-radius: 6px;
+  padding: 8px 14px; font-size: 12px;
+  font-weight: 700; cursor: pointer;
+  letter-spacing: 1px; transition: background 0.2s;
+}
+.coupon-copy:hover { background: var(--or2); }
+.coupon-note {
+  font-size: 12px; color: var(--texte2);
+  text-align: center; margin-bottom: 20px;
+}
+.coupon-note strong { color: #4CAF50; }
+.btn-coupon-cta {
+  display: block; width: 100%;
+  background: linear-gradient(135deg, var(--or) 0%, var(--or2) 100%);
+  color: #0E0804; text-align: center;
+  border: none; border-radius: 8px;
+  padding: 16px;
+  font-size: 16px; font-weight: 700;
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+  cursor: pointer; text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.btn-coupon-cta:hover { opacity: 0.92; transform: translateY(-1px); }
+</style>
+
+<div id="modal-lead" role="dialog" aria-modal="true" aria-label="Obtenir mon accès">
+  <div class="modal-box">
+    <button class="modal-close" id="modalClose" aria-label="Fermer">✕</button>
+
+    <!-- STEP 1 : FORMULAIRE -->
+    <div id="modal-step-form">
+      <div class="modal-gift-icon">🎁</div>
+      <div class="modal-title">Accède au programme<br><span style="color:var(--or)">avec −50%</span></div>
+      <p class="modal-sub">Entre tes coordonnées pour recevoir ton code exclusif <strong>ANCESTRAL50</strong> et commencer ton rituel aujourd'hui.</p>
+
+      <form id="leadForm" novalidate>
+        <div class="modal-field">
+          <label for="lead-prenom">Ton prénom</label>
+          <input type="text" id="lead-prenom" name="prenom" placeholder="Ex : Moussa" autocomplete="given-name" required>
+        </div>
+        <div class="modal-field">
+          <label for="lead-whatsapp">Ton WhatsApp</label>
+          <input type="tel" id="lead-whatsapp" name="whatsapp" placeholder="+221 XX XXX XX XX" autocomplete="tel" required>
+        </div>
+        <button type="submit" class="modal-submit" id="leadSubmitBtn">
+          ⚡ Obtenir mon accès −50% →
+        </button>
+      </form>
+      <p class="modal-privacy">🔒 Confidentiel · Zéro spam · Tu peux te désabonner à tout moment</p>
+    </div>
+
+    <!-- STEP 2 : COUPON -->
+    <div id="modal-step-coupon">
+      <div class="coupon-check">✅</div>
+      <div class="coupon-title">C'est parti, <span id="coupon-prenom" style="color:var(--or)"></span> !</div>
+      <p class="coupon-sub">Ton code de réduction exclusif est prêt :</p>
+      <div class="coupon-box">
+        <span class="coupon-code">ANCESTRAL50</span>
+        <button class="coupon-copy" id="copyCouponBtn">Copier</button>
+      </div>
+      <p class="coupon-note"><strong>−50% garanti</strong> · Valable 24h · 1 utilisation par client</p>
+      <a href="#" id="couponChariowLink" class="btn-coupon-cta">
+        Accéder à mon programme →
+      </a>
+      <p style="font-size:11px;color:var(--texte2);text-align:center;margin-top:10px;">
+        Colle le code <strong style="color:var(--or)">ANCESTRAL50</strong> au moment du paiement
+      </p>
+    </div>
+
+  </div>
+</div>
+
 <!-- WhatsApp floating button -->
 <a href="https://wa.me/21620706595?text=Bonjour%2C%20j%27ai%20une%20question%20sur%20le%20Rituel%20Ancestral"
    class="wa-float" target="_blank" rel="noopener" aria-label="Contactez-nous sur WhatsApp">
@@ -1355,6 +1545,134 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
     <span id="toastProduct"></span>
   </div>
 </div>
+
+<script>
+// ══════════════════════════════════════════════
+//  MODAL LEAD CAPTURE — Rituel Ancestral
+// ══════════════════════════════════════════════
+
+// 🔧 CONFIGURER : URL du webhook n8n quand prêt
+var N8N_WEBHOOK_URL = 'https://TON_N8N_URL/webhook/rituel-leads';
+
+var modal          = document.getElementById('modal-lead');
+var modalClose     = document.getElementById('modalClose');
+var stepForm       = document.getElementById('modal-step-form');
+var stepCoupon     = document.getElementById('modal-step-coupon');
+var leadForm       = document.getElementById('leadForm');
+var submitBtn      = document.getElementById('leadSubmitBtn');
+var couponPrenomEl = document.getElementById('coupon-prenom');
+var couponLink     = document.getElementById('couponChariowLink');
+var copyCouponBtn  = document.getElementById('copyCouponBtn');
+
+// URL cible par défaut (Cure Express)
+var targetUrl = 'https://myfurbrush.com/rituelancestral7jours';
+
+// ── Ouvrir le modal en interceptant les boutons de commande ──
+document.querySelectorAll('.btn-offre').forEach(function(btn) {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+    targetUrl = btn.getAttribute('href') || targetUrl;
+    openModal();
+  });
+});
+
+function openModal() {
+  stepForm.style.display   = 'block';
+  stepCoupon.style.display = 'none';
+  leadForm.reset();
+  submitBtn.disabled = false;
+  submitBtn.textContent = '⚡ Obtenir mon accès −50% →';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(function() {
+    document.getElementById('lead-prenom').focus();
+  }, 100);
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Fermeture
+modalClose.addEventListener('click', closeModal);
+modal.addEventListener('click', function(e) {
+  if (e.target === modal) closeModal();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ── Soumission du formulaire ──
+leadForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+
+  var prenom    = document.getElementById('lead-prenom').value.trim();
+  var whatsapp  = document.getElementById('lead-whatsapp').value.trim();
+
+  if (!prenom || !whatsapp) {
+    alert('Merci de remplir les deux champs 😊');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Envoi en cours…';
+
+  // 1. Pixel Facebook : événement Lead
+  if (typeof fbq !== 'undefined') {
+    fbq('track', 'Lead', {
+      content_name: 'Rituel Ancestral',
+      content_category: 'Coupon ANCESTRAL50'
+    });
+  }
+
+  // 2. Envoi vers n8n (silencieux — pas de blocage si échec)
+  var leadData = {
+    prenom:    prenom,
+    whatsapp:  whatsapp,
+    produit:   targetUrl,
+    coupon:    'ANCESTRAL50',
+    timestamp: new Date().toISOString(),
+    source:    'landing-rituel'
+  };
+
+  fetch(N8N_WEBHOOK_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(leadData)
+  }).catch(function() {
+    // Silencieux — ne pas bloquer l'UX si n8n pas encore configuré
+  });
+
+  // 3. Afficher le coupon (immédiat, pas d'attente réseau)
+  couponPrenomEl.textContent = prenom.charAt(0).toUpperCase() + prenom.slice(1);
+  couponLink.setAttribute('href', targetUrl);
+  stepForm.style.display   = 'none';
+  stepCoupon.style.display = 'block';
+});
+
+// ── Copier le code coupon ──
+copyCouponBtn.addEventListener('click', function() {
+  navigator.clipboard.writeText('ANCESTRAL50').then(function() {
+    copyCouponBtn.textContent = '✓ Copié !';
+    copyCouponBtn.style.background = '#4CAF50';
+    setTimeout(function() {
+      copyCouponBtn.textContent = 'Copier';
+      copyCouponBtn.style.background = '';
+    }, 2000);
+  }).catch(function() {
+    // Fallback pour navigateurs anciens
+    var el = document.createElement('textarea');
+    el.value = 'ANCESTRAL50';
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    copyCouponBtn.textContent = '✓ Copié !';
+    setTimeout(function() { copyCouponBtn.textContent = 'Copier'; }, 2000);
+  });
+});
+</script>
 
 </body>
 </html>
