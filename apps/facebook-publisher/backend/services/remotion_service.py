@@ -48,6 +48,7 @@ async def render_video(
         props,
         "--browser-executable",
         "/usr/bin/chromium",
+        "--chromium-flags=--no-sandbox --disable-setuid-sandbox",
         "--log",
         "error",
     ]
