@@ -1,9 +1,24 @@
 import asyncio
 import json
 import os
+import random
 
 REMOTION_DIR = "/app/remotion"
 OUTPUT_DIR = "/app/storage/videos"
+MUSIC_DIR = "/app/storage/music"
+
+
+def _pick_music() -> str | None:
+    """Retourne un chemin statique Remotion vers un MP3 aléatoire, ou None."""
+    if not os.path.isdir(MUSIC_DIR):
+        return None
+    tracks = [
+        f for f in os.listdir(MUSIC_DIR)
+        if f.lower().endswith((".mp3", ".m4a", ".aac", ".wav"))
+    ]
+    if not tracks:
+        return None
+    return f"storage/music/{random.choice(tracks)}"
 
 
 def _to_static_path(absolute_path: str) -> str:
@@ -28,14 +43,22 @@ async def render_video(
     """
     output_path = os.path.join(OUTPUT_DIR, f"{video_id}.mp4")
 
-    props = json.dumps(
-        {
-            "audioSrc": _to_static_path(audio_path),
-            "captions": captions,
-            "imagePaths": [_to_static_path(p) for p in image_paths],
-            "durationSeconds": duration_seconds,
-        }
-    )
+    music_static = _pick_music()
+    if music_static:
+        print(f"[remotion] Musique de fond : {music_static}")
+    else:
+        print("[remotion] Aucune musique trouvée — voix seule")
+
+    props_data = {
+        "audioSrc": _to_static_path(audio_path),
+        "captions": captions,
+        "imagePaths": [_to_static_path(p) for p in image_paths],
+        "durationSeconds": duration_seconds,
+    }
+    if music_static:
+        props_data["musicSrc"] = music_static
+
+    props = json.dumps(props_data)
 
     cmd = [
         "npx",

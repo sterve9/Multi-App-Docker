@@ -16,6 +16,7 @@ export const schema = z.object({
   captions: z.array(z.string()),
   imagePaths: z.array(z.string()),
   durationSeconds: z.number(),
+  musicSrc: z.string().optional(),
 });
 
 type Props = z.infer<typeof schema>;
@@ -109,7 +110,7 @@ const Caption: React.FC<{ text: string; totalFrames: number }> = ({
     >
       <p
         style={{
-          fontSize: 68,
+          fontSize: 72,
           fontWeight: 900,
           color: "white",
           textAlign: "center",
@@ -117,9 +118,11 @@ const Caption: React.FC<{ text: string; totalFrames: number }> = ({
           opacity,
           transform: `translateY(${translateY}px) scale(${scale})`,
           textShadow:
-            "0 2px 8px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.5)",
-          fontFamily: "'Arial Black', 'Impact', sans-serif",
-          letterSpacing: "-0.5px",
+            "0 2px 12px rgba(0,0,0,1), 0 0 40px rgba(0,0,0,0.8), 2px 2px 0 rgba(0,0,0,0.9)",
+          fontFamily: "Impact, 'Arial Black', 'Arial Bold', Arial, sans-serif",
+          letterSpacing: "0.5px",
+          textTransform: "uppercase" as const,
+          WebkitTextStroke: "1.5px rgba(0,0,0,0.6)",
         }}
       >
         {text}
@@ -135,6 +138,7 @@ export const FacebookVideo: React.FC<Props> = ({
   captions,
   imagePaths,
   durationSeconds,
+  musicSrc,
 }) => {
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -168,7 +172,10 @@ export const FacebookVideo: React.FC<Props> = ({
       )}
 
       {/* ── Audio voix off ── */}
-      {audioSrc ? <Audio src={staticFile(audioSrc)} /> : null}
+      {audioSrc ? <Audio src={staticFile(audioSrc)} volume={1} /> : null}
+
+      {/* ── Musique de fond ── */}
+      {musicSrc ? <Audio src={staticFile(musicSrc)} volume={0.15} loop /> : null}
 
       {/* ── Captions séquentielles ── */}
       {captions.map((text, i) => (

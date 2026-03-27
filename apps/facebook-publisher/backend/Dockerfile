@@ -10,10 +10,12 @@ RUN apt-get update && apt-get install -y \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Étape 2 : Chromium (gère automatiquement toutes ses dépendances système)
+# Étape 2 : Chromium + polices (Impact requis pour les captions Remotion)
 RUN apt-get update && apt-get install -y \
     chromium \
     fonts-liberation \
+    fonts-open-sans \
+    ttf-bitstream-vera \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
