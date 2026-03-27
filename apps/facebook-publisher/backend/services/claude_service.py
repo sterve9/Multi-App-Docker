@@ -28,6 +28,13 @@ TYPES DE HOOKS PROUVÉS (choisir 1 en rotation, ne jamais répéter le même sty
   B. Honte/tabou             → "Je n'osais plus [action intime] devant ma femme..."
   C. Curiosité choquante     → "Ce [ingrédient] que les médecins ne veulent pas que tu connaisses..."
   D. Transformation rapide   → "En 3 jours, elle m'a demandé ce que j'avais changé..."
+  E. Énergie/fatigue         → "Je m'endormais à 21h. Ma femme a cru que je ne l'aimais plus."
+  F. Autorité ancestrale     → "Ce mélange a traversé 3000 ans. La médecine moderne vient juste de comprendre pourquoi ça marche."
+
+⚠️ RÈGLE DE ROTATION OBLIGATOIRE (données réelles mars 2026) :
+  - Types A et B ont été utilisés sur les 2 dernières vidéos → INTERDITS pour la prochaine vidéo
+  - Priorité actuelle : Types C, D, E ou F
+  - Ne jamais utiliser le même type deux fois de suite
 
 HOOKS INTERDITS (prouvés inefficaces, données réelles) :
   ✗ Commencer par le nom du produit ("Rituel Ancestral...")
@@ -41,13 +48,16 @@ Thème : "{theme}" | Format : {format} | Durée : {duration} secondes
 
 {hook_types}
 
-STRUCTURE OBLIGATOIRE DU REEL (3 phases, {duration}s max) :
+STRUCTURE OBLIGATOIRE DU REEL (4 phases, {duration}s max) :
 1. HOOK DOULEUR ÉMOTIONNELLE [0-3s] — JAMAIS un bénéfice, TOUJOURS une souffrance vécue.
-   Choisir un type dans la liste ci-dessus. Max 8 mots. Arrête le scroll immédiatement.
-2. SOLUTION + DÉMONSTRATION CONCRÈTE [3-20s] — Montre le Rituel Ancestral en action.
+   Choisir un type dans la liste ci-dessus (priorité C/D/E/F). Max 8 mots. Arrête le scroll immédiatement.
+2. VALIDATION DE LA DOULEUR [3-5s] — UNE seule phrase courte qui confirme que le spectateur n'est pas seul.
+   Exemples : "Des milliers d'hommes vivent ça en silence." / "Ce n'est pas l'âge. C'est un déséquilibre."
+   ⚠️ CRITIQUE : Cette phase empêche le drop à 0:04 (données réelles). Ne pas sauter directement à la solution.
+3. SOLUTION + DÉMONSTRATION CONCRÈTE [5-20s] — Montre le Rituel Ancestral en action.
    Ingrédients (miel, gingembre, cannelle, citron), gestes précis, résultats en 3-7 jours.
    Pas de promesses vagues : des faits concrets ("elle a remarqué en 3 jours").
-3. DOUBLE CTA FINAL [20s+] — Les 2 phrases suivantes, dans cet ordre EXACT :
+4. DOUBLE CTA FINAL [20s+] — Les 2 phrases suivantes, dans cet ordre EXACT :
    "Le lien est dans le premier commentaire." puis "Suis la page pour la suite."
 
 CONTRAINTE LONGUEUR :
@@ -57,7 +67,7 @@ CONTRAINTE LONGUEUR :
 Réponds UNIQUEMENT en JSON valide :
 {{
   "hook": "Le hook DOULEUR ÉMOTIONNELLE exact (max 8 mots, type A/B/C/D)",
-  "script": "Script complet {words} mots : HOOK DOULEUR → SOLUTION CONCRÈTE → DOUBLE CTA. Utilise 'tu'. Terminer obligatoirement par : 'Le lien est dans le premier commentaire. Suis la page pour la suite.'",
+  "script": "Script complet {words} mots : HOOK DOULEUR → VALIDATION DOULEUR (1 phrase) → SOLUTION CONCRÈTE → DOUBLE CTA. Utilise 'tu'. Terminer obligatoirement par : 'Le lien est dans le premier commentaire. Suis la page pour la suite.'",
   "captions": {json.dumps(["[= hook exact de la vidéo]"] + [f"Caption courte {i+1}" for i in range(nb_captions - 1)])},
   "tags": ["#vitalitemasculine", "#coupleepanoui", "#energienaturelle", "#bienetre"],
   "description": "Accroche Facebook (100 car max, emojis, commence par le hook exact de la vidéo)",
