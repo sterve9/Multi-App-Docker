@@ -24,7 +24,7 @@ async def generate_image(image_prompt: str, post_id: int) -> str:
 
     payload = {
         "prompt": image_prompt,
-        "size": "9:16",
+        "size": "2:3",
         "isEnhance": False,
         "uploadCn": False,
         "enableFallback": True,
