@@ -1,0 +1,143 @@
+{
+  "name": "Rituel Ancestral — Capture Leads + Envoi Coupon + Relance 2h",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "rituel-leads",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "🎯 Webhook — Réception Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "rituel-leads-webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({status: 'ok', message: 'Lead reçu'}) }}",
+        "options": {}
+      },
+      "id": "node-response",
+      "name": "✅ Répondre 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [460, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.green-api.com/waInstance{{$env.GREEN_API_INSTANCE_ID}}/sendMessage/{{$env.GREEN_API_TOKEN}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chatId",
+              "value": "={{ $json.body.whatsapp.replace('+', '').replace(/\\s/g, '') + '@c.us' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ 'Bonjour ' + $json.body.prenom + ' ! 🎁\\n\\nVoici ton code de réduction personnalisé :\\n\\n*ANCESTRAL50*\\n\\n−50% sur ta commande du Rituel Ancestral.\\n\\n👉 Commande ici : ' + $json.body.produit + '\\n\\nCollse le code au moment du paiement.\\n\\nCode valable 24h uniquement ⏳\\n\\n— L\\'équipe Rituel Ancestral' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-whatsapp-coupon",
+      "name": "📱 WhatsApp — Envoyer le coupon",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{$env.SMTP_FROM_EMAIL}}",
+        "toEmail": "={{ $json.body.email }}",
+        "subject": "🎁 Ton code −50% pour le Rituel Ancestral",
+        "emailType": "html",
+        "message": "<!DOCTYPE html><html><body style='font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;'><div style='max-width:520px;margin:0 auto;background:#fff;border-radius:12px;padding:32px;'><h2 style='color:#C8912A;font-size:22px;'>Bonjour {{ $json.body.prenom }} ! 🎁</h2><p style='font-size:15px;color:#333;'>Voici ton code de réduction personnalisé :</p><div style='background:#FFF8EC;border:2px dashed #C8912A;border-radius:8px;padding:20px;text-align:center;margin:20px 0;'><div style='font-size:28px;font-weight:bold;letter-spacing:4px;color:#C8912A;'>ANCESTRAL50</div><div style='font-size:13px;color:#888;margin-top:6px;'>−50% sur ta commande · Valable 24h</div></div><p style='font-size:14px;color:#333;'>Utilise ce code au moment du paiement sur :</p><a href='{{ $json.body.produit }}' style='display:block;background:#C8912A;color:#fff;text-align:center;padding:14px 20px;border-radius:8px;text-decoration:none;font-weight:bold;margin:16px 0;'>👉 Accéder au programme →</a><p style='font-size:12px;color:#999;'>Ce code est personnel et valable une seule fois. Expire dans 24h.</p><hr style='border:none;border-top:1px solid #eee;margin:20px 0;'><p style='font-size:12px;color:#aaa;'>© Rituel Ancestral — Nature Bio Energie</p></div></body></html>",
+        "options": {}
+      },
+      "id": "node-email-coupon",
+      "name": "📧 Email — Envoyer le coupon",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [460, 420],
+      "credentials": {
+        "smtp": {
+          "id": "SMTP_CREDENTIAL_ID",
+          "name": "SMTP — À configurer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "hours"
+      },
+      "id": "node-wait-2h",
+      "name": "⏳ Attendre 2 heures",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.green-api.com/waInstance{{$env.GREEN_API_INSTANCE_ID}}/sendMessage/{{$env.GREEN_API_TOKEN}}",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "chatId",
+              "value": "={{ $('🎯 Webhook — Réception Lead').item.json.body.whatsapp.replace('+', '').replace(/\\s/g, '') + '@c.us' }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ 'Bonjour ' + $(\\'🎯 Webhook — Réception Lead\\').item.json.body.prenom + ' 😊\\n\\nJ\\'aimerais juste m\\'assurer que le code *ANCESTRAL50* a bien fonctionné pour vous.\\n\\nAu cas contraire, n\\'hésitez pas à contacter notre support :\\n📧 sterveshop6@gmail.com\\n\\nNous répondons sous 24h.\\n\\n— L\\'équipe Rituel Ancestral 🌿' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-whatsapp-relance",
+      "name": "💬 WhatsApp — Relance chaleureuse 2h",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 300]
+    }
+  ],
+  "connections": {
+    "🎯 Webhook — Réception Lead": {
+      "main": [
+        [
+          { "node": "✅ Répondre 200 OK", "type": "main", "index": 0 },
+          { "node": "📱 WhatsApp — Envoyer le coupon", "type": "main", "index": 0 },
+          { "node": "📧 Email — Envoyer le coupon", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "📱 WhatsApp — Envoyer le coupon": {
+      "main": [
+        [
+          { "node": "⏳ Attendre 2 heures", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "⏳ Attendre 2 heures": {
+      "main": [
+        [
+          { "node": "💬 WhatsApp — Relance chaleureuse 2h", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["rituel-ancestral", "leads", "coupon", "whatsapp"]
+}

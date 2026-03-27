@@ -1024,6 +1024,28 @@ footer a:hover {
     <div class="sep" style="margin-bottom:12px;"></div>
     <p class="section-sub" style="text-align:center;">Commence où tu en es. Va aussi loin que tu veux.</p>
 
+    <!-- ── GROS BOUTON CTA AU-DESSUS DU COMPTEUR ── -->
+    <div style="text-align:center;margin-bottom:28px;">
+      <a href="#" id="btnTopCoupon" style="
+        display:inline-block;
+        background:linear-gradient(135deg,#C8912A,#E8B84B);
+        color:#0E0804;
+        font-family:'Cinzel',serif;
+        font-size:clamp(16px,3.5vw,22px);
+        font-weight:700;
+        letter-spacing:1px;
+        padding:20px 36px;
+        border-radius:10px;
+        text-decoration:none;
+        box-shadow:0 6px 32px rgba(200,145,42,0.45);
+        line-height:1.3;
+        max-width:620px;
+        animation:pulse-or 2s infinite;
+      ">
+        🎁 Cliquez ici pour obtenir votre code<br>personnalisé <span style="text-decoration:underline;">−50% de réduction</span>
+      </a>
+    </div>
+
     <div class="offre-urgence">
       <div class="urgence-label cinzel">⏳ OFFRE LIMITÉE — SE TERMINE DANS</div>
       <div class="urgence-timer">
@@ -1498,31 +1520,37 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
           <input type="text" id="lead-prenom" name="prenom" placeholder="Ex : Moussa" autocomplete="given-name" required>
         </div>
         <div class="modal-field">
-          <label for="lead-whatsapp">Ton WhatsApp</label>
+          <label for="lead-email">Ton adresse email</label>
+          <input type="email" id="lead-email" name="email" placeholder="exemple@gmail.com" autocomplete="email" required>
+        </div>
+        <div class="modal-field">
+          <label for="lead-whatsapp">Ton numéro WhatsApp</label>
           <input type="tel" id="lead-whatsapp" name="whatsapp" placeholder="+221 XX XXX XX XX" autocomplete="tel" required>
         </div>
         <button type="submit" class="modal-submit" id="leadSubmitBtn">
-          ⚡ Obtenir mon accès −50% →
+          🎁 Recevoir mon code −50% →
         </button>
       </form>
-      <p class="modal-privacy">🔒 Confidentiel · Zéro spam · Tu peux te désabonner à tout moment</p>
+      <p class="modal-privacy">🔒 Confidentiel · Zéro spam · Code envoyé instantanément sur WhatsApp et email</p>
     </div>
 
-    <!-- STEP 2 : COUPON -->
+    <!-- STEP 2 : CONFIRMATION ENVOI -->
     <div id="modal-step-coupon">
       <div class="coupon-check">✅</div>
       <div class="coupon-title">C'est parti, <span id="coupon-prenom" style="color:var(--or)"></span> !</div>
-      <p class="coupon-sub">Ton code de réduction exclusif est prêt :</p>
-      <div class="coupon-box">
-        <span class="coupon-code">ANCESTRAL50</span>
-        <button class="coupon-copy" id="copyCouponBtn">Copier</button>
+      <p class="coupon-sub" style="font-size:15px;color:var(--texte);line-height:1.6;margin-bottom:20px;">
+        Ton code personnalisé <strong style="color:var(--or2)">−50%</strong> vient d'être envoyé sur :<br>
+        <span style="color:var(--or)">📱 Ton WhatsApp</span> &amp; <span style="color:var(--or)">📧 Ton email</span>
+      </p>
+      <div style="background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.4);border-radius:10px;padding:16px 20px;margin-bottom:20px;text-align:center;">
+        <div style="font-size:13px;color:#4CAF50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">⏱ Reçu en moins de 2 minutes</div>
+        <div style="font-size:13px;color:var(--texte2);">Vérifie tes messages WhatsApp et ton dossier email (y compris spam)</div>
       </div>
-      <p class="coupon-note"><strong>−50% garanti</strong> · Valable 24h · 1 utilisation par client</p>
       <a href="#" id="couponChariowLink" class="btn-coupon-cta">
-        Accéder à mon programme →
+        Accéder au programme →
       </a>
-      <p style="font-size:11px;color:var(--texte2);text-align:center;margin-top:10px;">
-        Colle le code <strong style="color:var(--or)">ANCESTRAL50</strong> au moment du paiement
+      <p style="font-size:11px;color:var(--texte2);text-align:center;margin-top:12px;">
+        Utilise le code reçu sur WhatsApp au moment du paiement
       </p>
     </div>
 
@@ -1551,8 +1579,8 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
 //  MODAL LEAD CAPTURE — Rituel Ancestral
 // ══════════════════════════════════════════════
 
-// 🔧 CONFIGURER : URL du webhook n8n quand prêt
-var N8N_WEBHOOK_URL = 'https://TON_N8N_URL/webhook/rituel-leads';
+// 🔧 CONFIGURER : URL du webhook n8n
+var N8N_WEBHOOK_URL = 'https://automation.sterveshop.cloud/webhook/rituel-leads';
 
 var modal          = document.getElementById('modal-lead');
 var modalClose     = document.getElementById('modalClose');
@@ -1562,12 +1590,11 @@ var leadForm       = document.getElementById('leadForm');
 var submitBtn      = document.getElementById('leadSubmitBtn');
 var couponPrenomEl = document.getElementById('coupon-prenom');
 var couponLink     = document.getElementById('couponChariowLink');
-var copyCouponBtn  = document.getElementById('copyCouponBtn');
 
 // URL cible par défaut (Cure Express)
 var targetUrl = 'https://myfurbrush.com/rituelancestral7jours';
 
-// ── Ouvrir le modal en interceptant les boutons de commande ──
+// ── Intercepter les boutons de commande (.btn-offre) ──
 document.querySelectorAll('.btn-offre').forEach(function(btn) {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
@@ -1576,12 +1603,22 @@ document.querySelectorAll('.btn-offre').forEach(function(btn) {
   });
 });
 
+// ── Intercepter le gros bouton CTA du haut ──
+var btnTop = document.getElementById('btnTopCoupon');
+if (btnTop) {
+  btnTop.addEventListener('click', function(e) {
+    e.preventDefault();
+    targetUrl = 'https://myfurbrush.com/rituelancestral7jours';
+    openModal();
+  });
+}
+
 function openModal() {
   stepForm.style.display   = 'block';
   stepCoupon.style.display = 'none';
   leadForm.reset();
   submitBtn.disabled = false;
-  submitBtn.textContent = '⚡ Obtenir mon accès −50% →';
+  submitBtn.textContent = '🎁 Recevoir mon code −50% →';
   modal.classList.add('open');
   document.body.style.overflow = 'hidden';
   setTimeout(function() {
@@ -1607,11 +1644,12 @@ document.addEventListener('keydown', function(e) {
 leadForm.addEventListener('submit', function(e) {
   e.preventDefault();
 
-  var prenom    = document.getElementById('lead-prenom').value.trim();
-  var whatsapp  = document.getElementById('lead-whatsapp').value.trim();
+  var prenom   = document.getElementById('lead-prenom').value.trim();
+  var email    = document.getElementById('lead-email').value.trim();
+  var whatsapp = document.getElementById('lead-whatsapp').value.trim();
 
-  if (!prenom || !whatsapp) {
-    alert('Merci de remplir les deux champs 😊');
+  if (!prenom || !email || !whatsapp) {
+    alert('Merci de remplir tous les champs 😊');
     return;
   }
 
@@ -1626,9 +1664,10 @@ leadForm.addEventListener('submit', function(e) {
     });
   }
 
-  // 2. Envoi vers n8n (silencieux — pas de blocage si échec)
+  // 2. Envoi vers n8n
   var leadData = {
     prenom:    prenom,
+    email:     email,
     whatsapp:  whatsapp,
     produit:   targetUrl,
     coupon:    'ANCESTRAL50',
@@ -1641,36 +1680,14 @@ leadForm.addEventListener('submit', function(e) {
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(leadData)
   }).catch(function() {
-    // Silencieux — ne pas bloquer l'UX si n8n pas encore configuré
+    // Silencieux si n8n pas encore actif
   });
 
-  // 3. Afficher le coupon (immédiat, pas d'attente réseau)
+  // 3. Afficher l'écran de confirmation
   couponPrenomEl.textContent = prenom.charAt(0).toUpperCase() + prenom.slice(1);
   couponLink.setAttribute('href', targetUrl);
   stepForm.style.display   = 'none';
   stepCoupon.style.display = 'block';
-});
-
-// ── Copier le code coupon ──
-copyCouponBtn.addEventListener('click', function() {
-  navigator.clipboard.writeText('ANCESTRAL50').then(function() {
-    copyCouponBtn.textContent = '✓ Copié !';
-    copyCouponBtn.style.background = '#4CAF50';
-    setTimeout(function() {
-      copyCouponBtn.textContent = 'Copier';
-      copyCouponBtn.style.background = '';
-    }, 2000);
-  }).catch(function() {
-    // Fallback pour navigateurs anciens
-    var el = document.createElement('textarea');
-    el.value = 'ANCESTRAL50';
-    document.body.appendChild(el);
-    el.select();
-    document.execCommand('copy');
-    document.body.removeChild(el);
-    copyCouponBtn.textContent = '✓ Copié !';
-    setTimeout(function() { copyCouponBtn.textContent = 'Copier'; }, 2000);
-  });
 });
 </script>
 
