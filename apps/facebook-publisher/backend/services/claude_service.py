@@ -10,8 +10,6 @@ client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 async def generate_script(theme: str, format: str, duration: str) -> dict:
     """Génère script + captions + tags + description via Claude"""
 
-    # ElevenLabs lit ~2.5 mots/seconde en voix naturelle francophone
-    # On cible légèrement en dessous pour garder une marge de respiration
     duration_config = {
         "15": {"words": "35-40",   "captions": 3},
         "30": {"words": "70-80",   "captions": 5},
@@ -21,67 +19,81 @@ async def generate_script(theme: str, format: str, duration: str) -> dict:
     words = config["words"]
     nb_captions = config["captions"]
 
-    # Types de hooks prouvés — Claude pioche dans cette liste en rotation
-    hook_types = """
-TYPES DE HOOKS PROUVÉS (choisir 1 en rotation, ne jamais répéter le même style deux fois) :
-  A. Douleur relationnelle   → "Ta femme [action négative] depuis [durée]..."
-  B. Honte/tabou             → "Je n'osais plus [action intime] devant ma femme..."
-  C. Curiosité choquante     → "Ce [ingrédient] que les médecins ne veulent pas que tu connaisses..."
-  D. Transformation rapide   → "En 3 jours, elle m'a demandé ce que j'avais changé..."
-  E. Énergie/fatigue         → "Je m'endormais à 21h. Ma femme a cru que je ne l'aimais plus."
-  F. Autorité ancestrale     → "Ce mélange a traversé 3000 ans. La médecine moderne vient juste de comprendre pourquoi ça marche."
-
-⚠️ RÈGLE DE ROTATION OBLIGATOIRE (données réelles mars 2026) :
-  - Types A et B ont été utilisés sur les 2 dernières vidéos → INTERDITS pour la prochaine vidéo
-  - Priorité actuelle : Types C, D, E ou F
-  - Ne jamais utiliser le même type deux fois de suite
-
-HOOKS INTERDITS (prouvés inefficaces, données réelles) :
-  ✗ Commencer par le nom du produit ("Rituel Ancestral...")
-  ✗ Commencer par un bénéfice générique ("Retrouve ta vitalité...", "Booste ton énergie...")
-  ✗ Question trop douce ("Tu veux plus d'énergie ?")"""
-
     prompt = f"""Tu es un expert en Reels Facebook pour la vitalité masculine naturelle.
-Tu génères des scripts basés sur des données de performance réelles (rétention mesurée sur 4 Reels).
+Tu génères des scripts basés sur des données de performance réelles (rétention faible à 3-5s).
 
 Thème : "{theme}" | Format : {format} | Durée : {duration} secondes
 
-{hook_types}
+OBJECTIF CRITIQUE :
+Empêcher le drop dans les 3 premières secondes.
+Aller DIRECT au résultat ou à la transformation.
 
-STRUCTURE OBLIGATOIRE DU REEL (4 phases, {duration}s max) :
-1. HOOK DOULEUR ÉMOTIONNELLE [0-3s] — JAMAIS un bénéfice, TOUJOURS une souffrance vécue.
-   Choisir un type dans la liste ci-dessus (priorité C/D/E/F). Max 8 mots. Arrête le scroll immédiatement.
-2. VALIDATION DE LA DOULEUR [3-5s] — UNE seule phrase courte qui confirme que le spectateur n'est pas seul.
-   Exemples : "Des milliers d'hommes vivent ça en silence." / "Ce n'est pas l'âge. C'est un déséquilibre."
-   ⚠️ CRITIQUE : Cette phase empêche le drop à 0:04 (données réelles). Ne pas sauter directement à la solution.
-3. SOLUTION + DÉMONSTRATION CONCRÈTE [5-20s] — Montre le Rituel Ancestral en action.
-   Ingrédients (miel, gingembre, cannelle, citron), gestes précis, résultats en 3-7 jours.
-   Pas de promesses vagues : des faits concrets ("elle a remarqué en 3 jours").
-4. DOUBLE CTA FINAL [20s+] — Les 2 phrases suivantes, dans cet ordre EXACT :
-   "Le lien est dans le premier commentaire." puis "Suis la page pour la suite."
+STRUCTURE OBLIGATOIRE DU REEL ({duration}s max) :
+
+1. HOOK CHOC + PROMESSE [0-3s]
+Le hook doit contenir :
+- une douleur OU curiosité
+- ET une transformation rapide ou résultat
+
+Exemples :
+"Ce mélange a changé mes nuits en 3 jours"
+"Elle a remarqué en 3 jours grâce à ça"
+"Ce remède ancien a tout changé"
+
+⚠️ INTERDIT :
+- phrases longues
+- explication
+- bénéfices vagues
+- commencer par le nom du produit
+
+2. SOLUTION IMMÉDIATE [3-6s]
+Aller DIRECT à l’action ou visuel :
+- montrer le mélange
+- OU montrer le résultat
+- OU réaction femme
+
+AUCUNE phrase inutile
+AUCUNE théorie
+
+3. PREUVE / RÉSULTAT [6-20s]
+Montrer un effet concret :
+- "elle m’a regardé différemment"
+- "elle me l’a dit elle-même"
+- "en 3 jours j’ai vu la différence"
+
+Phrases très courtes
+1 idée = 1 phrase
+
+4. DOUBLE CTA FINAL [20s+]
+Toujours EXACTEMENT :
+"Le lien est dans le premier commentaire."
+"Écris 1, 2 ou 3 pour recevoir ton offre directement."
 
 CONTRAINTE LONGUEUR :
-- Script voix off : EXACTEMENT entre {words} mots (ElevenLabs = 2.5 mots/sec).
-- Compte les mots avant de répondre.
+- Script voix off : EXACTEMENT entre {words} mots
+- Compte les mots avant de répondre
 
 Réponds UNIQUEMENT en JSON valide :
 {{
-  "hook": "Le hook DOULEUR ÉMOTIONNELLE exact (max 8 mots, type A/B/C/D)",
-  "script": "Script complet {words} mots : HOOK DOULEUR → VALIDATION DOULEUR (1 phrase) → SOLUTION CONCRÈTE → DOUBLE CTA. Utilise 'tu'. Terminer obligatoirement par : 'Le lien est dans le premier commentaire. Suis la page pour la suite.'",
+  "hook": "Hook choc avec promesse (max 8 mots)",
+  "script": "Script complet {words} mots : HOOK → SOLUTION DIRECTE → PREUVE → DOUBLE CTA. Utilise 'tu'. Terminer obligatoirement par : 'Le lien est dans le premier commentaire. Écris 1, 2 ou 3 pour recevoir ton offre directement.'",
   "captions": {json.dumps(["[= hook exact de la vidéo]"] + [f"Caption courte {i+1}" for i in range(nb_captions - 1)])},
   "tags": ["#vitalitemasculine", "#coupleepanoui", "#energienaturelle", "#bienetre"],
-  "description": "Accroche Facebook (100 car max, emojis, commence par le hook exact de la vidéo)",
-  "sales_text": "Texte de vente Facebook (4-6 lignes) : commence par le hook exact, problème empathique, solution concrète, résultats dès J3, lien : https://rituel.sterveshop.cloud\\n#vitalitemasculine #coupleepanoui #energienaturelle #bienetre",
+  "description": "Accroche Facebook (100 car max, emojis, commence par le hook exact)",
+  "sales_text": "Texte de vente Facebook (4-6 lignes) : commence par le hook exact, problème direct, solution simple, résultat rapide, lien : https://rituel.sterveshop.cloud\\n#vitalitemasculine #coupleepanoui #energienaturelle #bienetre",
   "publication_hint": "Publier entre 10h00 et 11h30",
   "word_count": 0
 }}
 
 Règles absolues :
 - "tu" jamais "vous"
-- Phrases courtes, 1 idée par phrase
-- La 1ère caption = EXACTEMENT la même phrase que le hook
-- Les tags = toujours les 4 hashtags fournis, rien d'autre
-- Le sales_text commence par le hook exact de la vidéo
+- phrases très courtes
+- aucune explication longue
+- pas de validation émotionnelle inutile
+- aller vite au résultat
+- la 1ère caption = EXACTEMENT le hook
+- les tags = toujours les 4 hashtags fournis
+
 Dans "word_count", mets le nombre exact de mots du script."""
 
     message = client.messages.create(
@@ -92,7 +104,6 @@ Dans "word_count", mets le nombre exact de mots du script."""
 
     raw = message.content[0].text.strip()
 
-    # Nettoyer si markdown
     if raw.startswith("```"):
         raw = raw.split("```")[1]
         if raw.startswith("json"):
@@ -101,11 +112,9 @@ Dans "word_count", mets le nombre exact de mots du script."""
 
     result = json.loads(raw)
 
-    # Vérification de sécurité côté backend
     script_words = len(result.get("script", "").split())
-    max_words = int(words.split("-")[1])  # ex: "35-40" → 40
+    max_words = int(words.split("-")[1])
 
-    # Si Claude a quand même dépassé, on tronque proprement à la dernière phrase complète
     if script_words > max_words + 5:
         sentences = result["script"].replace(".", ".|").replace("!", "!|").replace("?", "?|").split("|")
         truncated = ""
