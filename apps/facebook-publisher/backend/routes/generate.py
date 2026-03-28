@@ -2,29 +2,22 @@ from fastapi import APIRouter, HTTPException, BackgroundTasks
 from models.video import ScriptRequest, ScriptResponse, VideoGenerationRequest, VideoStatus
 from services.claude_service import generate_script
 from services.elevenlabs_service import generate_voiceover
-from services.kieai_service import generate_multiple_images, generate_video
-from services.ffmpeg_service import assemble_video, assemble_video_clips
-import uuid, os, asyncio
+from services.kieai_service import generate_multiple_images, generate_video_veo3
+from services.ffmpeg_service import assemble_video, add_subtitles_to_video
+import uuid, os
 
 router = APIRouter()
 
-# Stockage en mémoire des jobs (Redis en Phase 2)
+# Stockage en mémoire des jobs
 jobs: dict[str, VideoStatus] = {}
 
 STORAGE_PATH = "/app/storage"
 
-# Nombre d'images générées selon la durée (format standard)
+# Nombre d'images pour le format standard
 IMAGES_BY_DURATION = {
-    "15": 2,   # 2 images × ~7.5s chacune
-    "30": 3,   # 3 images × ~10s chacune
-    "60": 5,   # 5 images × ~12s chacune
-}
-
-# Nombre de clips Kling selon la durée (format video_ia)
-CLIPS_BY_DURATION = {
-    "15": 2,   # 2 clips × ~7s chacun
-    "30": 3,   # 3 clips × ~10s chacun
-    "60": 6,   # 6 clips × ~10s chacun
+    "15": 2,
+    "30": 3,
+    "60": 5,
 }
 
 
@@ -44,7 +37,6 @@ async def create_video(request: VideoGenerationRequest, background_tasks: Backgr
     video_id = str(uuid.uuid4())
     job = VideoStatus(video_id=video_id, status="pending", progress=0, message="En attente...")
     jobs[video_id] = job
-
     background_tasks.add_task(process_video, video_id, request)
     return job
 
@@ -69,76 +61,66 @@ async def process_video(video_id: str, request: VideoGenerationRequest):
         os.makedirs(f"{STORAGE_PATH}/images", exist_ok=True)
         os.makedirs(f"{STORAGE_PATH}/videos", exist_ok=True)
 
-        audio_path  = f"{STORAGE_PATH}/audio/{video_id}.mp3"
         output_path = f"{STORAGE_PATH}/videos/{video_id}.mp4"
 
-        # Prompt visuel de base — adapté au Rituel Ancestral
-        visual_prompt = (
-            f"Cinematic vertical 9:16 video, {request.hook}, "
-            "African man 45-50 years old, wise and calm expression, "
-            "traditional setting, warm golden candlelight, "
-            "natural herbs honey ginger cinnamon in foreground, "
-            "authentic African wellness aesthetic, "
-            "dramatic warm lighting, photorealistic, no text, no watermark"
-        )
-
-        # ── Étape 1 : Voix off ElevenLabs ───────────────────────────────────
-        job.status = "processing"
-        job.progress = 10
-        job.message = "Génération de la voix off..."
-        await generate_voiceover(request.script, audio_path)
-
-        # ── Étape 2 : Visuels ────────────────────────────────────────────────
-        job.progress = 30
-
         if request.format == "video_ia":
-            # ── Kling 3.0 — vrais clips vidéo IA ────────────────────────────
-            clip_duration = 10  # Kling max = 10s par clip
-            nb_clips = CLIPS_BY_DURATION.get(request.duration, 3)
+            # ── VEO3 — vidéo + voix en une seule étape ──────────────────────
+            job.status = "processing"
+            job.progress = 20
+            job.message = "Génération vidéo Veo3 (voix + visuels intégrés)..."
 
-            job.message = f"Génération de {nb_clips} clips vidéo Kling 3.0..."
-            print(f"[kling] Démarrage génération {nb_clips} clips × {clip_duration}s")
+            # Prompt visuel pour l'avatar
+            visual_prompt = (
+                "African man 45-50 years old, wise and calm expression, "
+                "traditional setting, warm golden candlelight, "
+                "natural herbs honey ginger cinnamon visible, "
+                "authentic African wellness atmosphere, "
+                "speaking directly to camera, photorealistic, cinematic"
+            )
 
-            clip_paths = []
-            for i in range(nb_clips):
-                clip_path = os.path.join(temp_dir, f"{video_id}_clip_{i}.mp4")
-                job.progress = 30 + int((i / nb_clips) * 35)
-                job.message = f"Clip {i+1}/{nb_clips} en cours (Kling 3.0)..."
+            # Script à intégrer dans la vidéo
+            script_text = request.script[:500]  # Veo3 limite le prompt
 
-                # Variation du prompt par clip pour éviter répétition
-                clip_prompts = [
-                    f"{visual_prompt}, close-up face intense gaze",
-                    f"{visual_prompt}, hands preparing ritual ingredients",
-                    f"{visual_prompt}, wide shot morning ritual atmosphere",
-                    f"{visual_prompt}, medium shot speaking to camera",
-                    f"{visual_prompt}, detail shot natural ingredients texture",
-                    f"{visual_prompt}, golden hour backlight silhouette",
-                ]
-                prompt_for_clip = clip_prompts[i % len(clip_prompts)]
+            veo3_raw_path = os.path.join(temp_dir, f"{video_id}_veo3_raw.mp4")
 
-                await generate_video(
-                    prompt=prompt_for_clip,
-                    output_path=clip_path,
-                    duration=clip_duration
-                )
-                clip_paths.append(clip_path)
-                print(f"[kling] Clip {i+1}/{nb_clips} généré : {clip_path}")
+            await generate_video_veo3(
+                prompt=visual_prompt,
+                script=script_text,
+                output_path=veo3_raw_path,
+                aspect_ratio="9:16",
+                model="veo3_fast"
+            )
 
-            # ── Étape 3 : Assemblage clips + voix + sous-titres ──────────────
-            job.progress = 70
-            job.message = "Assemblage clips vidéo + voix + sous-titres..."
-            await assemble_video_clips(
-                audio_path=audio_path,
-                clip_paths=clip_paths,
+            # ── Ajout des sous-titres sur la vidéo Veo3 ─────────────────────
+            job.progress = 85
+            job.message = "Ajout des sous-titres..."
+
+            await add_subtitles_to_video(
+                video_path=veo3_raw_path,
                 captions=request.captions,
                 output_path=output_path,
                 duration=duration
             )
 
         else:
-            # ── Format standard — images Ken Burns ───────────────────────────
+            # ── Format standard — images + voix ElevenLabs ───────────────────
+            audio_path = f"{STORAGE_PATH}/audio/{video_id}.mp3"
+
+            job.status = "processing"
+            job.progress = 10
+            job.message = "Génération de la voix off..."
+            await generate_voiceover(request.script, audio_path)
+
+            job.progress = 30
             nb_images = IMAGES_BY_DURATION.get(request.duration, 3)
-            job.message = f"Génération de {nb_images} visuels IA en parallèle..."
+            job.message = f"Génération de {nb_images} visuels IA..."
+
+            visual_prompt = (
+                f"Cinematic vertical 9:16, {request.hook}, "
+                "African wellness aesthetic, natural herbs honey ginger, "
+                "warm golden tones, dramatic lighting, no text, no watermark"
+            )
+
             image_paths = await generate_multiple_images(
                 base_prompt=visual_prompt,
                 output_dir=f"{STORAGE_PATH}/images",
@@ -146,23 +128,16 @@ async def process_video(video_id: str, request: VideoGenerationRequest):
                 count=nb_images,
             )
 
-            # ── Étape 3 : Assemblage FFmpeg ───────────────────────────────────
             job.progress = 70
             job.message = "Assemblage vidéo + transitions + sous-titres..."
-            await assemble_video(
-                audio_path,
-                image_paths,
-                request.captions,
-                output_path,
-                duration
-            )
+            await assemble_video(audio_path, image_paths, request.captions, output_path, duration)
 
-        # ── Done ─────────────────────────────────────────────────────────────
+        # ── Done ──────────────────────────────────────────────────────────────
         job.status = "done"
         job.progress = 100
         job.message = "Vidéo prête !"
         job.video_url = f"/videos/{video_id}.mp4"
-        print(f"[pipeline] Vidéo générée avec succès : {output_path}")
+        print(f"[pipeline] Vidéo générée : {output_path}")
 
     except Exception as e:
         job.status = "error"
