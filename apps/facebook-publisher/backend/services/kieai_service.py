@@ -140,7 +140,7 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
         }
     }
 
-    async with httpx.AsyncClient(timeout=300.0) as client:
+    async with httpx.AsyncClient(timeout=600.0) as client:
         response = await client.post(
             f"{KIE_AI_BASE_URL}/jobs/createTask",
             headers=headers,
@@ -153,9 +153,10 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
             raise Exception(f"Kie.ai Kling error: {data.get('msg', 'Unknown error')}")
 
         task_id = data["data"]["taskId"]
+        print(f"[kling] Task créée : {task_id}")
 
         video_url = None
-        for _ in range(120):
+        for attempt in range(180):  # 180 × 5s = 900s max
             await asyncio.sleep(5)
             status_resp = await client.get(
                 f"{KIE_AI_BASE_URL}/jobs/detail",
@@ -167,10 +168,14 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
 
             status = record.get("status")
 
+            if attempt % 10 == 0:
+                print(f"[kling] Attempt {attempt}/180 — status: {status}")
+
             if status == "SUCCESS":
                 works = record.get("output", {}).get("works", [])
                 if works:
                     video_url = works[0].get("resource", {}).get("resource")
+                    print(f"[kling] Vidéo prête : {video_url[:50]}...")
                     break
             elif status == "FAILED":
                 raise Exception(f"Kling generation failed: {record.get('failedMsg')}")
@@ -178,8 +183,10 @@ async def generate_video(prompt: str, output_path: str, duration: int = 5) -> st
         if not video_url:
             raise Exception("Kling video generation timeout")
 
+        print(f"[kling] Téléchargement de la vidéo...")
         vid_response = await client.get(video_url)
         async with aiofiles.open(output_path, "wb") as f:
             await f.write(vid_response.content)
+        print(f"[kling] Vidéo sauvegardée : {output_path}")
 
     return output_path
