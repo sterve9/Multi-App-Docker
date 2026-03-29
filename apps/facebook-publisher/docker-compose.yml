@@ -42,8 +42,12 @@ services:
         condition: service_healthy
     env_file:
       - ./backend/.env
-    
-      
+    environment:
+      # DATABASE_URL définie ici écrase celle du .env — toujours synchronisée
+      # avec POSTGRES_PASSWORD ci-dessus. Plus jamais d'InvalidPasswordError.
+      - DATABASE_URL=postgresql+asyncpg://facebook:facebook_secret@postgres:5432/facebook_publisher
+      # REDIS_URL définie ici pour la même raison
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./storage:/app/storage
     networks:
@@ -61,7 +65,6 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Le frontend appelle le backend via son sous-domaine public
         NEXT_PUBLIC_API_URL: https://api.facebook.sterveshop.cloud
     container_name: facebook-frontend
     restart: unless-stopped
