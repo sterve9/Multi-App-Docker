@@ -124,9 +124,23 @@ async def generate_video_veo3(
     model: str = "veo3_fast"
 ) -> str:
     """
-    Génère une vidéo avec voix intégrée via Veo3 (Kie.ai).
-    Veo3 génère la vidéo ET la voix en une seule requête.
-    Plus besoin d'ElevenLabs pour le format video_ia.
+    Génère une vidéo avec voix intégrée via Veo3.1 (Kie.ai).
+
+    Structure réponse polling (source: doc officielle Kie.ai) :
+    {
+      "code": 200,
+      "data": {
+        "successFlag": 0|1|2|3,
+        "response": {
+          "resultUrls": ["https://...mp4"],
+          "originUrls": ["https://...mp4"],
+          "resolution": "1080p"
+        },
+        "errorMessage": null
+      }
+    }
+
+    successFlag: 0=en cours, 1=succès, 2=échec, 3=échec upstream
     """
 
     headers = {
@@ -134,23 +148,26 @@ async def generate_video_veo3(
         "Content-Type": "application/json"
     }
 
-    # Veo3 intègre le dialogue directement dans le prompt
+    # Prompt complet avec dialogue intégré
     full_prompt = (
-        f"{prompt}. "
-        f"The person speaks directly to camera and says: \"{script}\". "
-        f"Authentic, natural delivery, warm tone."
+        f"African man 45-50 years old, wise and calm expression, "
+        f"traditional African setting, warm golden candlelight, "
+        f"natural honey ginger cinnamon visible on table, "
+        f"speaking directly to camera with conviction. "
+        f"He says: \"{script[:300]}\". "
+        f"Authentic, cinematic, vertical 9:16 format."
     )
 
     payload = {
         "prompt": full_prompt,
         "model": model,
         "aspect_ratio": aspect_ratio,
-        "enableFallback": False,
-        "enableTranslation": False,
+        "generationType": "TEXT_2_VIDEO",
+        "enableTranslation": True,  # Traduit automatiquement en anglais
     }
 
-    print(f"[veo3] Démarrage génération — modèle: {model}")
-    print(f"[veo3] Prompt: {full_prompt[:120]}...")
+    print(f"[veo3] Démarrage — modèle: {model}, aspect: {aspect_ratio}")
+    print(f"[veo3] Prompt ({len(full_prompt)} chars): {full_prompt[:100]}...")
 
     async with httpx.AsyncClient(timeout=600.0) as client:
 
@@ -161,70 +178,82 @@ async def generate_video_veo3(
             json=payload
         )
         response.raise_for_status()
-        data = response.json()
-        print(f"[veo3] Réponse création: {data}")
+        creation_data = response.json()
+        print(f"[veo3] Réponse création: code={creation_data.get('code')}, msg={creation_data.get('msg')}")
 
-        if data.get("code") != 200:
-            raise Exception(f"Veo3 error: {data.get('msg', 'Unknown error')}")
+        if creation_data.get("code") != 200:
+            raise Exception(f"Veo3 création échouée: {creation_data.get('msg', 'Unknown error')}")
 
-        task_id = data["data"]["taskId"]
+        task_id = creation_data["data"]["taskId"]
         print(f"[veo3] Task créée: {task_id}")
 
-        # ── Polling du statut ─────────────────────────────────────────────────
+        # ── Polling — structure exacte selon doc officielle ───────────────────
         video_url = None
         for attempt in range(180):  # 180 × 5s = 900s max
             await asyncio.sleep(5)
 
-            status_resp = await client.get(
+            poll_resp = await client.get(
                 f"{KIE_AI_BASE_URL}/veo/record-info",
                 headers=headers,
                 params={"taskId": task_id}
             )
-            status_data = status_resp.json()
+            poll_data = poll_resp.json()
 
+            # Log toutes les 10 tentatives
             if attempt % 10 == 0:
-                print(f"[veo3] Attempt {attempt}/180 — réponse: {str(status_data)[:200]}")
+                data_field = poll_data.get("data", {})
+                success_flag = data_field.get("successFlag", "?")
+                print(f"[veo3] Attempt {attempt}/180 — successFlag: {success_flag}")
 
-            data_field = status_data.get("data", {})
-            status = data_field.get("status")
+            # Vérifier le code HTTP de la réponse
+            if poll_data.get("code") != 200:
+                if attempt % 10 == 0:
+                    print(f"[veo3] Code non-200: {poll_data.get('code')} — {poll_data.get('msg')}")
+                continue
+
+            data_field = poll_data.get("data", {})
             success_flag = data_field.get("successFlag")
-            response_field = data_field.get("response", {})
 
-            # ── Succès ────────────────────────────────────────────────────────
-            if status == "SUCCESS" or success_flag == 1:
-                # Chercher l'URL dans toutes les structures possibles
-                video_url = (
-                    response_field.get("videoUrl") or
-                    response_field.get("url") or
-                    data_field.get("videoUrl") or
-                    data_field.get("url")
-                )
-                if not video_url:
-                    result_urls = response_field.get("resultUrls", [])
-                    if result_urls:
-                        video_url = result_urls[0]
+            # ── successFlag == 1 : succès ─────────────────────────────────────
+            if success_flag == 1:
+                response_field = data_field.get("response", {})
+                result_urls = response_field.get("resultUrls", [])
+                origin_urls = response_field.get("originUrls", [])
+
+                # Préférer resultUrls, sinon originUrls
+                if result_urls:
+                    video_url = result_urls[0]
+                elif origin_urls:
+                    video_url = origin_urls[0]
+
                 if video_url:
-                    print(f"[veo3] Vidéo prête: {video_url[:80]}...")
+                    resolution = response_field.get("resolution", "unknown")
+                    print(f"[veo3] Vidéo prête! Resolution: {resolution}")
+                    print(f"[veo3] URL: {video_url[:80]}...")
                     break
+                else:
+                    print(f"[veo3] successFlag=1 mais aucune URL trouvée — réponse: {response_field}")
 
-            # ── Échec ─────────────────────────────────────────────────────────
-            elif status == "FAILED" or success_flag == -1:
-                error_msg = (
-                    data_field.get("failedMsg") or
-                    data_field.get("errorMessage") or
-                    "Unknown error"
-                )
-                raise Exception(f"Veo3 generation failed: {error_msg}")
+            # ── successFlag == 2 ou 3 : échec ─────────────────────────────────
+            elif success_flag in [2, 3]:
+                error_msg = data_field.get("errorMessage") or f"successFlag={success_flag}"
+                error_code = data_field.get("errorCode")
+                raise Exception(f"Veo3 generation failed (code {error_code}): {error_msg}")
+
+            # ── successFlag == 0 : en cours ───────────────────────────────────
+            # Continue polling
 
         if not video_url:
-            raise Exception("Veo3 video generation timeout")
+            raise Exception(f"Veo3 timeout après {180 * 5}s — taskId: {task_id}")
 
         # ── Télécharger la vidéo ──────────────────────────────────────────────
         print(f"[veo3] Téléchargement en cours...")
-        vid_response = await client.get(video_url)
+        vid_response = await client.get(video_url, timeout=120.0)
         async with aiofiles.open(output_path, "wb") as f:
             await f.write(vid_response.content)
-        print(f"[veo3] Vidéo sauvegardée: {output_path}")
+
+        file_size = os.path.getsize(output_path)
+        print(f"[veo3] Vidéo sauvegardée: {output_path} ({file_size / 1024 / 1024:.1f} MB)")
 
     return output_path
 

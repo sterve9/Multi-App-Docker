@@ -4,7 +4,7 @@ import random
 import subprocess
 
 MUSIC_DIR = "/app/storage/music"
-MUSIC_VOLUME = 0.15  # 15% — voix off domine
+MUSIC_VOLUME = 0.15
 
 
 async def run_ffmpeg(cmd: list) -> tuple[int, str, str]:
@@ -17,30 +17,17 @@ async def run_ffmpeg(cmd: list) -> tuple[int, str, str]:
     return process.returncode, stdout.decode(), stderr.decode()
 
 
-def get_audio_duration(audio_path: str) -> float:
+def get_media_duration(path: str) -> float:
     result = subprocess.run([
         "ffprobe", "-v", "quiet",
         "-show_entries", "format=duration",
         "-of", "default=noprint_wrappers=1:nokey=1",
-        audio_path
+        path
     ], capture_output=True, text=True)
     try:
         return float(result.stdout.strip())
     except:
-        return 30.0
-
-
-def get_video_duration(video_path: str) -> float:
-    result = subprocess.run([
-        "ffprobe", "-v", "quiet",
-        "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1",
-        video_path
-    ], capture_output=True, text=True)
-    try:
-        return float(result.stdout.strip())
-    except:
-        return 30.0
+        return 8.0
 
 
 def escape_srt_path(path: str) -> str:
@@ -114,31 +101,125 @@ SUBTITLE_STYLE = (
 )
 
 
+async def merge_clips_with_subtitles(
+    clip_paths: list,
+    captions: list,
+    output_path: str,
+    target_duration: int = 30
+) -> str:
+    """
+    Assemble plusieurs clips Veo3 + sous-titres en un seul MP4.
+    Les clips Veo3 ont déjà la voix intégrée — on garde l'audio tel quel.
+
+    Pipeline :
+    1. Normaliser chaque clip (résolution 1080x1920 + fps 25)
+    2. Concaténer avec concat demuxer (pas de xfade pour garder l'audio)
+    3. Ajouter les sous-titres sur la vidéo finale
+    """
+
+    print(f"[ffmpeg-veo3] Assemblage de {len(clip_paths)} clips...")
+
+    # Calculer la durée réelle totale des clips
+    total_clip_duration = sum(get_media_duration(p) for p in clip_paths)
+    final_duration = min(total_clip_duration, float(target_duration) + 5.0)
+
+    # ── Étape 1 : Normaliser chaque clip ─────────────────────────────────────
+    normalized_paths = []
+    for i, clip_path in enumerate(clip_paths):
+        norm_path = output_path.replace(".mp4", f"_norm{i}.mp4")
+        cmd_norm = [
+            "ffmpeg", "-y",
+            "-i", clip_path,
+            "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1",
+            "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+            "-c:a", "aac", "-b:a", "192k",  # Garder bonne qualité audio Veo3
+            "-r", "25",
+            norm_path
+        ]
+        rc, _, stderr = await run_ffmpeg(cmd_norm)
+        if rc != 0:
+            raise Exception(f"FFmpeg normalize clip {i}: {stderr[:200]}")
+        normalized_paths.append(norm_path)
+        print(f"[ffmpeg-veo3] Clip {i+1} normalisé")
+
+    # ── Étape 2 : Concaténer avec concat demuxer ──────────────────────────────
+    merged_path = output_path.replace(".mp4", "_merged.mp4")
+
+    # Créer le fichier de liste pour concat
+    concat_list_path = output_path.replace(".mp4", "_concat.txt")
+    with open(concat_list_path, "w") as f:
+        for p in normalized_paths:
+            f.write(f"file '{p}'\n")
+
+    cmd_concat = [
+        "ffmpeg", "-y",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", concat_list_path,
+        "-c:v", "libx264", "-preset", "fast", "-crf", "20",
+        "-c:a", "aac", "-b:a", "192k",
+        "-r", "25",
+        "-movflags", "+faststart",
+        merged_path
+    ]
+    rc, _, stderr = await run_ffmpeg(cmd_concat)
+    if rc != 0:
+        raise Exception(f"FFmpeg concat: {stderr[:300]}")
+    print(f"[ffmpeg-veo3] {len(normalized_paths)} clips concaténés")
+
+    # ── Étape 3 : Ajouter les sous-titres ─────────────────────────────────────
+    srt_path = output_path.replace(".mp4", ".srt")
+    generate_srt(captions, final_duration, srt_path)
+    srt_escaped = escape_srt_path(srt_path)
+
+    cmd_subs = [
+        "ffmpeg", "-y",
+        "-i", merged_path,
+        "-vf", f"subtitles={srt_escaped}:force_style='{SUBTITLE_STYLE}'",
+        "-c:v", "libx264", "-preset", "fast", "-crf", "23",
+        "-c:a", "copy",  # Audio Veo3 intact
+        "-t", str(final_duration),
+        "-movflags", "+faststart",
+        output_path
+    ]
+    rc, _, stderr = await run_ffmpeg(cmd_subs)
+    if rc != 0:
+        raise Exception(f"FFmpeg subtitles: {stderr[:300]}")
+
+    # Nettoyage fichiers temporaires
+    for p in normalized_paths:
+        try: os.remove(p)
+        except: pass
+    for p in [merged_path, concat_list_path]:
+        try: os.remove(p)
+        except: pass
+
+    file_size = os.path.getsize(output_path)
+    print(f"[ffmpeg-veo3] Vidéo finale: {output_path} ({file_size/1024/1024:.1f} MB, {final_duration:.1f}s)")
+    return output_path
+
+
 async def add_subtitles_to_video(
     video_path: str,
     captions: list,
     output_path: str,
     duration: int = 30
 ) -> str:
-    """
-    Ajoute des sous-titres sur une vidéo Veo3 déjà générée.
-    La vidéo Veo3 a déjà la voix intégrée — on ajoute juste les captions visuelles.
-    """
-    video_duration = get_video_duration(video_path)
+    """Ajoute des sous-titres sur une vidéo existante sans toucher à l'audio."""
+
+    video_duration = get_media_duration(video_path)
     final_duration = min(video_duration, float(duration) + 2.0)
 
     srt_path = output_path.replace(".mp4", ".srt")
     generate_srt(captions, final_duration, srt_path)
     srt_escaped = escape_srt_path(srt_path)
 
-    print(f"[ffmpeg-subs] Ajout sous-titres sur {os.path.basename(video_path)}")
-
     cmd = [
         "ffmpeg", "-y",
         "-i", video_path,
         "-vf", f"subtitles={srt_escaped}:force_style='{SUBTITLE_STYLE}'",
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
-        "-c:a", "copy",  # Garder l'audio Veo3 intact
+        "-c:a", "copy",
         "-t", str(final_duration),
         "-movflags", "+faststart",
         output_path
@@ -146,9 +227,9 @@ async def add_subtitles_to_video(
 
     rc, _, stderr = await run_ffmpeg(cmd)
     if rc != 0:
-        raise Exception(f"FFmpeg subtitles error: {stderr}")
+        raise Exception(f"FFmpeg subtitles error: {stderr[:300]}")
 
-    print(f"[ffmpeg-subs] Sous-titres ajoutés : {output_path}")
+    print(f"[ffmpeg] Sous-titres ajoutés: {output_path}")
     return output_path
 
 
@@ -161,32 +242,29 @@ async def assemble_video(
 ) -> str:
     """Assemble audio + visuels images + musique + sous-titres en MP4 1080x1920"""
 
-    audio_duration = get_audio_duration(audio_path)
-    max_duration = float(duration) + 1.0
-    final_duration = min(audio_duration, max_duration)
+    audio_duration = get_media_duration(audio_path)
+    final_duration = min(audio_duration, float(duration) + 1.0)
 
     srt_path = output_path.replace(".mp4", ".srt")
     generate_srt(captions_data, final_duration, srt_path)
 
     if not os.path.exists(srt_path) or os.path.getsize(srt_path) == 0:
-        raise Exception(f"SRT file manquant ou vide : {srt_path}")
+        raise Exception(f"SRT file manquant ou vide: {srt_path}")
 
     srt_escaped = escape_srt_path(srt_path)
     music_path = pick_random_music()
 
     if music_path:
-        print(f"[ffmpeg] Musique de fond : {os.path.basename(music_path)}")
+        print(f"[ffmpeg] Musique: {os.path.basename(music_path)}")
     else:
-        print("[ffmpeg] Aucune musique trouvée — voix seule")
+        print("[ffmpeg] Pas de musique — voix seule")
 
-    # ── Multi-images ──────────────────────────────────────────────────────────
     if isinstance(visuals_path, list) and len(visuals_path) > 1:
         return await _assemble_multi_image(
             audio_path, visuals_path, srt_escaped,
             SUBTITLE_STYLE, output_path, final_duration, music_path
         )
 
-    # ── Image unique ou vidéo ─────────────────────────────────────────────────
     single_path = visuals_path if isinstance(visuals_path, str) else visuals_path[0]
     ext = os.path.splitext(single_path)[1].lower()
     is_image = ext in [".jpg", ".jpeg", ".png", ".webp"]
@@ -240,7 +318,7 @@ async def assemble_video(
 
     rc, _, stderr = await run_ffmpeg(cmd)
     if rc != 0:
-        raise Exception(f"FFmpeg error: {stderr}")
+        raise Exception(f"FFmpeg error: {stderr[:300]}")
     return output_path
 
 
@@ -263,11 +341,7 @@ async def _assemble_multi_image(
     for i, img_path in enumerate(image_paths):
         seg_path = output_path.replace(".mp4", f"_seg{i}.mp4")
         seg_frames = int(seg_duration * fps)
-
-        if i % 2 == 0:
-            y_expr = f"(2112-1920)*n/{seg_frames}"
-        else:
-            y_expr = f"(2112-1920)*(1-n/{seg_frames})"
+        y_expr = f"(2112-1920)*n/{seg_frames}" if i % 2 == 0 else f"(2112-1920)*(1-n/{seg_frames})"
 
         vf_seg = ",".join([
             "scale=1188:2112:force_original_aspect_ratio=increase",
@@ -275,21 +349,15 @@ async def _assemble_multi_image(
             f"crop=1080:1920:x='(1188-1080)/2':y='{y_expr}'",
             "setsar=1"
         ])
-
         cmd_seg = [
-            "ffmpeg", "-y",
-            "-loop", "1", "-framerate", str(fps),
-            "-i", img_path,
-            "-vf", vf_seg,
+            "ffmpeg", "-y", "-loop", "1", "-framerate", str(fps),
+            "-i", img_path, "-vf", vf_seg,
             "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
-            "-t", str(seg_duration),
-            "-r", str(fps),
-            "-an", seg_path
+            "-t", str(seg_duration), "-r", str(fps), "-an", seg_path
         ]
-
         rc, _, stderr = await run_ffmpeg(cmd_seg)
         if rc != 0:
-            raise Exception(f"FFmpeg segment {i} error: {stderr}")
+            raise Exception(f"FFmpeg segment {i}: {stderr[:200]}")
         segment_paths.append(seg_path)
 
     if n == 1:
@@ -299,18 +367,15 @@ async def _assemble_multi_image(
         inputs = []
         for sp in segment_paths:
             inputs += ["-i", sp]
-
         filter_parts = []
         prev_label = "[0:v]"
         for i in range(1, n):
             offset = round(seg_duration * i - transition_dur * i, 3)
             out_label = "[vout]" if i == n - 1 else f"[vx{i}]"
             filter_parts.append(
-                f"{prev_label}[{i}:v]xfade=transition=fade:"
-                f"duration={transition_dur}:offset={offset}{out_label}"
+                f"{prev_label}[{i}:v]xfade=transition=fade:duration={transition_dur}:offset={offset}{out_label}"
             )
             prev_label = f"[vx{i}]"
-
         cmd_merge = [
             "ffmpeg", "-y", *inputs,
             "-filter_complex", ";".join(filter_parts),
@@ -318,37 +383,27 @@ async def _assemble_multi_image(
             "-c:v", "libx264", "-preset", "fast", "-crf", "23",
             "-r", str(fps), merged_path
         ]
-
         rc, _, stderr = await run_ffmpeg(cmd_merge)
         if rc != 0:
-            raise Exception(f"FFmpeg xfade error: {stderr}")
+            raise Exception(f"FFmpeg xfade: {stderr[:200]}")
 
     extra_inputs, audio_filter = build_audio_filter(music_path, final_duration)
-
     cmd_final = [
-        "ffmpeg", "-y",
-        "-i", merged_path,
-        "-i", audio_path,
-        *extra_inputs,
+        "ffmpeg", "-y", "-i", merged_path, "-i", audio_path, *extra_inputs,
         "-vf", f"subtitles={srt_escaped}:force_style='{subtitle_style}'",
     ]
-
     if audio_filter:
         cmd_final += ["-filter_complex", audio_filter, "-map", "0:v", "-map", "[aout]"]
     else:
         cmd_final += ["-map", "0:v", "-map", "1:a"]
-
     cmd_final += [
         "-c:v", "libx264", "-preset", "fast", "-crf", "23",
         "-c:a", "aac", "-b:a", "128k",
-        "-t", str(final_duration),
-        "-movflags", "+faststart",
-        output_path
+        "-t", str(final_duration), "-movflags", "+faststart", output_path
     ]
-
     rc, _, stderr = await run_ffmpeg(cmd_final)
     if rc != 0:
-        raise Exception(f"FFmpeg final assembly error: {stderr}")
+        raise Exception(f"FFmpeg final: {stderr[:200]}")
 
     for sp in segment_paths:
         try: os.remove(sp)

@@ -3,21 +3,25 @@ from models.video import ScriptRequest, ScriptResponse, VideoGenerationRequest, 
 from services.claude_service import generate_script
 from services.elevenlabs_service import generate_voiceover
 from services.kieai_service import generate_multiple_images, generate_video_veo3
-from services.ffmpeg_service import assemble_video, add_subtitles_to_video
+from services.ffmpeg_service import assemble_video, merge_clips_with_subtitles
 import uuid, os
 
 router = APIRouter()
 
-# Stockage en mémoire des jobs
 jobs: dict[str, VideoStatus] = {}
-
 STORAGE_PATH = "/app/storage"
 
-# Nombre d'images pour le format standard
 IMAGES_BY_DURATION = {
     "15": 2,
     "30": 3,
     "60": 5,
+}
+
+# Veo3 génère ~8s par clip — nombre de clips selon durée souhaitée
+CLIPS_BY_DURATION = {
+    "15": 2,   # 2 clips ~8s = ~16s
+    "30": 4,   # 4 clips ~8s = ~32s
+    "60": 8,   # 8 clips ~8s = ~64s
 }
 
 
@@ -43,7 +47,6 @@ async def create_video(request: VideoGenerationRequest, background_tasks: Backgr
 
 @router.get("/status/{video_id}", response_model=VideoStatus)
 async def get_status(video_id: str):
-    """Retourne le statut du job en cours"""
     if video_id not in jobs:
         raise HTTPException(status_code=404, detail="Job introuvable")
     return jobs[video_id]
@@ -64,46 +67,52 @@ async def process_video(video_id: str, request: VideoGenerationRequest):
         output_path = f"{STORAGE_PATH}/videos/{video_id}.mp4"
 
         if request.format == "video_ia":
-            # ── VEO3 — vidéo + voix en une seule étape ──────────────────────
+            # ── VEO3 — génération multi-clips pour atteindre la durée voulue ─
             job.status = "processing"
-            job.progress = 20
-            job.message = "Génération vidéo Veo3 (voix + visuels intégrés)..."
+            nb_clips = CLIPS_BY_DURATION.get(request.duration, 2)
 
-            # Prompt visuel pour l'avatar
-            visual_prompt = (
-                "African man 45-50 years old, wise and calm expression, "
-                "traditional setting, warm golden candlelight, "
-                "natural herbs honey ginger cinnamon visible, "
-                "authentic African wellness atmosphere, "
-                "speaking directly to camera, photorealistic, cinematic"
-            )
+            # Diviser le script en segments pour chaque clip
+            script_words = request.script.split()
+            words_per_clip = max(1, len(script_words) // nb_clips)
+            script_segments = []
+            for i in range(nb_clips):
+                start = i * words_per_clip
+                end = start + words_per_clip if i < nb_clips - 1 else len(script_words)
+                segment = " ".join(script_words[start:end])
+                script_segments.append(segment)
 
-            # Script à intégrer dans la vidéo
-            script_text = request.script[:500]  # Veo3 limite le prompt
+            print(f"[pipeline] Veo3 — {nb_clips} clips × ~8s = ~{nb_clips * 8}s")
 
-            veo3_raw_path = os.path.join(temp_dir, f"{video_id}_veo3_raw.mp4")
+            clip_paths = []
+            for i in range(nb_clips):
+                job.progress = 10 + int((i / nb_clips) * 65)
+                job.message = f"Génération clip {i+1}/{nb_clips} (Veo3)..."
 
-            await generate_video_veo3(
-                prompt=visual_prompt,
-                script=script_text,
-                output_path=veo3_raw_path,
-                aspect_ratio="9:16",
-                model="veo3_fast"
-            )
+                clip_path = os.path.join(temp_dir, f"{video_id}_clip_{i}.mp4")
 
-            # ── Ajout des sous-titres sur la vidéo Veo3 ─────────────────────
-            job.progress = 85
-            job.message = "Ajout des sous-titres..."
+                await generate_video_veo3(
+                    prompt="",  # Le prompt est construit dans generate_video_veo3
+                    script=script_segments[i],
+                    output_path=clip_path,
+                    aspect_ratio="9:16",
+                    model="veo3_fast"
+                )
+                clip_paths.append(clip_path)
+                print(f"[pipeline] Clip {i+1}/{nb_clips} prêt")
 
-            await add_subtitles_to_video(
-                video_path=veo3_raw_path,
+            # ── Assembler les clips + sous-titres ────────────────────────────
+            job.progress = 80
+            job.message = "Assemblage des clips + sous-titres..."
+
+            await merge_clips_with_subtitles(
+                clip_paths=clip_paths,
                 captions=request.captions,
                 output_path=output_path,
-                duration=duration
+                target_duration=duration
             )
 
         else:
-            # ── Format standard — images + voix ElevenLabs ───────────────────
+            # ── Format standard — images Ken Burns + voix ElevenLabs ─────────
             audio_path = f"{STORAGE_PATH}/audio/{video_id}.mp3"
 
             job.status = "processing"
@@ -137,10 +146,10 @@ async def process_video(video_id: str, request: VideoGenerationRequest):
         job.progress = 100
         job.message = "Vidéo prête !"
         job.video_url = f"/videos/{video_id}.mp4"
-        print(f"[pipeline] Vidéo générée : {output_path}")
+        print(f"[pipeline] Terminé: {output_path}")
 
     except Exception as e:
         job.status = "error"
         job.message = str(e)
         job.progress = 0
-        print(f"[pipeline] Erreur : {e}")
+        print(f"[pipeline] Erreur: {e}")
