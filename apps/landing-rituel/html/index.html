@@ -709,7 +709,7 @@ footer a:hover {
   <div class="sticky-bar-right">
     <span class="sticky-price">9 900 FCFA</span>
     <span class="sticky-price-new">5 900 FCFA</span>
-    <a href="#offres" class="sticky-cta">Commander →</a>
+    <a href="#" class="sticky-cta" onclick="event.preventDefault();openModal();">🎁 Obtenir −50% →</a>
   </div>
 </div>
 
@@ -993,19 +993,19 @@ footer a:hover {
 
     <div class="temo-grid">
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/moussa.jpg" alt="Moussa K." /></div>
+        <div class="temo-avatar"><img src="assets/images/moussa.jpg" alt="Moussa K." loading="lazy" /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"J3, je me réveillais avant mon alarme. J7, mon collègue m'a demandé ce que j'avais changé. J'ai juste souri."</p>
         <div class="temo-author cinzel">Moussa K. · 38 ans · Dakar</div>
       </div>
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/didier.jpg" alt="Didier A." /></div>
+        <div class="temo-avatar"><img src="assets/images/didier.jpg" alt="Didier A." loading="lazy" /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"Sceptique au départ. Mais à J5 le brouillard mental avait disparu. 5 900 FCFA les mieux investis de l'année."</p>
         <div class="temo-author cinzel">Didier A. · 44 ans · Abidjan</div>
       </div>
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/thierno.jpg" alt="Thierno B." /></div>
+        <div class="temo-avatar"><img src="assets/images/thierno.jpg" alt="Thierno B." loading="lazy" /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"Mon énergie était à 3/10 en J1. En J7 j'étais à 7/10. J'ai enchaîné directement sur la Cure Profonde."</p>
         <div class="temo-author cinzel">Thierno B. · 31 ans · Conakry</div>
@@ -1693,6 +1693,22 @@ leadForm.addEventListener('submit', function(e) {
   stepForm.style.display   = 'none';
   stepCoupon.style.display = 'block';
 });
+
+// ── Auto-popup : s'ouvre automatiquement après 4 secondes ──
+// Ne s'ouvre pas si l'utilisateur a déjà interagi (cliqué un bouton)
+var autoPopupFired = false;
+setTimeout(function() {
+  if (!autoPopupFired && !modal.classList.contains('open')) {
+    autoPopupFired = true;
+    openModal();
+  }
+}, 4000);
+// Si l'utilisateur ouvre le modal lui-même avant les 4s, on annule l'auto
+document.querySelectorAll('.btn-offre').forEach(function(btn) {
+  btn.addEventListener('click', function() { autoPopupFired = true; }, true);
+});
+var btnTopRef = document.getElementById('btnTopCoupon');
+if (btnTopRef) btnTopRef.addEventListener('click', function() { autoPopupFired = true; }, true);
 </script>
 
 </body>
