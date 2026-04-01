@@ -993,19 +993,19 @@ footer a:hover {
 
     <div class="temo-grid">
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/moussa.jpg" alt="Moussa K." loading="lazy" /></div>
+        <div class="temo-avatar"><img src="https://ui-avatars.com/api/?name=Moussa+K&background=3D1C02&color=C8912A&size=80&bold=true&rounded=true" alt="Moussa K." /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"J3, je me réveillais avant mon alarme. J7, mon collègue m'a demandé ce que j'avais changé. J'ai juste souri."</p>
         <div class="temo-author cinzel">Moussa K. · 38 ans · Dakar</div>
       </div>
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/didier.jpg" alt="Didier A." loading="lazy" /></div>
+        <div class="temo-avatar"><img src="https://ui-avatars.com/api/?name=Didier+A&background=5C2D0A&color=E8B84B&size=80&bold=true&rounded=true" alt="Didier A." /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"Sceptique au départ. Mais à J5 le brouillard mental avait disparu. 5 900 FCFA les mieux investis de l'année."</p>
         <div class="temo-author cinzel">Didier A. · 44 ans · Abidjan</div>
       </div>
       <div class="temo-card">
-        <div class="temo-avatar"><img src="assets/images/thierno.jpg" alt="Thierno B." loading="lazy" /></div>
+        <div class="temo-avatar"><img src="https://ui-avatars.com/api/?name=Thierno+B&background=1A0E05&color=F5D078&size=80&bold=true&rounded=true" alt="Thierno B." /></div>
         <div class="temo-stars">★★★★★</div>
         <p class="temo-text">"Mon énergie était à 3/10 en J1. En J7 j'étais à 7/10. J'ai enchaîné directement sur la Cure Profonde."</p>
         <div class="temo-author cinzel">Thierno B. · 31 ans · Conakry</div>
@@ -1512,16 +1512,12 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
     <div id="modal-step-form">
       <div class="modal-gift-icon">🎁</div>
       <div class="modal-title">Accède au programme<br><span style="color:var(--or)">avec −50%</span></div>
-      <p class="modal-sub">Entre tes coordonnées et reçois <strong>instantanément</strong> ton code personnalisé −50% sur WhatsApp et par email.</p>
+      <p class="modal-sub">Entre ton prénom et ton WhatsApp — reçois <strong>instantanément</strong> ton code personnalisé −50% sur WhatsApp.</p>
 
       <form id="leadForm" novalidate>
         <div class="modal-field">
           <label for="lead-prenom">Ton prénom</label>
           <input type="text" id="lead-prenom" name="prenom" placeholder="Ex : Moussa" autocomplete="given-name" required>
-        </div>
-        <div class="modal-field">
-          <label for="lead-email">Ton adresse email</label>
-          <input type="email" id="lead-email" name="email" placeholder="exemple@gmail.com" autocomplete="email" required>
         </div>
         <div class="modal-field">
           <label for="lead-whatsapp">Ton numéro WhatsApp</label>
@@ -1531,7 +1527,7 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
           🎁 Recevoir mon code −50% →
         </button>
       </form>
-      <p class="modal-privacy">🔒 Confidentiel · Zéro spam · Code envoyé instantanément sur WhatsApp et email</p>
+      <p class="modal-privacy">🔒 Confidentiel · Zéro spam · Code envoyé instantanément sur WhatsApp</p>
     </div>
 
     <!-- STEP 2 : CONFIRMATION ENVOI -->
@@ -1540,11 +1536,11 @@ document.querySelectorAll('.probleme-card, .ing-card, .temo-card, .offre-card, .
       <div class="coupon-title">C'est parti, <span id="coupon-prenom" style="color:var(--or)"></span> !</div>
       <p class="coupon-sub" style="font-size:15px;color:var(--texte);line-height:1.6;margin-bottom:20px;">
         Ton code personnalisé <strong style="color:var(--or2)">−50%</strong> vient d'être envoyé sur :<br>
-        <span style="color:var(--or)">📱 Ton WhatsApp</span> &amp; <span style="color:var(--or)">📧 Ton email</span>
+        <span style="color:var(--or)">📱 Ton WhatsApp</span>
       </p>
       <div style="background:rgba(76,175,80,0.1);border:1px solid rgba(76,175,80,0.4);border-radius:10px;padding:16px 20px;margin-bottom:12px;text-align:center;">
         <div style="font-size:13px;color:#4CAF50;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">⏱ Reçu en moins de 2 minutes</div>
-        <div style="font-size:13px;color:var(--texte2);">Vérifie tes messages WhatsApp et ton dossier email (y compris spam)</div>
+        <div style="font-size:13px;color:var(--texte2);">Vérifie tes messages WhatsApp</div>
       </div>
       <div style="background:rgba(200,145,42,0.12);border:1px solid rgba(200,145,42,0.5);border-radius:10px;padding:14px 20px;margin-bottom:20px;text-align:center;">
         <div style="font-size:14px;color:var(--or2);font-weight:700;margin-bottom:4px;">⚠️ Offre à durée limitée</div>
@@ -1649,11 +1645,10 @@ leadForm.addEventListener('submit', function(e) {
   e.preventDefault();
 
   var prenom   = document.getElementById('lead-prenom').value.trim();
-  var email    = document.getElementById('lead-email').value.trim();
   var whatsapp = document.getElementById('lead-whatsapp').value.trim();
 
-  if (!prenom || !email || !whatsapp) {
-    alert('Merci de remplir tous les champs 😊');
+  if (!prenom || !whatsapp) {
+    alert('Merci de remplir ton prénom et ton numéro WhatsApp 😊');
     return;
   }
 
@@ -1671,7 +1666,6 @@ leadForm.addEventListener('submit', function(e) {
   // 2. Envoi vers n8n
   var leadData = {
     prenom:    prenom,
-    email:     email,
     whatsapp:  whatsapp,
     produit:   targetUrl,
     coupon:    'ANCESTRAL50',
@@ -1709,6 +1703,21 @@ document.querySelectorAll('.btn-offre').forEach(function(btn) {
 });
 var btnTopRef = document.getElementById('btnTopCoupon');
 if (btnTopRef) btnTopRef.addEventListener('click', function() { autoPopupFired = true; }, true);
+
+// ── Exit-intent : s'ouvre si la souris sort vers le haut de la page ──
+var exitIntentFired = sessionStorage.getItem('rituel_exit_shown') === '1';
+document.addEventListener('mouseleave', function(e) {
+  if (
+    e.clientY < 10 &&
+    !exitIntentFired &&
+    !modal.classList.contains('open')
+  ) {
+    exitIntentFired = true;
+    sessionStorage.setItem('rituel_exit_shown', '1');
+    autoPopupFired = true;
+    openModal();
+  }
+});
 </script>
 
 </body>
