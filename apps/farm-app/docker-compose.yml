@@ -1,0 +1,77 @@
+version: "3.9"
+
+services:
+
+  # ─── Base de données PostgreSQL ───────────────────────
+  farm-db:
+    image: postgres:15-alpine
+    container_name: farm-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-farm_db}
+      POSTGRES_USER: ${POSTGRES_USER:-farm_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - farm-db-data:/var/lib/postgresql/data
+    networks:
+      - farm-internal
+
+  # ─── Backend FastAPI ───────────────────────────────────
+  farm-backend:
+    build: ./backend
+    container_name: farm-backend
+    restart: unless-stopped
+    depends_on:
+      - farm-db
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-farm_user}:${POSTGRES_PASSWORD}@farm-db:5432/${POSTGRES_DB:-farm_db}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-patron}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
+      SECRET_KEY: ${SECRET_KEY}
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # Router HTTPS API
+      - "traefik.http.routers.farm-api.rule=Host(`ferme.sterveshop.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.farm-api.entrypoints=websecure"
+      - "traefik.http.routers.farm-api.tls=true"
+      - "traefik.http.routers.farm-api.tls.certresolver=letsencrypt"
+      # Strip /api prefix before forwarding to FastAPI
+      - "traefik.http.middlewares.farm-strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.routers.farm-api.middlewares=farm-strip-api"
+      - "traefik.http.services.farm-api.loadbalancer.server.port=8000"
+    networks:
+      - farm-internal
+      - traefik-network
+
+  # ─── Frontend Next.js ─────────────────────────────────
+  farm-frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: https://ferme.sterveshop.cloud/api
+    container_name: farm-frontend
+    restart: unless-stopped
+    depends_on:
+      - farm-backend
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
+      # Router HTTPS Frontend
+      - "traefik.http.routers.farm-frontend.rule=Host(`ferme.sterveshop.cloud`)"
+      - "traefik.http.routers.farm-frontend.entrypoints=websecure"
+      - "traefik.http.routers.farm-frontend.tls=true"
+      - "traefik.http.routers.farm-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.farm-frontend.loadbalancer.server.port=3000"
+    networks:
+      - farm-internal
+      - traefik-network
+
+volumes:
+  farm-db-data:
+
+networks:
+  farm-internal:
+    driver: bridge
+  traefik-network:
+    external: true
