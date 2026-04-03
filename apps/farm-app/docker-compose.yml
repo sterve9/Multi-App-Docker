@@ -23,11 +23,10 @@ services:
     restart: unless-stopped
     depends_on:
       - farm-db
+    env_file:
+      - .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-farm_user}:${POSTGRES_PASSWORD}@farm-db:5432/${POSTGRES_DB:-farm_db}
-      ADMIN_USERNAME: ${ADMIN_USERNAME:-patron}
-      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH}
-      SECRET_KEY: ${SECRET_KEY}
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik-network"
