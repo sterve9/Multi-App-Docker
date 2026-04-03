@@ -6,12 +6,18 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import os
 
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me-in-production-supersecret")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 
 ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "patron")
 ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
+
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable is not set")
+if not ADMIN_PASSWORD_HASH:
+    import warnings
+    warnings.warn("ADMIN_PASSWORD_HASH is not set — login will be disabled")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
