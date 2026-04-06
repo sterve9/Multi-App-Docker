@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
+import Link from 'next/link'
 import { Plus, Pencil, Trash2, X, MapPin, Trees } from 'lucide-react'
 
 interface Ferme { id: number; nom: string }
@@ -183,6 +184,12 @@ export default function ParcellesPage() {
                 <X size={20} />
               </button>
             </div>
+            {fermes.length === 0 && (
+              <div className="mx-6 mt-2 mb-0 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+                Aucune ferme disponible.{' '}
+                <Link href="/" className="font-semibold underline hover:text-amber-900">Créez d'abord une ferme sur le Dashboard.</Link>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -192,6 +199,7 @@ export default function ParcellesPage() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Ferme *</label>
                   <select value={form.ferme_id} onChange={e => setForm({...form, ferme_id: e.target.value})} required className={INPUT}>
+                    <option value="" disabled>-- Sélectionner --</option>
                     {fermes.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
                   </select>
                 </div>
