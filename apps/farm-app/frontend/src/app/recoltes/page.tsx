@@ -137,7 +137,7 @@ export default function RecoltesPage() {
           )}
           {totalValeur > 0 && (
             <div className="bg-orange-50 text-orange-700 text-sm font-semibold px-4 py-2 rounded-xl border border-orange-100">
-              💰 {totalValeur.toLocaleString('fr-DZ')} DA
+              💰 {totalValeur.toLocaleString('fr-TN')} TND
             </div>
           )}
         </div>
@@ -157,7 +157,7 @@ export default function RecoltesPage() {
                     )}
                     {r.prix_kg > 0 && (
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-orange-50 text-orange-600">
-                        {r.prix_kg} DA/kg · {valeur.toLocaleString('fr-DZ')} DA
+                        {r.prix_kg} TND/kg · {valeur.toLocaleString('fr-TN')} TND
                       </span>
                     )}
                   </div>
@@ -209,7 +209,7 @@ export default function RecoltesPage() {
                   <input type="number" step="0.1" value={form.quantite_kg} onChange={e => setForm({...form, quantite_kg: e.target.value})} required className={INPUT} placeholder="500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Prix/kg (DA)</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Prix/kg (TND)</label>
                   <input type="number" step="0.01" value={form.prix_kg} onChange={e => setForm({...form, prix_kg: e.target.value})} className={INPUT} placeholder="45" />
                 </div>
                 <div className="col-span-2">
@@ -221,7 +221,7 @@ export default function RecoltesPage() {
               </div>
               {form.quantite_kg && form.prix_kg && (
                 <div className="bg-emerald-50 rounded-xl px-4 py-3 text-sm text-emerald-700">
-                  Valeur estimée : <span className="font-bold">{(parseFloat(form.quantite_kg) * parseFloat(form.prix_kg)).toLocaleString('fr-DZ')} DA</span>
+                  Valeur estimée : <span className="font-bold">{(parseFloat(form.quantite_kg) * parseFloat(form.prix_kg)).toLocaleString('fr-TN')} TND</span>
                 </div>
               )}
               <div>

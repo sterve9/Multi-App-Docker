@@ -22,7 +22,7 @@ interface Bilan {
 const ANNEES = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
 function fmt(n: number) {
-  return n.toLocaleString('fr-DZ', { minimumFractionDigits: 0 })
+  return n.toLocaleString('fr-TN', { minimumFractionDigits: 0 })
 }
 
 export default function BilanPage() {
@@ -111,7 +111,7 @@ export default function BilanPage() {
                   </div>
                   <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">{bilan.nb_recoltes} récoltes</span>
                 </div>
-                <div className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(bilan.total_recolte_valeur)} DA</div>
+                <div className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(bilan.total_recolte_valeur)} TND</div>
                 <div className="text-xs text-slate-400 mt-1">Valeur récoltes · {fmt(bilan.total_recolte_kg)} kg</div>
               </div>
 
@@ -123,7 +123,7 @@ export default function BilanPage() {
                   </div>
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">{bilan.nb_traitements} traitements</span>
                 </div>
-                <div className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(bilan.total_couts)} DA</div>
+                <div className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(bilan.total_couts)} TND</div>
                 <div className="text-xs text-slate-400 mt-1">Total des dépenses</div>
               </div>
 
@@ -139,7 +139,7 @@ export default function BilanPage() {
                     {bilan.annee}
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-white tabular-nums">{fmt(bilan.marge_brute)} DA</div>
+                <div className="text-2xl font-bold text-white tabular-nums">{fmt(bilan.marge_brute)} TND</div>
                 <div className="text-xs text-white/70 mt-1">Marge brute</div>
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function BilanPage() {
                             <span className="text-sm font-semibold text-slate-700">{d.stock_nom}</span>
                             <span className="text-xs text-slate-400 capitalize">{d.categorie}</span>
                           </div>
-                          <span className="text-sm font-bold text-slate-800 tabular-nums">{fmt(d.cout_total)} DA</span>
+                          <span className="text-sm font-bold text-slate-800 tabular-nums">{fmt(d.cout_total)} TND</span>
                         </div>
                         <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div

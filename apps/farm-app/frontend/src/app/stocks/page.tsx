@@ -344,7 +344,7 @@ export default function StocksPage() {
                     <input type="number" step="0.01" min="0.01" value={mvtForm.quantite} onChange={e => setMvtForm({...mvtForm, quantite: e.target.value})} required className={INPUT} />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Coût unitaire (DA)</label>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Coût unitaire (TND)</label>
                     <input type="number" step="0.01" value={mvtForm.cout_unitaire} onChange={e => setMvtForm({...mvtForm, cout_unitaire: e.target.value})} className={INPUT} placeholder="0" />
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function StocksPage() {
                 </div>
                 {mvtForm.cout_unitaire && parseFloat(mvtForm.cout_unitaire) > 0 && (
                   <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm text-slate-600">
-                    Coût total : <span className="font-bold text-slate-800">{(parseFloat(mvtForm.quantite || '0') * parseFloat(mvtForm.cout_unitaire)).toLocaleString('fr-DZ')} DA</span>
+                    Coût total : <span className="font-bold text-slate-800">{(parseFloat(mvtForm.quantite || '0') * parseFloat(mvtForm.cout_unitaire)).toLocaleString('fr-TN')} TND</span>
                   </div>
                 )}
                 <div className="flex gap-3 pt-1">
