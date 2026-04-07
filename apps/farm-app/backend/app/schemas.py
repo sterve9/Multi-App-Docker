@@ -113,6 +113,7 @@ class StockBase(BaseModel):
     quantite: float = 0
     unite: Optional[str] = None
     seuil_alerte: float = 0
+    cout_unitaire: float = 0
     notes: Optional[str] = None
 
 class StockCreate(StockBase):
@@ -121,6 +122,7 @@ class StockCreate(StockBase):
 class StockUpdate(BaseModel):
     quantite: Optional[float] = None
     seuil_alerte: Optional[float] = None
+    cout_unitaire: Optional[float] = None
     notes: Optional[str] = None
 
 class StockOut(StockBase):

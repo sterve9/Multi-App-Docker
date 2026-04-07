@@ -9,7 +9,7 @@ interface Ferme { id: number; nom: string }
 interface Stock {
   id: number; ferme_id: number; nom: string; categorie: string
   quantite: number; unite: string | null
-  seuil_alerte: number; notes: string | null
+  seuil_alerte: number; cout_unitaire: number; notes: string | null
   alerte_active?: boolean
 }
 
@@ -39,7 +39,7 @@ export default function StocksPage() {
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; visible: boolean; exiting: boolean }>({ msg: '', visible: false, exiting: false })
-  const [form, setForm] = useState({ nom: '', categorie: 'pesticide', quantite: '0', unite: '', seuil_alerte: '0', notes: '' })
+  const [form, setForm] = useState({ nom: '', categorie: 'pesticide', quantite: '0', unite: '', seuil_alerte: '0', cout_unitaire: '0', notes: '' })
   const [mvtForm, setMvtForm] = useState({ type_mouvement: 'entree', quantite: '1', cout_unitaire: '0', notes: '' })
 
   const showToast = useCallback((msg: string) => {
@@ -68,15 +68,16 @@ export default function StocksPage() {
   useEffect(() => { if (selectedFerme !== '') loadData() }, [selectedFerme, loadData])
 
   const openAdd = () => {
-    setForm({ nom: '', categorie: 'pesticide', quantite: '0', unite: '', seuil_alerte: '0', notes: '' })
+    setForm({ nom: '', categorie: 'pesticide', quantite: '0', unite: '', seuil_alerte: '0', cout_unitaire: '0', notes: '' })
     setEditId(null); setFormError(null); setModalMode('stock'); setShowForm(true)
   }
   const openEdit = (s: Stock) => {
-    setForm({ nom: s.nom, categorie: s.categorie, quantite: s.quantite.toString(), unite: s.unite || '', seuil_alerte: s.seuil_alerte.toString(), notes: s.notes || '' })
+    setForm({ nom: s.nom, categorie: s.categorie, quantite: s.quantite.toString(), unite: s.unite || '', seuil_alerte: s.seuil_alerte.toString(), cout_unitaire: (s.cout_unitaire || 0).toString(), notes: s.notes || '' })
     setEditId(s.id); setFormError(null); setModalMode('stock'); setShowForm(true)
   }
   const openMouvement = (s: Stock) => {
-    setSelectedStockId(s.id); setMvtForm({ type_mouvement: 'entree', quantite: '1', cout_unitaire: '0', notes: '' })
+    setSelectedStockId(s.id)
+    setMvtForm({ type_mouvement: 'entree', quantite: '1', cout_unitaire: (s.cout_unitaire || 0).toString(), notes: '' })
     setFormError(null); setModalMode('mouvement'); setShowForm(true)
   }
 
@@ -89,10 +90,11 @@ export default function StocksPage() {
         ferme_id: selectedFerme,
         quantite: parseFloat(form.quantite),
         seuil_alerte: parseFloat(form.seuil_alerte),
+        cout_unitaire: parseFloat(form.cout_unitaire) || 0,
         unite: form.unite || null,
         notes: form.notes || null,
       }
-      if (editId) await api.put(`/stocks/${editId}`, { quantite: payload.quantite, seuil_alerte: payload.seuil_alerte, notes: payload.notes })
+      if (editId) await api.put(`/stocks/${editId}`, { quantite: payload.quantite, seuil_alerte: payload.seuil_alerte, cout_unitaire: parseFloat(form.cout_unitaire) || 0, notes: payload.notes })
       else await api.post('/stocks/', payload)
       setShowForm(false); loadData()
       showToast(editId ? 'Stock mis à jour' : 'Stock créé avec succès')
@@ -223,6 +225,9 @@ export default function StocksPage() {
                     </div>
                   )}
 
+                  {s.cout_unitaire > 0 && (
+                    <p className="text-xs text-slate-400 mt-1">Prix unitaire : <span className="font-semibold text-slate-600">{s.cout_unitaire.toLocaleString('fr-TN')} TND</span></p>
+                  )}
                   {s.notes && <p className="text-xs text-slate-400 italic mt-2 line-clamp-1">{s.notes}</p>}
 
                   <div className="flex gap-1 mt-4 pt-3 border-t border-slate-50">
@@ -305,6 +310,10 @@ export default function StocksPage() {
                     <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Seuil d&apos;alerte</label>
                     <input type="number" step="0.01" value={form.seuil_alerte} onChange={e => setForm({...form, seuil_alerte: e.target.value})} className={INPUT} />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Prix d&apos;achat / unité (TND)</label>
+                  <input type="number" step="0.01" value={form.cout_unitaire} onChange={e => setForm({...form, cout_unitaire: e.target.value})} className={INPUT} placeholder="0" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notes</label>
