@@ -5,11 +5,11 @@ import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Plus, Pencil, Trash2, X, Package, TriangleAlert, ArrowDown, ArrowUp, History, CheckCircle } from 'lucide-react'
 
-interface Ferme { id: number; nom: string }
+interface Ferme { id: number; nom: string; nb_vannes: number; jours_irrigation: string }
 interface Stock {
   id: number; ferme_id: number; nom: string; categorie: string
   quantite: number; unite: string | null
-  seuil_alerte: number; cout_unitaire: number; notes: string | null
+  seuil_alerte: number; cout_unitaire: number; dose_par_vanne: number; notes: string | null
   alerte_active?: boolean
 }
 
@@ -24,6 +24,7 @@ const CAT_CONFIG: Record<string, { bg: string; text: string; icon: string }> = {
 const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition'
 
 type ModalMode = 'stock' | 'mouvement'
+type AchatMode = 'sacs' | 'direct'
 
 export default function StocksPage() {
   const router = useRouter()
@@ -41,6 +42,8 @@ export default function StocksPage() {
   const [toast, setToast] = useState<{ msg: string; visible: boolean; exiting: boolean }>({ msg: '', visible: false, exiting: false })
   const [form, setForm] = useState({ nom: '', categorie: 'pesticide', quantite: '0', unite: '', seuil_alerte: '0', cout_unitaire: '0', notes: '' })
   const [mvtForm, setMvtForm] = useState({ type_mouvement: 'entree', quantite: '1', cout_unitaire: '0', notes: '' })
+  const [achatMode, setAchatMode] = useState<AchatMode>('sacs')
+  const [achatForm, setAchatForm] = useState({ nb_unites: '1', poids_par_unite: '25', prix_par_unite: '0' })
 
   const showToast = useCallback((msg: string) => {
     setToast({ msg, visible: true, exiting: false })
@@ -78,6 +81,8 @@ export default function StocksPage() {
   const openMouvement = (s: Stock) => {
     setSelectedStockId(s.id)
     setMvtForm({ type_mouvement: 'entree', quantite: '1', cout_unitaire: (s.cout_unitaire || 0).toString(), notes: '' })
+    setAchatMode('sacs')
+    setAchatForm({ nb_unites: '1', poids_par_unite: '25', prix_par_unite: (s.cout_unitaire || 0).toString() })
     setFormError(null); setModalMode('mouvement'); setShowForm(true)
   }
 
@@ -107,11 +112,22 @@ export default function StocksPage() {
     e.preventDefault()
     setSubmitting(true); setFormError(null)
     try {
+      let quantite: number
+      let cout_unitaire: number
+      if (mvtForm.type_mouvement === 'entree' && achatMode === 'sacs') {
+        const nb = parseFloat(achatForm.nb_unites) || 0
+        const poids = parseFloat(achatForm.poids_par_unite) || 0
+        quantite = nb * poids
+        cout_unitaire = parseFloat(achatForm.prix_par_unite) || 0
+      } else {
+        quantite = parseFloat(mvtForm.quantite)
+        cout_unitaire = parseFloat(mvtForm.cout_unitaire) || 0
+      }
       await api.post('/mouvements/', {
         stock_id: selectedStockId,
         type_mouvement: mvtForm.type_mouvement,
-        quantite: parseFloat(mvtForm.quantite),
-        cout_unitaire: parseFloat(mvtForm.cout_unitaire),
+        quantite,
+        cout_unitaire,
         notes: mvtForm.notes || null,
       })
       setShowForm(false); loadData()
@@ -135,6 +151,16 @@ export default function StocksPage() {
 
   const selectedFermeName = fermes.find(f => f.id === selectedFerme)?.nom || ''
   const selectedStock = stocks.find(s => s.id === selectedStockId)
+  const selectedFermeData = fermes.find(f => f.id === selectedFerme)
+  const nbVannes = selectedFermeData?.nb_vannes || 1
+  const joursIrrigation = selectedFermeData?.jours_irrigation || ''
+  const sessionsParSemaine = joursIrrigation ? joursIrrigation.split(',').filter(Boolean).length : 1
+
+  const getSemainesRestantes = (s: Stock) => {
+    if (!s.dose_par_vanne || s.dose_par_vanne <= 0 || sessionsParSemaine <= 0) return null
+    const conso = s.dose_par_vanne * nbVannes * sessionsParSemaine
+    return conso > 0 ? Math.floor(s.quantite / conso) : null
+  }
 
   return (
     <div className="md:ml-64 min-h-screen pb-24 md:pb-0">
@@ -187,6 +213,7 @@ export default function StocksPage() {
             const alert = isAlert(s)
             const cfg = CAT_CONFIG[s.categorie] || CAT_CONFIG.autre
             const pct = s.seuil_alerte > 0 ? Math.min((s.quantite / (s.seuil_alerte * 3)) * 100, 100) : 100
+            const semaines = getSemainesRestantes(s)
             return (
               <div
                 key={s.id}
@@ -225,9 +252,21 @@ export default function StocksPage() {
                     </div>
                   )}
 
-                  {s.cout_unitaire > 0 && (
-                    <p className="text-xs text-slate-400 mt-1">Prix unitaire : <span className="font-semibold text-slate-600">{s.cout_unitaire.toLocaleString('fr-TN')} TND</span></p>
-                  )}
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    {s.cout_unitaire > 0 && (
+                      <span className="text-xs text-slate-400">Prix : <span className="font-semibold text-slate-600">{s.cout_unitaire.toLocaleString('fr-TN')} TND</span></span>
+                    )}
+                    {s.dose_par_vanne > 0 && (
+                      <span className="text-xs text-blue-500 bg-blue-50 px-2 py-0.5 rounded-lg font-semibold">
+                        💧 {s.dose_par_vanne} {s.unite || 'u'}/vanne
+                      </span>
+                    )}
+                    {semaines !== null && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${semaines < 2 ? 'bg-red-50 text-red-600' : semaines < 4 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                        ~{semaines} sem. restantes
+                      </span>
+                    )}
+                  </div>
                   {s.notes && <p className="text-xs text-slate-400 italic mt-2 line-clamp-1">{s.notes}</p>}
 
                   <div className="flex gap-1 mt-4 pt-3 border-t border-slate-50">
@@ -347,25 +386,63 @@ export default function StocksPage() {
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Quantité *</label>
-                    <input type="number" step="0.01" min="0.01" value={mvtForm.quantite} onChange={e => setMvtForm({...mvtForm, quantite: e.target.value})} required className={INPUT} />
+
+                {/* Mode achat (entrée uniquement) */}
+                {mvtForm.type_mouvement === 'entree' && (
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['sacs', 'direct'] as const).map(m => (
+                      <button key={m} type="button" onClick={() => setAchatMode(m)}
+                        className={`py-2 rounded-xl text-xs font-semibold border-2 transition ${achatMode === m ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-400 hover:border-slate-300'}`}
+                      >
+                        {m === 'sacs' ? '🛒 Achat fournisseur' : '↕ Utilisation directe'}
+                      </button>
+                    ))}
                   </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Coût unitaire (TND)</label>
-                    <input type="number" step="0.01" value={mvtForm.cout_unitaire} onChange={e => setMvtForm({...mvtForm, cout_unitaire: e.target.value})} className={INPUT} placeholder="0" />
+                )}
+
+                {mvtForm.type_mouvement === 'entree' && achatMode === 'sacs' ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Nb sacs / bidons *</label>
+                        <input type="number" step="1" min="1" value={achatForm.nb_unites} onChange={e => setAchatForm({...achatForm, nb_unites: e.target.value})} required className={INPUT} />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Poids / vol. par unité *</label>
+                        <input type="number" step="0.1" min="0.1" value={achatForm.poids_par_unite} onChange={e => setAchatForm({...achatForm, poids_par_unite: e.target.value})} required className={INPUT} placeholder="25 kg" />
+                      </div>
+                    </div>
+                    {achatForm.nb_unites && achatForm.poids_par_unite && (
+                      <div className="bg-emerald-50 rounded-xl px-4 py-3 text-sm text-emerald-700">
+                        Total ajouté au stock : <span className="font-bold">{(parseFloat(achatForm.nb_unites) * parseFloat(achatForm.poids_par_unite)).toLocaleString()} {selectedStock?.unite || 'kg'}</span>
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Prix par sac/bidon (TND)</label>
+                      <input type="number" step="0.01" value={achatForm.prix_par_unite} onChange={e => setAchatForm({...achatForm, prix_par_unite: e.target.value})} className={INPUT} placeholder="0" />
+                    </div>
+                    {achatForm.prix_par_unite && parseFloat(achatForm.prix_par_unite) > 0 && (
+                      <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm text-slate-600">
+                        Coût total : <span className="font-bold text-slate-800">{(parseFloat(achatForm.nb_unites || '0') * parseFloat(achatForm.prix_par_unite)).toLocaleString('fr-TN')} TND</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Quantité *</label>
+                      <input type="number" step="0.01" min="0.01" value={mvtForm.quantite} onChange={e => setMvtForm({...mvtForm, quantite: e.target.value})} required className={INPUT} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Coût unitaire (TND)</label>
+                      <input type="number" step="0.01" value={mvtForm.cout_unitaire} onChange={e => setMvtForm({...mvtForm, cout_unitaire: e.target.value})} className={INPUT} placeholder="0" />
+                    </div>
                   </div>
-                </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notes</label>
                   <input value={mvtForm.notes} onChange={e => setMvtForm({...mvtForm, notes: e.target.value})} className={INPUT} placeholder="Livraison, utilisation parcelle B..." />
                 </div>
-                {mvtForm.cout_unitaire && parseFloat(mvtForm.cout_unitaire) > 0 && (
-                  <div className="bg-slate-50 rounded-xl px-4 py-3 text-sm text-slate-600">
-                    Coût total : <span className="font-bold text-slate-800">{(parseFloat(mvtForm.quantite || '0') * parseFloat(mvtForm.cout_unitaire)).toLocaleString('fr-TN')} TND</span>
-                  </div>
-                )}
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => setShowForm(false)} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition">Annuler</button>
                   <button type="submit" disabled={submitting} className={`flex-1 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-sm active:scale-95 ${mvtForm.type_mouvement === 'entree' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-red-500 hover:bg-red-600'}`}>

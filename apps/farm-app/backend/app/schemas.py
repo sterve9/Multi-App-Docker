@@ -4,7 +4,7 @@ from datetime import date, datetime
 from .models import (
     VarieteEnum, StatutParcelleEnum, TypeTraitementEnum,
     QualiteRecolteEnum, CategorieStockEnum,
-    PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum
+    PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum, StatutSessionEnum
 )
 
 
@@ -23,9 +23,15 @@ class FermeBase(BaseModel):
     nom: str
     localisation: Optional[str] = None
     surface_ha: Optional[float] = None
+    nb_vannes: int = 1
+    jours_irrigation: str = ""
 
 class FermeCreate(FermeBase):
     pass
+
+class FermeConfigUpdate(BaseModel):
+    nb_vannes: Optional[int] = None
+    jours_irrigation: Optional[str] = None
 
 class FermeOut(FermeBase):
     id: int
@@ -114,6 +120,7 @@ class StockBase(BaseModel):
     unite: Optional[str] = None
     seuil_alerte: float = 0
     cout_unitaire: float = 0
+    dose_par_vanne: float = 0
     notes: Optional[str] = None
 
 class StockCreate(StockBase):
@@ -123,6 +130,7 @@ class StockUpdate(BaseModel):
     quantite: Optional[float] = None
     seuil_alerte: Optional[float] = None
     cout_unitaire: Optional[float] = None
+    dose_par_vanne: Optional[float] = None
     notes: Optional[str] = None
 
 class StockOut(StockBase):
@@ -202,3 +210,49 @@ class DashboardFerme(BaseModel):
     recolte_total_kg: float
     dernier_traitement: Optional[date] = None
     stocks_alerte: int
+
+
+# ─── SESSION IRRIGATION ─────────────────────────────────
+class ProduitSession(BaseModel):
+    stock_id: int
+    nom: str
+    unite: Optional[str]
+    dose_par_vanne: float
+    qte_deduite: float
+    quantite_actuelle: float
+    semaines_restantes: Optional[float]
+    en_alerte: bool
+
+class SessionPlanifiee(BaseModel):
+    date: date
+    jour_semaine: str
+    produits: List[ProduitSession]
+    session_id: Optional[int] = None
+    statut: Optional[str] = None
+
+class PlanningFerme(BaseModel):
+    ferme_id: int
+    ferme_nom: str
+    nb_vannes: int
+    jours_irrigation: str
+    sessions: List[SessionPlanifiee]
+
+class SessionCreate(BaseModel):
+    ferme_id: int
+    date: date
+    notes: Optional[str] = None
+
+class SessionOut(BaseModel):
+    id: int
+    ferme_id: int
+    date: date
+    statut: StatutSessionEnum
+    notes: Optional[str]
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+class ConfirmerSessionOut(BaseModel):
+    session: SessionOut
+    mouvements_crees: int
+    alertes_declenchees: int

@@ -56,6 +56,12 @@ class TypeMouvementEnum(str, enum.Enum):
     sortie = "sortie"
 
 
+class StatutSessionEnum(str, enum.Enum):
+    planifiee = "planifiee"
+    effectuee = "effectuee"
+    annulee = "annulee"
+
+
 class Ferme(Base):
     __tablename__ = "fermes"
     id = Column(Integer, primary_key=True, index=True)
@@ -64,9 +70,13 @@ class Ferme(Base):
     surface_ha = Column(Float)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    nb_vannes = Column(Integer, default=1)
+    jours_irrigation = Column(String(100), default="")
+
     parcelles = relationship("Parcelle", back_populates="ferme", cascade="all, delete-orphan")
     stocks = relationship("Stock", back_populates="ferme", cascade="all, delete-orphan")
     recommandations = relationship("Recommandation", back_populates="ferme", cascade="all, delete-orphan")
+    sessions = relationship("SessionIrrigation", back_populates="ferme", cascade="all, delete-orphan")
 
 
 class Parcelle(Base):
@@ -129,6 +139,7 @@ class Stock(Base):
     unite = Column(String(20))
     seuil_alerte = Column(Float, default=0)
     cout_unitaire = Column(Float, default=0)
+    dose_par_vanne = Column(Float, default=0)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -161,3 +172,15 @@ class Recommandation(Base):
     statut = Column(Enum(StatutRecommandationEnum), default=StatutRecommandationEnum.en_attente)
 
     ferme = relationship("Ferme", back_populates="recommandations")
+
+
+class SessionIrrigation(Base):
+    __tablename__ = "sessions_irrigation"
+    id = Column(Integer, primary_key=True, index=True)
+    ferme_id = Column(Integer, ForeignKey("fermes.id", ondelete="CASCADE"), nullable=False)
+    date = Column(Date, nullable=False)
+    statut = Column(Enum(StatutSessionEnum), default=StatutSessionEnum.planifiee)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    ferme = relationship("Ferme", back_populates="sessions")
