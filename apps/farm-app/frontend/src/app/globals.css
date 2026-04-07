@@ -14,15 +14,71 @@
 }
 
 @layer utilities {
+  /* Modal */
   .modal-enter {
-    animation: modalIn 0.18s ease-out;
+    animation: modalIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
   @keyframes modalIn {
-    from { opacity: 0; transform: scale(0.96) translateY(10px); }
+    from { opacity: 0; transform: scale(0.92) translateY(16px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
   }
 
+  /* Carte hover */
   .card-hover {
     @apply transition-all duration-200 hover:shadow-md hover:-translate-y-0.5;
+  }
+
+  /* Fade-in-up — apparition progressive */
+  .fade-in-up {
+    animation: fadeInUp 0.4s ease-out both;
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Toast notification */
+  .toast-enter {
+    animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(24px) scale(0.95); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .toast-exit {
+    animation: toastOut 0.25s ease-in forwards;
+  }
+  @keyframes toastOut {
+    from { opacity: 1; transform: translateY(0) scale(1); }
+    to   { opacity: 0; transform: translateY(12px) scale(0.95); }
+  }
+
+  /* Skeleton shimmer */
+  .skeleton {
+    background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer {
+    from { background-position: 200% 0; }
+    to   { background-position: -200% 0; }
+  }
+
+  /* Sidebar nav active indicator */
+  .nav-active-dot {
+    animation: dotPop 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes dotPop {
+    from { transform: scale(0); }
+    to   { transform: scale(1); }
+  }
+
+  /* Pulse alerte critique */
+  .alert-pulse {
+    animation: alertPulse 2s ease-in-out infinite;
+  }
+  @keyframes alertPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50%       { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
   }
 }

@@ -49,12 +49,15 @@ export default function Navbar() {
                 key={href}
                 href={href}
                 className={clsx(
-                  'flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150',
+                  'relative flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
                   active
                     ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-900/50'
                     : 'text-white/50 hover:text-white/90 hover:bg-white/8'
                 )}
               >
+                {active && (
+                  <span className="nav-active-dot absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
+                )}
                 <Icon size={17} strokeWidth={active ? 2.5 : 2} />
                 {label}
               </Link>
@@ -85,7 +88,7 @@ export default function Navbar() {
               key={href}
               href={href}
               className={clsx(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all',
+                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all duration-200 active:scale-90',
                 active ? 'text-emerald-400 font-semibold' : 'text-white/40'
               )}
             >
