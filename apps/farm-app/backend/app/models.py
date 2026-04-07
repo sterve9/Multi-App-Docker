@@ -39,6 +39,23 @@ class CategorieStockEnum(str, enum.Enum):
     autre = "autre"
 
 
+class PrioriteEnum(str, enum.Enum):
+    haute = "haute"
+    normale = "normale"
+    basse = "basse"
+
+
+class StatutRecommandationEnum(str, enum.Enum):
+    en_attente = "en_attente"
+    appliquee = "appliquee"
+    ignoree = "ignoree"
+
+
+class TypeMouvementEnum(str, enum.Enum):
+    entree = "entree"
+    sortie = "sortie"
+
+
 class Ferme(Base):
     __tablename__ = "fermes"
     id = Column(Integer, primary_key=True, index=True)
@@ -48,6 +65,8 @@ class Ferme(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     parcelles = relationship("Parcelle", back_populates="ferme", cascade="all, delete-orphan")
+    stocks = relationship("Stock", back_populates="ferme", cascade="all, delete-orphan")
+    recommandations = relationship("Recommandation", back_populates="ferme", cascade="all, delete-orphan")
 
 
 class Parcelle(Base):
@@ -91,6 +110,7 @@ class Recolte(Base):
     quantite_kg = Column(Float, nullable=False)
     qualite = Column(Enum(QualiteRecolteEnum))
     destination = Column(String(200))
+    prix_kg = Column(Float, default=0)
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -100,6 +120,7 @@ class Recolte(Base):
 class Stock(Base):
     __tablename__ = "stocks"
     id = Column(Integer, primary_key=True, index=True)
+    ferme_id = Column(Integer, ForeignKey("fermes.id", ondelete="CASCADE"), nullable=False)
     nom = Column(String(200), nullable=False)
     categorie = Column(Enum(CategorieStockEnum), nullable=False)
     quantite = Column(Float, default=0)
@@ -108,3 +129,32 @@ class Stock(Base):
     notes = Column(Text)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    ferme = relationship("Ferme", back_populates="stocks")
+    mouvements = relationship("MouvementStock", back_populates="stock", cascade="all, delete-orphan")
+
+
+class MouvementStock(Base):
+    __tablename__ = "mouvements_stock"
+    id = Column(Integer, primary_key=True, index=True)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="CASCADE"), nullable=False)
+    type_mouvement = Column(Enum(TypeMouvementEnum), nullable=False)
+    quantite = Column(Float, nullable=False)
+    cout_unitaire = Column(Float, default=0)
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    notes = Column(Text)
+
+    stock = relationship("Stock", back_populates="mouvements")
+
+
+class Recommandation(Base):
+    __tablename__ = "recommandations"
+    id = Column(Integer, primary_key=True, index=True)
+    ferme_id = Column(Integer, ForeignKey("fermes.id", ondelete="CASCADE"), nullable=False)
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    auteur = Column(String(100), default="Ingénieur")
+    contenu = Column(Text, nullable=False)
+    priorite = Column(Enum(PrioriteEnum), default=PrioriteEnum.normale)
+    statut = Column(Enum(StatutRecommandationEnum), default=StatutRecommandationEnum.en_attente)
+
+    ferme = relationship("Ferme", back_populates="recommandations")

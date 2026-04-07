@@ -9,7 +9,7 @@ import os
 from .database import engine, Base, get_db
 from .auth import verify_password, create_access_token, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
 from . import models, schemas
-from .routers import fermes, parcelles, traitements, recoltes, stocks
+from .routers import fermes, parcelles, traitements, recoltes, stocks, mouvements, recommandations, bilan
 
 # Crée toutes les tables au démarrage
 Base.metadata.create_all(bind=engine)
@@ -41,6 +41,9 @@ app.include_router(parcelles.router)
 app.include_router(traitements.router)
 app.include_router(recoltes.router)
 app.include_router(stocks.router)
+app.include_router(mouvements.router)
+app.include_router(recommandations.router)
+app.include_router(bilan.router)
 
 
 @app.get("/")

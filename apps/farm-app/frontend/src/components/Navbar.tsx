@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf } from 'lucide-react'
+import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2 } from 'lucide-react'
 import clsx from 'clsx'
 
 const links = [
@@ -10,6 +10,8 @@ const links = [
   { href: '/traitements', label: 'Traitements', icon: Syringe },
   { href: '/recoltes', label: 'Récoltes', icon: Apple },
   { href: '/stocks', label: 'Stocks', icon: Package },
+  { href: '/recommandations', label: 'Recommandations', icon: ClipboardList },
+  { href: '/bilan', label: 'Bilan', icon: BarChart2 },
 ]
 
 export default function Navbar() {

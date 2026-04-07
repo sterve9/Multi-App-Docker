@@ -1,7 +1,11 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
-from .models import VarieteEnum, StatutParcelleEnum, TypeTraitementEnum, QualiteRecolteEnum, CategorieStockEnum
+from .models import (
+    VarieteEnum, StatutParcelleEnum, TypeTraitementEnum,
+    QualiteRecolteEnum, CategorieStockEnum,
+    PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum
+)
 
 
 # ─── AUTH ───────────────────────────────────────────────
@@ -87,6 +91,7 @@ class RecolteBase(BaseModel):
     quantite_kg: float
     qualite: Optional[QualiteRecolteEnum] = None
     destination: Optional[str] = None
+    prix_kg: float = 0
     notes: Optional[str] = None
 
 class RecolteCreate(RecolteBase):
@@ -101,6 +106,7 @@ class RecolteOut(RecolteBase):
 
 # ─── STOCK ──────────────────────────────────────────────
 class StockBase(BaseModel):
+    ferme_id: int
     nom: str
     categorie: CategorieStockEnum
     quantite: float = 0
@@ -119,8 +125,70 @@ class StockUpdate(BaseModel):
 class StockOut(StockBase):
     id: int
     created_at: datetime
+    alerte_active: bool = False
     class Config:
         from_attributes = True
+
+
+# ─── MOUVEMENT STOCK ────────────────────────────────────
+class MouvementBase(BaseModel):
+    stock_id: int
+    type_mouvement: TypeMouvementEnum
+    quantite: float
+    cout_unitaire: float = 0
+    notes: Optional[str] = None
+
+class MouvementCreate(MouvementBase):
+    pass
+
+class MouvementOut(MouvementBase):
+    id: int
+    date: datetime
+    class Config:
+        from_attributes = True
+
+
+# ─── RECOMMANDATION ─────────────────────────────────────
+class RecommandationBase(BaseModel):
+    ferme_id: int
+    auteur: str = "Ingénieur"
+    contenu: str
+    priorite: PrioriteEnum = PrioriteEnum.normale
+    statut: StatutRecommandationEnum = StatutRecommandationEnum.en_attente
+
+class RecommandationCreate(RecommandationBase):
+    pass
+
+class RecommandationUpdate(BaseModel):
+    auteur: Optional[str] = None
+    contenu: Optional[str] = None
+    priorite: Optional[PrioriteEnum] = None
+    statut: Optional[StatutRecommandationEnum] = None
+
+class RecommandationOut(RecommandationBase):
+    id: int
+    date: datetime
+    ferme: FermeOut
+    class Config:
+        from_attributes = True
+
+
+# ─── BILAN SAISON ───────────────────────────────────────
+class DepenseItem(BaseModel):
+    stock_nom: str
+    categorie: str
+    cout_total: float
+
+class BilanSaison(BaseModel):
+    ferme: FermeOut
+    annee: int
+    total_recolte_kg: float
+    total_recolte_valeur: float
+    total_couts: float
+    marge_brute: float
+    nb_recoltes: int
+    nb_traitements: int
+    top_depenses: List[DepenseItem]
 
 
 # ─── DASHBOARD ──────────────────────────────────────────
