@@ -107,7 +107,7 @@ class RecolteOut(RecolteBase):
 
 # ─── STOCK ──────────────────────────────────────────────
 class StockBase(BaseModel):
-    ferme_id: int
+    ferme_id: Optional[int] = None
     nom: str
     categorie: CategorieStockEnum
     quantite: float = 0

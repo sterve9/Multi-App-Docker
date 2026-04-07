@@ -53,13 +53,16 @@ export default function TraitementsPage() {
   }, [])
 
   const loadData = useCallback(async () => {
-    const [f, p, t, s] = await Promise.all([
+    const [f, p, t, s] = await Promise.allSettled([
       api.get('/fermes/'),
       api.get('/parcelles/'),
       api.get('/traitements/'),
       api.get('/stocks/'),
     ])
-    setFermes(f.data); setParcelles(p.data); setTraitements(t.data); setStocks(s.data)
+    if (f.status === 'fulfilled') setFermes(f.value.data)
+    if (p.status === 'fulfilled') setParcelles(p.value.data)
+    if (t.status === 'fulfilled') setTraitements(t.value.data)
+    if (s.status === 'fulfilled') setStocks(s.value.data)
   }, [])
 
   useEffect(() => {
