@@ -28,6 +28,18 @@ def create_recolte(r: schemas.RecolteCreate, db: Session = Depends(get_db), user
     return db_r
 
 
+@router.put("/{recolte_id}", response_model=schemas.RecolteOut)
+def update_recolte(recolte_id: int, r: schemas.RecolteCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    db_r = db.query(models.Recolte).filter(models.Recolte.id == recolte_id).first()
+    if not db_r:
+        raise HTTPException(status_code=404, detail="Récolte introuvable")
+    for key, value in r.model_dump(exclude_unset=True).items():
+        setattr(db_r, key, value)
+    db.commit()
+    db.refresh(db_r)
+    return db_r
+
+
 @router.delete("/{recolte_id}")
 def delete_recolte(recolte_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
     r = db.query(models.Recolte).filter(models.Recolte.id == recolte_id).first()

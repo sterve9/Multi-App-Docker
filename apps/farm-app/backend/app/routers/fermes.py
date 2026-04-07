@@ -66,6 +66,7 @@ def get_dashboard(db: Session = Depends(get_db), user=Depends(get_current_user))
             dernier_traitement = last
 
         stocks_alerte = db.query(models.Stock).filter(
+            models.Stock.ferme_id == ferme.id,
             models.Stock.quantite <= models.Stock.seuil_alerte,
             models.Stock.seuil_alerte > 0
         ).count()

@@ -1,27 +1,36 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X } from 'lucide-react'
 import clsx from 'clsx'
+import { useState } from 'react'
 
-const links = [
+const mainLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/parcelles', label: 'Parcelles', icon: MapPin },
   { href: '/traitements', label: 'Traitements', icon: Syringe },
   { href: '/recoltes', label: 'Récoltes', icon: Apple },
   { href: '/stocks', label: 'Stocks', icon: Package },
-  { href: '/recommandations', label: 'Recommandations', icon: ClipboardList },
-  { href: '/bilan', label: 'Bilan', icon: BarChart2 },
 ]
+
+const moreLinks = [
+  { href: '/recommandations', label: 'Recommandations', icon: ClipboardList },
+  { href: '/bilan', label: 'Bilan saison', icon: BarChart2 },
+]
+
+const allLinks = [...mainLinks, ...moreLinks]
 
 export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [showMore, setShowMore] = useState(false)
 
   const logout = () => {
     localStorage.removeItem('farm_token')
     router.push('/login')
   }
+
+  const isMoreActive = moreLinks.some(l => l.href === pathname)
 
   return (
     <>
@@ -44,7 +53,7 @@ export default function Navbar() {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 space-y-0.5">
-          {links.map(({ href, label, icon: Icon }) => {
+          {allLinks.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             return (
               <Link
@@ -83,23 +92,78 @@ export default function Navbar() {
 
       {/* Mobile bottom nav */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#071c10] border-t border-white/10 flex justify-around py-1.5 z-50">
-        {links.map(({ href, label, icon: Icon }) => {
+        {mainLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
           return (
             <Link
               key={href}
               href={href}
               className={clsx(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-xs transition-all duration-200 active:scale-90',
+                'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-xs transition-all duration-200 active:scale-90',
                 active ? 'text-emerald-400 font-semibold' : 'text-white/40'
               )}
             >
               <Icon size={19} strokeWidth={active ? 2.5 : 2} />
-              {label}
+              <span className="text-[10px]">{label}</span>
             </Link>
           )
         })}
+        {/* Bouton Plus */}
+        <button
+          onClick={() => setShowMore(true)}
+          className={clsx(
+            'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl text-xs transition-all duration-200 active:scale-90',
+            isMoreActive ? 'text-emerald-400 font-semibold' : 'text-white/40'
+          )}
+        >
+          <MoreHorizontal size={19} strokeWidth={2} />
+          <span className="text-[10px]">Plus</span>
+        </button>
       </nav>
+
+      {/* Mobile More drawer */}
+      {showMore && (
+        <div className="md:hidden fixed inset-0 z-50" onClick={() => setShowMore(false)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="absolute bottom-0 left-0 right-0 bg-[#0f3320] rounded-t-2xl p-5 modal-enter"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-white/60 text-xs font-semibold uppercase tracking-wider">Plus</span>
+              <button onClick={() => setShowMore(false)} className="text-white/40 hover:text-white/80 transition">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-1">
+              {moreLinks.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={() => setShowMore(false)}
+                    className={clsx(
+                      'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all',
+                      active ? 'bg-emerald-500 text-white' : 'text-white/70 hover:bg-white/10'
+                    )}
+                  >
+                    <Icon size={18} />
+                    {label}
+                  </Link>
+                )
+              })}
+              <button
+                onClick={logout}
+                className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-300/70 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all"
+              >
+                <LogOut size={18} />
+                Déconnexion
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
