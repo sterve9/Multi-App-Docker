@@ -97,9 +97,11 @@ class Traitement(Base):
     dose = Column(Float)
     unite = Column(String(20))
     notes = Column(Text)
+    stock_id = Column(Integer, ForeignKey("stocks.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     parcelle = relationship("Parcelle", back_populates="traitements")
+    stock = relationship("Stock")
 
 
 class Recolte(Base):

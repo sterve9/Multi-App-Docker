@@ -4,17 +4,17 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
-from ..services.email import send_alert_email
+from ..services.webhook import trigger_stock_alerte
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
 
 def _check_and_alert(stock_id: int, db: Session):
-    """Vérifie le seuil et envoie un email si dépassé. Exécuté en background."""
+    """Vérifie le seuil et déclenche le webhook N8N si dépassé. Exécuté en background."""
     s = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
     if s and s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte:
         ferme_nom = s.ferme.nom if s.ferme else "Ferme inconnue"
-        send_alert_email(
+        trigger_stock_alerte(
             stock_nom=s.nom,
             quantite=s.quantite,
             unite=s.unite or "",

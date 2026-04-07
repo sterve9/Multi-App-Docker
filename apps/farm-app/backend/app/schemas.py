@@ -73,6 +73,7 @@ class TraitementBase(BaseModel):
     dose: Optional[float] = None
     unite: Optional[str] = None
     notes: Optional[str] = None
+    stock_id: Optional[int] = None  # lien vers le stock utilisé (sortie auto)
 
 class TraitementCreate(TraitementBase):
     pass
