@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package } from 'lucide-react'
+import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download } from 'lucide-react'
 
 interface Ferme { id: number; nom: string }
 interface DepenseItem { stock_nom: string; categorie: string; cout_total: number }
@@ -33,6 +33,31 @@ export default function BilanPage() {
   const [bilan, setBilan] = useState<Bilan | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+
+  const downloadPdf = async () => {
+    if (!selectedFerme) return
+    setDownloadingPdf(true)
+    try {
+      const token = localStorage.getItem('farm_token')
+      const base = process.env.NEXT_PUBLIC_API_URL || ''
+      const res = await fetch(`${base}/pdf/bilan/${selectedFerme}?annee=${selectedAnnee}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error()
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `bilan_${selectedFerme}_${selectedAnnee}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      alert('Erreur lors de la génération du PDF')
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   const loadBilan = useCallback(async () => {
     if (!selectedFerme) return
@@ -69,6 +94,20 @@ export default function BilanPage() {
             <h1 className="text-2xl font-bold text-slate-800">Bilan de saison</h1>
             <p className="text-slate-400 text-sm mt-0.5">Coûts, récoltes et marge brute</p>
           </div>
+          {bilan && (
+            <button
+              onClick={downloadPdf}
+              disabled={downloadingPdf}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm"
+            >
+              {downloadingPdf ? (
+                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Download size={15} />
+              )}
+              {downloadingPdf ? 'Génération...' : 'PDF'}
+            </button>
+          )}
         </div>
 
         {/* Sélecteurs */}

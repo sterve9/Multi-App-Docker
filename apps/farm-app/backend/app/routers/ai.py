@@ -183,6 +183,16 @@ def _build_context(ferme_id: int, db: Session) -> str:
     return "\n".join(lines)
 
 
+@router.get("/fermes", response_model=list)
+def list_ferme_ids(
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user),
+):
+    """Retourne la liste des IDs de fermes — utilisé par N8N pour les analyses hebdo."""
+    fermes = db.query(models.Ferme.id, models.Ferme.nom).all()
+    return [{"id": f.id, "nom": f.nom} for f in fermes]
+
+
 @router.post("/chat", response_model=schemas.ChatResponse)
 def chat(
     body: schemas.ChatRequest,
