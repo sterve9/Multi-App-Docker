@@ -39,9 +39,11 @@ interface MeteoData { temp: number; code: number; pluie: number; forecast: Meteo
 
 function MeteoWidget() {
   const [meteo, setMeteo] = useState<MeteoData | null>(null)
+  const [ville, setVille] = useState<string>('...')
 
-  useEffect(() => {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=36.45&longitude=10.73&current=temperature_2m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=Africa%2FTunis&forecast_days=5')
+  const fetchMeteo = useCallback((lat: number, lon: number) => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Africa/Tunis'
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=${encodeURIComponent(tz)}&forecast_days=5`)
       .then(r => r.json())
       .then(data => {
         const cur = data.current || {}
@@ -61,6 +63,35 @@ function MeteoWidget() {
       })
       .catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      // Fallback Nabeul si géoloc non supportée
+      setVille('Nabeul')
+      fetchMeteo(36.45, 10.73)
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords
+        fetchMeteo(latitude, longitude)
+        // Reverse geocoding léger via Open-Meteo geocoding API
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&accept-language=fr`)
+          .then(r => r.json())
+          .then(geo => {
+            const city = geo.address?.city || geo.address?.town || geo.address?.village || geo.address?.county || ''
+            setVille(city)
+          })
+          .catch(() => setVille('Votre position'))
+      },
+      () => {
+        // Refus ou erreur → fallback Nabeul
+        setVille('Nabeul')
+        fetchMeteo(36.45, 10.73)
+      },
+      { timeout: 8000, maximumAge: 300000 }
+    )
+  }, [fetchMeteo])
 
   if (!meteo) return null
 
@@ -86,7 +117,7 @@ function MeteoWidget() {
           <span className="text-3xl">{getWMO(meteo.code).emoji}</span>
           <div>
             <div className="font-bold text-slate-800 text-xl leading-tight">{Math.round(meteo.temp)}°C</div>
-            <div className="text-xs text-slate-400">Nabeul · {getWMO(meteo.code).label}</div>
+            <div className="text-xs text-slate-400">{ville} · {getWMO(meteo.code).label}</div>
           </div>
         </div>
         <div className="flex items-center gap-4 md:gap-6 ml-auto">
