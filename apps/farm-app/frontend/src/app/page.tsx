@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { Trees, Apple, Syringe, TriangleAlert, MapPin, Plus, X, CheckCircle } from 'lucide-react'
+import { Trees, Apple, Syringe, TriangleAlert, MapPin, Plus, X, CheckCircle, Trash2 } from 'lucide-react'
 
 interface DashboardFerme {
   ferme: { id: number; nom: string; localisation: string; surface_ha: number }
@@ -157,7 +157,12 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {data.map((d, index) => (
-              <FermeCard key={d.ferme.id} d={d} index={index} animated={animated} />
+              <FermeCard key={d.ferme.id} d={d} index={index} animated={animated} onDelete={async () => {
+                if (!confirm(`Supprimer "${d.ferme.nom}" et toutes ses données ?`)) return
+                await api.delete(`/fermes/${d.ferme.id}`)
+                loadData()
+                showToast('Ferme supprimée')
+              }} />
             ))}
           </div>
         )}
@@ -238,7 +243,7 @@ export default function DashboardPage() {
   )
 }
 
-function FermeCard({ d, index, animated }: { d: DashboardFerme; index: number; animated: boolean }) {
+function FermeCard({ d, index, animated, onDelete }: { d: DashboardFerme; index: number; animated: boolean; onDelete: () => void }) {
   const parcelles = useCountUp(d.nb_parcelles, 700, animated)
   const arbres = useCountUp(d.nb_arbres_total, 900, animated)
   const recoltes = useCountUp(d.recolte_total_kg, 800, animated)
@@ -260,9 +265,18 @@ function FermeCard({ d, index, animated }: { d: DashboardFerme; index: number; a
               {d.ferme.surface_ha && <span>· {d.ferme.surface_ha} ha</span>}
             </div>
           </div>
-          <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-lg">
-            Active
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-lg">
+              Active
+            </span>
+            <button
+              onClick={onDelete}
+              className="p-1.5 text-white/40 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition"
+              title="Supprimer la ferme"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
