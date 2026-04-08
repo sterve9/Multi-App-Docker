@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download } from 'lucide-react'
+import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download, ArrowUp, ArrowDown, Minus } from 'lucide-react'
 
 interface Ferme { id: number; nom: string }
 interface DepenseItem { stock_nom: string; categorie: string; cout_total: number }
@@ -18,6 +18,29 @@ interface Bilan {
   nb_traitements: number
   top_depenses: DepenseItem[]
 }
+interface VarieteComp {
+  variete: string
+  annee_n: number
+  annee_n1: number
+  valeur_n: number
+  valeur_n1: number
+  evolution_pct: number
+}
+interface Comparaison {
+  annee_n: number
+  annee_n1: number
+  par_variete: VarieteComp[]
+  total_n: number
+  total_n1: number
+  total_evolution_pct: number
+}
+
+const VARIETE_LABEL: Record<string, string> = {
+  citron: '🍋 Citron',
+  orange: '🟠 Orange',
+  clementine: '🍊 Clémentine',
+  mixte: '🌿 Mixte',
+}
 
 const ANNEES = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i)
 
@@ -31,6 +54,7 @@ export default function BilanPage() {
   const [selectedFerme, setSelectedFerme] = useState<number | ''>('')
   const [selectedAnnee, setSelectedAnnee] = useState(new Date().getFullYear())
   const [bilan, setBilan] = useState<Bilan | null>(null)
+  const [comparaison, setComparaison] = useState<Comparaison | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
@@ -63,8 +87,12 @@ export default function BilanPage() {
     if (!selectedFerme) return
     setLoading(true); setError(null)
     try {
-      const r = await api.get(`/bilan/${selectedFerme}?annee=${selectedAnnee}`)
-      setBilan(r.data)
+      const [bilanRes, compRes] = await Promise.all([
+        api.get(`/bilan/${selectedFerme}?annee=${selectedAnnee}`),
+        api.get(`/bilan/${selectedFerme}/comparaison?annee=${selectedAnnee}`),
+      ])
+      setBilan(bilanRes.data)
+      setComparaison(compRes.data)
     } catch {
       setError('Erreur lors du chargement du bilan')
     } finally { setLoading(false) }
@@ -228,6 +256,81 @@ export default function BilanPage() {
                 <Package size={28} className="mx-auto mb-3 text-slate-200" />
                 <p className="text-slate-400 text-sm">Aucune dépense enregistrée pour {bilan.annee}.</p>
                 <p className="text-slate-300 text-xs mt-1">Enregistre des mouvements de stock avec un coût unitaire pour voir le bilan.</p>
+              </div>
+            )}
+
+            {/* Comparaison N-1 */}
+            {comparaison && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mt-6 fade-in-up" style={{ animationDelay: '250ms' }}>
+                <div className="flex items-center justify-between mb-5">
+                  <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <BarChart2 size={16} className="text-slate-400" />
+                    Comparaison {comparaison.annee_n} vs {comparaison.annee_n1}
+                  </h2>
+                  {/* Total évolution */}
+                  <span className={`flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${
+                    comparaison.total_evolution_pct > 0
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : comparaison.total_evolution_pct < 0
+                        ? 'bg-red-50 text-red-600'
+                        : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {comparaison.total_evolution_pct > 0 ? <ArrowUp size={12} /> : comparaison.total_evolution_pct < 0 ? <ArrowDown size={12} /> : <Minus size={12} />}
+                    {comparaison.total_evolution_pct > 0 ? '+' : ''}{comparaison.total_evolution_pct}%
+                  </span>
+                </div>
+
+                {comparaison.par_variete.length === 0 ? (
+                  <p className="text-slate-400 text-sm text-center py-4">Aucune récolte enregistrée sur ces 2 années.</p>
+                ) : (
+                  <div className="space-y-5">
+                    {comparaison.par_variete.map((v, i) => {
+                      const maxKg = Math.max(v.annee_n, v.annee_n1, 1)
+                      const pctN = Math.round((v.annee_n / maxKg) * 100)
+                      const pctN1 = Math.round((v.annee_n1 / maxKg) * 100)
+                      return (
+                        <div key={i}>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-slate-700">
+                              {VARIETE_LABEL[v.variete] || v.variete}
+                            </span>
+                            <span className={`flex items-center gap-1 text-xs font-semibold ${
+                              v.evolution_pct > 0 ? 'text-emerald-600' : v.evolution_pct < 0 ? 'text-red-500' : 'text-slate-400'
+                            }`}>
+                              {v.evolution_pct > 0 ? <ArrowUp size={11} /> : v.evolution_pct < 0 ? <ArrowDown size={11} /> : <Minus size={11} />}
+                              {v.evolution_pct > 0 ? '+' : ''}{v.evolution_pct}%
+                            </span>
+                          </div>
+                          {/* Barre année N */}
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs text-slate-400 w-10 shrink-0">{comparaison.annee_n}</span>
+                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-emerald-500 rounded-full transition-all duration-700" style={{ width: `${pctN}%` }} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-700 w-20 text-right tabular-nums">{fmt(v.annee_n)} kg</span>
+                          </div>
+                          {/* Barre année N-1 */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-400 w-10 shrink-0">{comparaison.annee_n1}</span>
+                            <div className="flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-slate-300 rounded-full transition-all duration-700" style={{ width: `${pctN1}%` }} />
+                            </div>
+                            <span className="text-xs font-semibold text-slate-400 w-20 text-right tabular-nums">{fmt(v.annee_n1)} kg</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+
+                    {/* Ligne total */}
+                    <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-700">Total récoltes</span>
+                      <div className="text-right">
+                        <div className="text-sm font-bold text-slate-800 tabular-nums">{fmt(comparaison.total_n)} kg</div>
+                        <div className="text-xs text-slate-400 tabular-nums">vs {fmt(comparaison.total_n1)} kg en {comparaison.annee_n1}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>

@@ -1,12 +1,30 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import extract, func
-from typing import List
+from typing import List, Dict
+from pydantic import BaseModel
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
 
 router = APIRouter(prefix="/bilan", tags=["bilan"])
+
+
+class VarieteComparaison(BaseModel):
+    variete: str
+    annee_n: float    # kg année selectionnée
+    annee_n1: float   # kg année précédente
+    valeur_n: float
+    valeur_n1: float
+    evolution_pct: float  # % évolution kg
+
+class ComparaisonBilan(BaseModel):
+    annee_n: int
+    annee_n1: int
+    par_variete: List[VarieteComparaison]
+    total_n: float
+    total_n1: float
+    total_evolution_pct: float
 
 
 @router.get("/{ferme_id}", response_model=schemas.BilanSaison)
@@ -79,4 +97,83 @@ def get_bilan(
         nb_recoltes=nb_recoltes,
         nb_traitements=nb_traitements,
         top_depenses=[schemas.DepenseItem(**d) for d in top_depenses],
+    )
+
+
+@router.get("/{ferme_id}/comparaison", response_model=ComparaisonBilan)
+def get_comparaison(
+    ferme_id: int,
+    annee: int = Query(default=2025),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
+    if not ferme:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+
+    parcelle_ids = [p.id for p in ferme.parcelles]
+    annee_n1 = annee - 1
+
+    def recoltes_par_variete(annee_cible: int) -> Dict[str, dict]:
+        result: Dict[str, dict] = {}
+        if not parcelle_ids:
+            return result
+        recoltes = db.query(models.Recolte).filter(
+            models.Recolte.parcelle_id.in_(parcelle_ids),
+            extract("year", models.Recolte.date) == annee_cible
+        ).all()
+        for r in recoltes:
+            parcelle = db.query(models.Parcelle).filter(models.Parcelle.id == r.parcelle_id).first()
+            if not parcelle:
+                continue
+            v = parcelle.variete.value
+            if v not in result:
+                result[v] = {"kg": 0.0, "valeur": 0.0}
+            result[v]["kg"] += r.quantite_kg
+            result[v]["valeur"] += r.quantite_kg * (r.prix_kg or 0)
+        return result
+
+    data_n = recoltes_par_variete(annee)
+    data_n1 = recoltes_par_variete(annee_n1)
+
+    # Union des variétés trouvées dans les 2 années
+    varietes = sorted(set(list(data_n.keys()) + list(data_n1.keys())))
+
+    par_variete = []
+    for v in varietes:
+        kg_n = data_n.get(v, {}).get("kg", 0.0)
+        kg_n1 = data_n1.get(v, {}).get("kg", 0.0)
+        val_n = data_n.get(v, {}).get("valeur", 0.0)
+        val_n1 = data_n1.get(v, {}).get("valeur", 0.0)
+        if kg_n1 > 0:
+            evol = round((kg_n - kg_n1) / kg_n1 * 100, 1)
+        elif kg_n > 0:
+            evol = 100.0
+        else:
+            evol = 0.0
+        par_variete.append(VarieteComparaison(
+            variete=v,
+            annee_n=round(kg_n, 1),
+            annee_n1=round(kg_n1, 1),
+            valeur_n=round(val_n, 2),
+            valeur_n1=round(val_n1, 2),
+            evolution_pct=evol,
+        ))
+
+    total_n = sum(v.annee_n for v in par_variete)
+    total_n1 = sum(v.annee_n1 for v in par_variete)
+    if total_n1 > 0:
+        total_evol = round((total_n - total_n1) / total_n1 * 100, 1)
+    elif total_n > 0:
+        total_evol = 100.0
+    else:
+        total_evol = 0.0
+
+    return ComparaisonBilan(
+        annee_n=annee,
+        annee_n1=annee_n1,
+        par_variete=par_variete,
+        total_n=round(total_n, 1),
+        total_n1=round(total_n1, 1),
+        total_evolution_pct=total_evol,
     )
