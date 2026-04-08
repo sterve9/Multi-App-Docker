@@ -7,6 +7,7 @@ from .database import Base
 
 class RoleEnum(str, enum.Enum):
     admin = "admin"
+    ingenieur = "ingenieur"
     gestionnaire = "gestionnaire"
 
 

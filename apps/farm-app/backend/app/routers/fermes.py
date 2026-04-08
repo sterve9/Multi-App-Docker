@@ -19,8 +19,9 @@ router = APIRouter(prefix="/fermes", tags=["fermes"])
 def _ferme_query(db: Session, user: models.User):
     """Returns a query filtered by user permissions."""
     q = db.query(models.Ferme)
-    if user.role != models.RoleEnum.admin:
+    if user.role == models.RoleEnum.gestionnaire:
         q = q.filter(models.Ferme.owner_id == user.id)
+    # admin et ingenieur voient toutes les fermes
     return q
 
 

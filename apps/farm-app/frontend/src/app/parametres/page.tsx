@@ -2,14 +2,26 @@
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { Users, Plus, Trash2, KeyRound, X, ShieldCheck, User } from 'lucide-react'
+import { Users, Plus, Trash2, KeyRound, X, ShieldCheck, User, FlaskConical } from 'lucide-react'
 
 interface UserItem {
   id: number
   username: string
   nom: string
-  role: 'admin' | 'gestionnaire'
+  role: 'admin' | 'ingenieur' | 'gestionnaire'
   created_at: string
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Administrateur',
+  ingenieur: 'Ingénieur',
+  gestionnaire: 'Gestionnaire',
+}
+
+const ROLE_BADGE: Record<string, string> = {
+  admin: 'bg-emerald-100 text-emerald-700',
+  ingenieur: 'bg-blue-50 text-blue-700',
+  gestionnaire: 'bg-slate-100 text-slate-500',
 }
 
 const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition'
@@ -111,19 +123,17 @@ export default function ParametresPage() {
               <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
                 {me.role === 'admin'
                   ? <ShieldCheck size={22} className="text-emerald-600" />
-                  : <User size={22} className="text-emerald-600" />
+                  : me.role === 'ingenieur'
+                    ? <FlaskConical size={22} className="text-blue-500" />
+                    : <User size={22} className="text-emerald-600" />
                 }
               </div>
               <div>
                 <div className="font-semibold text-slate-800">{me.nom || me.username}</div>
                 <div className="text-slate-400 text-sm">@{me.username}</div>
               </div>
-              <span className={`ml-auto text-xs font-semibold px-3 py-1 rounded-full ${
-                me.role === 'admin'
-                  ? 'bg-emerald-100 text-emerald-700'
-                  : 'bg-slate-100 text-slate-600'
-              }`}>
-                {me.role === 'admin' ? 'Administrateur' : 'Gestionnaire'}
+              <span className={`ml-auto text-xs font-semibold px-3 py-1 rounded-full ${ROLE_BADGE[me.role] || 'bg-slate-100 text-slate-600'}`}>
+                {ROLE_LABEL[me.role] || me.role}
               </span>
             </div>
           </div>
@@ -155,19 +165,17 @@ export default function ParametresPage() {
                     <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
                       {u.role === 'admin'
                         ? <ShieldCheck size={16} className="text-emerald-600" />
-                        : <User size={16} className="text-slate-500" />
+                        : u.role === 'ingenieur'
+                          ? <FlaskConical size={16} className="text-blue-500" />
+                          : <User size={16} className="text-slate-500" />
                       }
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-sm font-semibold text-slate-800 truncate">{u.nom || u.username}</div>
                       <div className="text-xs text-slate-400">@{u.username}</div>
                     </div>
-                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                      u.role === 'admin'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : 'bg-slate-100 text-slate-500'
-                    }`}>
-                      {u.role === 'admin' ? 'Admin' : 'Gestionnaire'}
+                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${ROLE_BADGE[u.role] || 'bg-slate-100 text-slate-500'}`}>
+                      {ROLE_LABEL[u.role] || u.role}
                     </span>
                     <button
                       onClick={() => { setPwdTarget(u); setNewPwd(''); setPwdError(null) }}
@@ -225,7 +233,8 @@ export default function ParametresPage() {
               <div>
                 <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Rôle</label>
                 <select className={INPUT} value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value }))}>
-                  <option value="gestionnaire">Gestionnaire</option>
+                  <option value="gestionnaire">Gestionnaire (ouvrier)</option>
+                  <option value="ingenieur">Ingénieur agronome</option>
                   <option value="admin">Administrateur</option>
                 </select>
               </div>
