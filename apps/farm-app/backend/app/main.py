@@ -52,10 +52,20 @@ app.include_router(users.router)
 
 @app.on_event("startup")
 def startup_event():
-    """Create admin user from env vars if no users exist yet."""
+    """Add owner_id column if missing, create admin user from env vars if needed."""
     db = SessionLocal()
     try:
+        # Add owner_id column to fermes if it doesn't exist yet
+        db.execute(
+            __import__('sqlalchemy').text(
+                "ALTER TABLE fermes ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES users(id)"
+            )
+        )
+        db.commit()
+
+        # Create admin user if no users exist
         if db.query(models.User).count() == 0 and ADMIN_PASSWORD_HASH:
+            from .auth import hash_password as _hp
             admin = models.User(
                 username=ADMIN_USERNAME,
                 password_hash=ADMIN_PASSWORD_HASH,
@@ -66,8 +76,11 @@ def startup_event():
             db.commit()
             db.refresh(admin)
             # Assign existing fermes (owner_id=NULL) to admin
-            db.query(models.Ferme).filter(models.Ferme.owner_id.is_(None)).update(
-                {"owner_id": admin.id}
+            db.execute(
+                __import__('sqlalchemy').text(
+                    "UPDATE fermes SET owner_id = :uid WHERE owner_id IS NULL"
+                ),
+                {"uid": admin.id}
             )
             db.commit()
     finally:
