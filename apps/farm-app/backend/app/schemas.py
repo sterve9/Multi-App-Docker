@@ -121,6 +121,7 @@ class StockBase(BaseModel):
     seuil_alerte: float = 0
     cout_unitaire: float = 0
     dose_par_vanne: float = 0
+    dose_unite: str = "kg"
     notes: Optional[str] = None
 
 class StockCreate(StockBase):
@@ -131,6 +132,7 @@ class StockUpdate(BaseModel):
     seuil_alerte: Optional[float] = None
     cout_unitaire: Optional[float] = None
     dose_par_vanne: Optional[float] = None
+    dose_unite: Optional[str] = None
     notes: Optional[str] = None
 
 class StockOut(StockBase):
@@ -217,6 +219,7 @@ class ProduitSession(BaseModel):
     stock_id: int
     nom: str
     unite: Optional[str]
+    dose_unite: str
     dose_par_vanne: float
     qte_deduite: float
     quantite_actuelle: float

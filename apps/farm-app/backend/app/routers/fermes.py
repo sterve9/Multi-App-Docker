@@ -108,6 +108,7 @@ def get_planning(ferme_id: int, nb_semaines: int = 3, db: Session = Depends(get_
                 stock_id=s.id,
                 nom=s.nom,
                 unite=s.unite,
+                dose_unite=s.dose_unite or "kg",
                 dose_par_vanne=s.dose_par_vanne,
                 qte_deduite=qte,
                 quantite_actuelle=s.quantite,

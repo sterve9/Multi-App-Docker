@@ -14,7 +14,7 @@ const mainLinks = [
 ]
 
 const moreLinks = [
-  { href: '/planning', label: 'Planning irrigation', icon: CalendarDays },
+  { href: '/planning', label: 'Fertilisation', icon: CalendarDays },
   { href: '/recommandations', label: 'Recommandations', icon: ClipboardList },
   { href: '/bilan', label: 'Bilan saison', icon: BarChart2 },
 ]

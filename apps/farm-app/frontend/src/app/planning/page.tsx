@@ -6,7 +6,7 @@ import api from '@/lib/api'
 import { CalendarDays, CheckCircle, Clock, Settings, X, TriangleAlert, Droplets, ChevronRight } from 'lucide-react'
 
 interface ProduitSession {
-  stock_id: number; nom: string; unite: string | null
+  stock_id: number; nom: string; unite: string | null; dose_unite: string
   dose_par_vanne: number; qte_deduite: number
   quantite_actuelle: number; semaines_restantes: number | null
   en_alerte: boolean
@@ -22,7 +22,9 @@ interface PlanningFerme {
   sessions: SessionPlanifiee[]
 }
 interface Ferme { id: number; nom: string; nb_vannes: number; jours_irrigation: string }
-interface Stock { id: number; nom: string; unite: string | null; dose_par_vanne: number }
+interface Stock { id: number; nom: string; unite: string | null; dose_par_vanne: number; dose_unite: string }
+
+const UNITES = ['kg', 'L', 'g', 'mL', 'T', 'sacs']
 
 const JOURS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche']
 const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition'
@@ -59,6 +61,7 @@ export default function PlanningPage() {
   const [stocks, setStocks] = useState<Stock[]>([])
   const [configForm, setConfigForm] = useState({ nb_vannes: '1', jours: [] as string[] })
   const [dosesForm, setDosesForm] = useState<Record<number, string>>({})
+  const [doseUnitesForm, setDoseUnitesForm] = useState<Record<number, string>>({})
   const [savingConfig, setSavingConfig] = useState(false)
   const [toast, setToast] = useState<{ msg: string; visible: boolean; exiting: boolean }>({ msg: '', visible: false, exiting: false })
 
@@ -100,8 +103,13 @@ export default function PlanningPage() {
     const r = await api.get(`/stocks/?ferme_id=${selectedFerme}`)
     setStocks(r.data)
     const doses: Record<number, string> = {}
-    for (const s of r.data) doses[s.id] = (s.dose_par_vanne || 0).toString()
+    const unites: Record<number, string> = {}
+    for (const s of r.data) {
+      doses[s.id] = (s.dose_par_vanne || 0).toString()
+      unites[s.id] = s.dose_unite || 'kg'
+    }
     setDosesForm(doses)
+    setDoseUnitesForm(unites)
     setShowConfig(true)
   }
 
@@ -113,9 +121,12 @@ export default function PlanningPage() {
         nb_vannes: parseInt(configForm.nb_vannes) || 1,
         jours_irrigation: configForm.jours.join(','),
       })
-      // Sauvegarder les doses par vanne pour chaque stock
+      // Sauvegarder les doses + unités par vanne pour chaque stock
       await Promise.all(
-        stocks.map(s => api.put(`/stocks/${s.id}`, { dose_par_vanne: parseFloat(dosesForm[s.id] || '0') || 0 }))
+        stocks.map(s => api.put(`/stocks/${s.id}`, {
+          dose_par_vanne: parseFloat(dosesForm[s.id] || '0') || 0,
+          dose_unite: doseUnitesForm[s.id] || 'kg',
+        }))
       )
       // Recharger les fermes pour avoir les nouvelles valeurs
       const r = await api.get('/fermes/')
@@ -158,8 +169,8 @@ export default function PlanningPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6 fade-in-up">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Planning irrigation</h1>
-            <p className="text-slate-400 text-sm mt-0.5">Gestion automatique des déductions de stock</p>
+            <h1 className="text-2xl font-bold text-slate-800">Planning fertilisation</h1>
+            <p className="text-slate-400 text-sm mt-0.5">Déductions stock automatiques à chaque session</p>
           </div>
           {selectedFerme && (
             <button onClick={openConfig} className="flex items-center gap-2 border border-slate-200 text-slate-600 hover:text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 px-4 py-2.5 rounded-xl text-sm font-medium transition">
@@ -181,11 +192,9 @@ export default function PlanningPage() {
             <div className="flex items-center gap-2 text-sm text-slate-500">
               <Droplets size={14} className="text-blue-400" />
               <span>{planning.nb_vannes} vanne{planning.nb_vannes > 1 ? 's' : ''}</span>
+              {planning.jours_irrigation && <span className="text-slate-300">·</span>}
               {planning.jours_irrigation && (
-                <span className="text-slate-300">·</span>
-              )}
-              {planning.jours_irrigation && (
-                <span className="capitalize">{planning.jours_irrigation.split(',').join(' + ')}</span>
+                <span className="capitalize">{planning.jours_irrigation.split(',').map(j => j.trim()).join(' + ')}</span>
               )}
             </div>
           )}
@@ -195,7 +204,7 @@ export default function PlanningPage() {
         {planning && !planning.jours_irrigation && (
           <div className="bg-blue-50 border border-blue-100 rounded-2xl p-8 text-center fade-in-up">
             <CalendarDays size={32} className="mx-auto mb-3 text-blue-300" />
-            <p className="text-slate-600 font-medium mb-1">Aucun jour d'irrigation configuré</p>
+            <p className="text-slate-600 font-medium mb-1">Aucun jour de fertilisation configuré</p>
             <p className="text-slate-400 text-sm mb-4">Configure les jours et les doses par produit pour activer le planning automatique.</p>
             <button onClick={openConfig} className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm">
               <Settings size={14} className="inline mr-2" />Configurer maintenant
@@ -278,14 +287,14 @@ export default function PlanningPage() {
                                     <div className={`w-2 h-2 rounded-full shrink-0 ${p.en_alerte ? 'bg-red-400' : 'bg-emerald-400'}`} />
                                     <span className="font-medium text-slate-700 truncate">{p.nom}</span>
                                     <span className="text-slate-400 text-xs shrink-0">
-                                      {p.dose_par_vanne} {p.unite || ''}/vanne × {planning.nb_vannes}
+                                      {p.dose_par_vanne} {p.dose_unite}/vanne × {planning.nb_vannes}
                                     </span>
                                     <ChevronRight size={12} className="text-slate-300 shrink-0" />
-                                    <span className="font-bold text-slate-800 shrink-0">{p.qte_deduite} {p.unite || ''}</span>
+                                    <span className="font-bold text-slate-800 shrink-0">{p.qte_deduite} {p.dose_unite}</span>
                                   </div>
                                   <div className="flex items-center gap-2 ml-3 shrink-0">
                                     <span className={`text-xs ${p.en_alerte ? 'text-red-500 font-semibold' : 'text-slate-400'}`}>
-                                      Stock: {p.quantite_actuelle.toLocaleString()} {p.unite || ''}
+                                      Stock: {p.quantite_actuelle.toLocaleString()} {p.unite || p.dose_unite}
                                     </span>
                                     {p.semaines_restantes !== null && p.semaines_restantes > 0 && (
                                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
@@ -324,7 +333,7 @@ export default function PlanningPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg modal-enter max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100 shrink-0">
               <div>
-                <h2 className="text-base font-bold text-slate-800">⚙️ Configurer l'irrigation</h2>
+                <h2 className="text-base font-bold text-slate-800">⚙️ Configurer la fertilisation</h2>
                 <p className="text-xs text-slate-400 mt-0.5">{fermes.find(f => f.id === selectedFerme)?.nom}</p>
               </div>
               <button onClick={() => setShowConfig(false)} className="text-slate-400 hover:text-slate-600 transition"><X size={20} /></button>
@@ -370,23 +379,33 @@ export default function PlanningPage() {
               {/* Doses par produit */}
               {stocks.length > 0 && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Dose par vanne</label>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Dose par vanne</label>
+                  <p className="text-xs text-slate-400 mb-2">Laisse à 0 les produits non utilisés cette saison</p>
                   <div className="space-y-2">
                     {stocks.map(s => (
-                      <div key={s.id} className="flex items-center gap-3">
+                      <div key={s.id} className="flex items-center gap-2">
                         <span className="flex-1 text-sm text-slate-700 font-medium truncate">{s.nom}</span>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <input
-                            type="number" step="0.1" min="0"
-                            value={dosesForm[s.id] || '0'}
-                            onChange={e => setDosesForm(prev => ({ ...prev, [s.id]: e.target.value }))}
-                            className="w-24 border border-slate-200 bg-slate-50 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition"
-                          />
-                          <span className="text-xs text-slate-400 w-8">{s.unite || 'u'}</span>
-                        </div>
+                        <input
+                          type="number" step="0.1" min="0"
+                          value={dosesForm[s.id] || '0'}
+                          onChange={e => setDosesForm(prev => ({ ...prev, [s.id]: e.target.value }))}
+                          className="w-20 border border-slate-200 bg-slate-50 rounded-xl px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition"
+                        />
+                        <select
+                          value={doseUnitesForm[s.id] || 'kg'}
+                          onChange={e => setDoseUnitesForm(prev => ({ ...prev, [s.id]: e.target.value }))}
+                          className="w-16 border border-slate-200 bg-slate-50 rounded-xl px-1 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition"
+                        >
+                          {UNITES.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+              {stocks.length === 0 && (
+                <div className="bg-slate-50 rounded-xl p-4 text-center text-sm text-slate-400">
+                  Aucun produit en stock pour cette ferme — crée des stocks d'abord.
                 </div>
               )}
             </div>
