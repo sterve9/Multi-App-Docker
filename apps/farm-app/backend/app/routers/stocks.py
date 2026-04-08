@@ -1,12 +1,37 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import List, Optional
+from datetime import datetime, timedelta, date as date_type
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
 from ..services.webhook import trigger_stock_alerte
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
+
+_MOIS_FR = ["", "jan.", "fév.", "mar.", "avr.", "mai", "juin",
+            "juil.", "août", "sep.", "oct.", "nov.", "déc."]
+
+
+def _calc_rupture(stock_id: int, quantite: float, db: Session):
+    """Calcule la date de rupture estimée basée sur les 30 derniers jours de sorties."""
+    if quantite <= 0:
+        return None, None, None
+    cutoff = datetime.now() - timedelta(days=30)
+    total_sortie = db.query(func.sum(models.MouvementStock.quantite)).filter(
+        models.MouvementStock.stock_id == stock_id,
+        models.MouvementStock.type_mouvement == models.TypeMouvementEnum.sortie,
+        models.MouvementStock.date >= cutoff,
+    ).scalar() or 0.0
+    if total_sortie <= 0:
+        return None, None, None
+    daily_avg = total_sortie / 30
+    jours = int(quantite / daily_avg)
+    rupture = date_type.today() + timedelta(days=jours)
+    date_str = f"{rupture.day} {_MOIS_FR[rupture.month]} {rupture.year}"
+    conso_hebdo = round(daily_avg * 7, 1)
+    return date_str, jours, conso_hebdo
 
 
 def _check_and_alert(stock_id: int, db: Session):
@@ -37,6 +62,10 @@ def list_stocks(
     for s in stocks:
         out = schemas.StockOut.model_validate(s)
         out.alerte_active = s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte
+        date_r, jours, conso = _calc_rupture(s.id, s.quantite, db)
+        out.date_rupture_estimee = date_r
+        out.jours_avant_rupture = jours
+        out.consommation_hebdo = conso
         result.append(out)
     return result
 

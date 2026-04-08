@@ -139,6 +139,9 @@ class StockOut(StockBase):
     id: int
     created_at: datetime
     alerte_active: bool = False
+    date_rupture_estimee: Optional[str] = None   # ex: "15 mai 2026"
+    jours_avant_rupture: Optional[int] = None    # nb jours restants
+    consommation_hebdo: Optional[float] = None   # kg ou L par semaine
     class Config:
         from_attributes = True
 

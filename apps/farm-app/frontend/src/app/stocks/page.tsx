@@ -11,6 +11,9 @@ interface Stock {
   quantite: number; unite: string | null
   seuil_alerte: number; cout_unitaire: number; dose_par_vanne: number; notes: string | null
   alerte_active?: boolean
+  date_rupture_estimee?: string | null
+  jours_avant_rupture?: number | null
+  consommation_hebdo?: number | null
 }
 
 const CATEGORIES = ['pesticide', 'engrais', 'matériel', 'autre']
@@ -264,6 +267,15 @@ export default function StocksPage() {
                     {semaines !== null && (
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${semaines < 2 ? 'bg-red-50 text-red-600' : semaines < 4 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
                         ~{semaines} sem. restantes
+                      </span>
+                    )}
+                    {s.date_rupture_estimee && s.jours_avant_rupture !== null && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
+                        (s.jours_avant_rupture ?? 999) <= 7 ? 'bg-red-100 text-red-700' :
+                        (s.jours_avant_rupture ?? 999) <= 30 ? 'bg-amber-50 text-amber-700' :
+                        'bg-slate-50 text-slate-500'
+                      }`}>
+                        📅 Rupture ~{s.date_rupture_estimee}
                       </span>
                     )}
                   </div>

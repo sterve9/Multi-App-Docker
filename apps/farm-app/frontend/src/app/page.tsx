@@ -5,6 +5,109 @@ import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Trees, Apple, Syringe, TriangleAlert, MapPin, Plus, X, CheckCircle, Trash2 } from 'lucide-react'
 
+// ─── Météo ──────────────────────────────────────────────
+const WMO: Record<number, { label: string; emoji: string }> = {
+  0: { label: 'Ensoleillé', emoji: '☀️' },
+  1: { label: 'Peu nuageux', emoji: '🌤️' },
+  2: { label: 'Nuageux', emoji: '⛅' },
+  3: { label: 'Couvert', emoji: '☁️' },
+  45: { label: 'Brouillard', emoji: '🌫️' },
+  48: { label: 'Brouillard', emoji: '🌫️' },
+  51: { label: 'Bruine', emoji: '🌦️' },
+  53: { label: 'Bruine', emoji: '🌦️' },
+  55: { label: 'Bruine', emoji: '🌦️' },
+  61: { label: 'Pluie légère', emoji: '🌧️' },
+  63: { label: 'Pluie', emoji: '🌧️' },
+  65: { label: 'Pluie forte', emoji: '🌧️' },
+  80: { label: 'Averses', emoji: '🌦️' },
+  81: { label: 'Averses', emoji: '🌦️' },
+  82: { label: 'Averses', emoji: '🌧️' },
+  95: { label: 'Orage', emoji: '⛈️' },
+  96: { label: 'Orage', emoji: '⛈️' },
+  99: { label: 'Orage', emoji: '⛈️' },
+}
+function getWMO(code: number) {
+  if (WMO[code]) return WMO[code]
+  if (code >= 51 && code <= 67) return { label: 'Pluie', emoji: '🌧️' }
+  if (code >= 71 && code <= 77) return { label: 'Neige', emoji: '❄️' }
+  if (code >= 80 && code <= 82) return { label: 'Averses', emoji: '🌦️' }
+  if (code >= 95) return { label: 'Orage', emoji: '⛈️' }
+  return { label: 'Variable', emoji: '🌤️' }
+}
+interface MeteoDay { date: string; tmin: number; tmax: number; pluie: number; code: number }
+interface MeteoData { temp: number; code: number; pluie: number; forecast: MeteoDay[] }
+
+function MeteoWidget() {
+  const [meteo, setMeteo] = useState<MeteoData | null>(null)
+
+  useEffect(() => {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=36.45&longitude=10.73&current=temperature_2m,precipitation,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code&timezone=Africa%2FTunis&forecast_days=5')
+      .then(r => r.json())
+      .then(data => {
+        const cur = data.current || {}
+        const d = data.daily || {}
+        setMeteo({
+          temp: cur.temperature_2m ?? 0,
+          code: cur.weather_code ?? 0,
+          pluie: cur.precipitation ?? 0,
+          forecast: (d.time || []).slice(0, 5).map((dt: string, i: number) => ({
+            date: dt,
+            tmin: d.temperature_2m_min?.[i] ?? 0,
+            tmax: d.temperature_2m_max?.[i] ?? 0,
+            pluie: d.precipitation_sum?.[i] ?? 0,
+            code: d.weather_code?.[i] ?? 0,
+          })),
+        })
+      })
+      .catch(() => {})
+  }, [])
+
+  if (!meteo) return null
+
+  const tomorrow = meteo.forecast[1]
+  const rainAlert = tomorrow && tomorrow.pluie > 1.5
+
+  const dayLabel = (dt: string, i: number) => {
+    if (i === 0) return 'Auj.'
+    if (i === 1) return 'Dem.'
+    return new Date(dt).toLocaleDateString('fr-FR', { weekday: 'short' })
+  }
+
+  return (
+    <div className="mb-6 fade-in-up" style={{ animationDelay: '30ms' }}>
+      {rainAlert && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 mb-3 flex items-center gap-2 text-sm text-blue-700">
+          🌧️ <span className="font-semibold">Pluie prévue demain ({tomorrow.pluie.toFixed(1)} mm)</span>
+          <span className="text-blue-500 hidden sm:inline">— Éviter les pulvérisations</span>
+        </div>
+      )}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm px-5 py-4 flex items-center justify-between gap-4 overflow-x-auto">
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-3xl">{getWMO(meteo.code).emoji}</span>
+          <div>
+            <div className="font-bold text-slate-800 text-xl leading-tight">{Math.round(meteo.temp)}°C</div>
+            <div className="text-xs text-slate-400">Nabeul · {getWMO(meteo.code).label}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4 md:gap-6 ml-auto">
+          {meteo.forecast.map((day, i) => {
+            const info = getWMO(day.code)
+            const hasRain = day.pluie > 0.5
+            return (
+              <div key={i} className="text-center shrink-0">
+                <div className="text-[10px] text-slate-400 mb-0.5">{dayLabel(day.date, i)}</div>
+                <div className="text-lg leading-tight">{info.emoji}</div>
+                <div className="text-xs font-semibold text-slate-700">{Math.round(day.tmax)}°</div>
+                {hasRain && <div className="text-[10px] text-blue-500 font-medium">{day.pluie.toFixed(0)}mm</div>}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 interface DashboardFerme {
   ferme: { id: number; nom: string; localisation: string; surface_ha: number }
   nb_parcelles: number
@@ -139,6 +242,8 @@ export default function DashboardPage() {
             <Plus size={16} /> Nouvelle ferme
           </button>
         </div>
+
+        <MeteoWidget />
 
         {data.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-slate-100 fade-in-up">

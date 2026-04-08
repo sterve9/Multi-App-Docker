@@ -5,10 +5,69 @@ import os
 import json
 
 import anthropic
+import httpx
 
 from ..database import get_db
 from ..auth import get_current_user
 from .. import models, schemas
+
+_WMO = {
+    0: "Ensoleillé", 1: "Peu nuageux", 2: "Nuageux", 3: "Couvert",
+    45: "Brouillard", 48: "Brouillard givrant",
+    51: "Bruine légère", 53: "Bruine", 55: "Bruine dense",
+    61: "Pluie légère", 63: "Pluie modérée", 65: "Pluie forte",
+    80: "Averses légères", 81: "Averses", 82: "Averses violentes",
+    95: "Orage", 96: "Orage avec grêle", 99: "Orage violent",
+}
+
+
+def _fetch_meteo_context(lat: float = 36.45, lon: float = 10.73) -> str:
+    """Récupère la météo Open-Meteo pour Nabeul et retourne un texte pour le contexte IA."""
+    try:
+        r = httpx.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={
+                "latitude": lat,
+                "longitude": lon,
+                "current": "temperature_2m,relative_humidity_2m,precipitation,weather_code",
+                "daily": "temperature_2m_max,temperature_2m_min,precipitation_sum,weather_code",
+                "timezone": "Africa/Tunis",
+                "forecast_days": 4,
+            },
+            timeout=5.0,
+        )
+        data = r.json()
+        current = data.get("current", {})
+        daily = data.get("daily", {})
+
+        temp = current.get("temperature_2m", "?")
+        pluie_now = current.get("precipitation", 0) or 0
+        wcode = current.get("weather_code", 0) or 0
+        condition = _WMO.get(wcode, f"Code {wcode}")
+
+        lines = [f"\nMÉTÉO NABEUL : {temp}°C — {condition}"]
+        if pluie_now > 0:
+            lines.append(f"  ⚠️ Précipitations en cours : {pluie_now}mm")
+
+        dates = daily.get("time", [])
+        precip = daily.get("precipitation_sum", [])
+        tmax = daily.get("temperature_2m_max", [])
+        tmin = daily.get("temperature_2m_min", [])
+        wcodes = daily.get("weather_code", [])
+
+        lines.append("PRÉVISIONS 4 JOURS :")
+        for i, d in enumerate(dates[:4]):
+            p = float(precip[i]) if i < len(precip) and precip[i] else 0
+            tx = tmax[i] if i < len(tmax) else "?"
+            tn = tmin[i] if i < len(tmin) else "?"
+            wc = wcodes[i] if i < len(wcodes) else 0
+            cond = _WMO.get(wc, "")
+            alerte = " ⚠️ PLUIE — reporter pulvérisations" if p > 1 else ""
+            lines.append(f"  {d} : {tn}°→{tx}° | {p:.1f}mm | {cond}{alerte}")
+
+        return "\n".join(lines)
+    except Exception:
+        return "\nMÉTÉO : données non disponibles"
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -117,6 +176,9 @@ def _build_context(ferme_id: int, db: Session) -> str:
             lines.append(f"  - [{rec.priorite.value}] {rec.contenu[:120]}")
     else:
         lines.append("  Aucune recommandation en attente.")
+
+    # Météo injectée en fin de contexte
+    lines.append(_fetch_meteo_context())
 
     return "\n".join(lines)
 
