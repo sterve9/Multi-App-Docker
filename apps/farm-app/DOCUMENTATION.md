@@ -113,9 +113,9 @@ Elle permet de suivre en temps réel les parcelles, les traitements, les récolt
 
 > **Objectif :** Transformer les données en conseils actionnables. L'application devient un vrai assistant agronomique.
 
-### 4.1 Assistant IA (Claude API)
+### 4.1 Assistant IA (Claude API) ✅ LIVRÉ
 
-Une interface de chat intégrée directement dans l'application.  
+Une interface de chat intégrée directement dans l'application (`/ia`).  
 Le client tape sa question en arabe ou en français, l'IA analyse les données réelles de la ferme et répond.
 
 **Exemples de questions :**
@@ -125,35 +125,58 @@ Le client tape sa question en arabe ou en français, l'IA analyse les données r
 - *"J'ai utilisé combien d'acide sulfurique depuis janvier ?"*
 
 **Fonctionnement technique :**
-- Endpoint `/ai/chat` — injecte les données ferme + stocks + récoltes + traitements dans le contexte Claude
+- Endpoint `POST /ai/chat` — injecte les données ferme + stocks + récoltes + traitements dans le contexte Claude
 - Modèle : Claude Sonnet (claude-sonnet-4-6) — Anthropic API
-- Mémoire de conversation par session
+- Historique de conversation maintenu côté frontend
 
-### 4.2 Recommandations IA automatiques
+### 4.2 Analyse & Recommandations IA ✅ LIVRÉ
 
-- Analyse hebdomadaire automatique des données
-- Génère des recommandations préventives : *"La parcelle B n'a pas été traitée depuis 45 jours, vérifier..."*
-- Détecte les anomalies : *"Le rendement de la parcelle Sud est 30% inférieur à la même période l'an dernier"*
-- Notification push ou WhatsApp si alerte critique
+- Bouton "Analyser" dans `/ia` → Claude analyse la ferme → génère 3 à 6 recommandations
+- Sauvegardées automatiquement en DB avec `auteur="IA - Claude"`
+- Gérables dans `/recommandations` (appliquer, ignorer, prioriser)
+- Endpoint `POST /ai/analyse/{ferme_id}`
 
-### 4.3 Prédiction de stock
+---
 
-- Calcul automatique de la date de rupture pour chaque produit
-- Recommandation de quantité à commander : *"Commander 50 sacs d'ammonitre avant le 15 mai"*
-- Historique de consommation pour optimiser les achats (éviter surstockage)
+### RESTE À FAIRE — V2
 
-### 4.4 Rapport de saison automatique
+#### 🌤️ P1 — Intégration météo (Open-Meteo)
 
-- Génération d'un rapport PDF complet en fin de saison
-- Comparaison année N vs année N-1
-- Analyse coûts/rendements avec recommandations pour la saison suivante
-- Prêt à être partagé avec l'ingénieur ou la banque
+- Widget météo sur le dashboard : température, pluie prévue, humidité (Nabeul)
+- Alertes contextuelles dans le chat IA : *"Pluie prévue demain — éviter la pulvérisation"*
+- API : Open-Meteo (gratuite, pas de clé requise)
+- Données : température min/max, précipitations, vent, UV sur 7 jours
 
-### 4.5 Analyse météo
+#### 📦 P2 — Prédiction rupture de stock
 
-- Intégration API météo (Open-Meteo, gratuit)
-- Alertes : *"Pluie prévue demain — reporter la pulvérisation"*
-- Historique météo corrélé avec les rendements
+- Calcul de la **date estimée de rupture** par produit (pas juste "semaines restantes")
+- Affichage sur la page Stocks : *"Rupture estimée le 15 mai"*
+- Recommandation auto : *"Commander 50 sacs d'ammonitre avant le 10 mai"*
+- Basé sur la consommation historique (mouvements_stock)
+
+#### 🔔 P3 — Recommandations IA automatiques (hebdomadaire) ✅ LIVRÉ
+
+- N8N workflow `farm-manager-analyse-hebdo` (ID: m0lD6JcpiizNhUuC) — actif
+- Chaque **lundi 8h** : login auto → analyse toutes les fermes avec Claude → recommandations en DB
+- Email récapitulatif envoyé au patron avec toutes les recommandations bien formatées
+- Le patron contacte lui-même le fournisseur si besoin
+
+#### 📄 P4 — Rapport de saison PDF ✅ LIVRÉ
+
+- Bouton **PDF** sur la page `/bilan` → téléchargement immédiat
+- PDF complet : KPIs, récoltes, top dépenses, parcelles, recommandations
+- N8N workflow `farm-manager-bilan-mensuel` (ID: TlhSSFSw0DY7Xkvx) — actif
+- **Le 1er de chaque mois à 8h** : PDF généré et envoyé par email au patron
+
+#### Workflows N8N actifs
+
+| Workflow | Déclencheur | Action |
+|---|---|---|
+| `farm-manager` | Stock < seuil | Email alerte au patron |
+| `farm-manager-analyse-hebdo` | Chaque lundi 8h | Analyse IA + email récap recommandations |
+| `farm-manager-bilan-mensuel` | 1er du mois 8h | PDF bilan par email au patron |
+
+> **Config requise dans N8N → Variables :** `FARM_USERNAME` + `FARM_PASSWORD` + credentials SMTP `SMTP Farm Manager`
 
 ---
 
@@ -244,9 +267,13 @@ Le client tape sa question en arabe ou en français, l'IA analyse les données r
            Gestion complète : fermes, parcelles, stocks, récoltes,
            traitements, fertilisation, recommandations, bilan, alertes N8N
 
-2026 Q3 ── V2 🔄 EN PRÉPARATION
-           Assistant IA, recommandations automatiques,
-           prédiction rupture stock, rapports PDF, météo
+2026 Q3 ── V2 🔄 EN COURS
+           ✅ Assistant IA chat (Claude Sonnet)
+           ✅ Analyse auto → recommandations IA en DB
+           🔲 Météo Open-Meteo (P1)
+           🔲 Prédiction rupture stock (P2)
+           🔲 Recommandations hebdo automatiques N8N (P3)
+           🔲 Rapport PDF saison (P4)
 
 2026 Q4 ── V3 📱 PLANIFIÉE
            Application mobile, multi-utilisateurs et rôles,
@@ -310,4 +337,4 @@ docker compose ps
 ---
 
 *Document mis à jour le 08 Avril 2026*  
-*Farm Manager v1.0 — Développé par Sterve*
+*Farm Manager v2.0 (partiel) — Développé par Sterve*
