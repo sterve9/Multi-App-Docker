@@ -5,6 +5,23 @@ import enum
 from .database import Base
 
 
+class RoleEnum(str, enum.Enum):
+    admin = "admin"
+    gestionnaire = "gestionnaire"
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(100), unique=True, nullable=False, index=True)
+    password_hash = Column(String(200), nullable=False)
+    nom = Column(String(200), default="")
+    role = Column(Enum(RoleEnum), default=RoleEnum.gestionnaire)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    fermes = relationship("Ferme", back_populates="owner")
+
+
 class VarieteEnum(str, enum.Enum):
     citron = "citron"
     orange = "orange"
@@ -72,7 +89,9 @@ class Ferme(Base):
 
     nb_vannes = Column(Integer, default=1)
     jours_irrigation = Column(String(100), default="")
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=True)
 
+    owner = relationship("User", back_populates="fermes")
     parcelles = relationship("Parcelle", back_populates="ferme", cascade="all, delete-orphan")
     stocks = relationship("Stock", back_populates="ferme", cascade="all, delete-orphan")
     recommandations = relationship("Recommandation", back_populates="ferme", cascade="all, delete-orphan")

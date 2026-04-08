@@ -16,14 +16,22 @@ JOURS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanc
 router = APIRouter(prefix="/fermes", tags=["fermes"])
 
 
+def _ferme_query(db: Session, user: models.User):
+    """Returns a query filtered by user permissions."""
+    q = db.query(models.Ferme)
+    if user.role != models.RoleEnum.admin:
+        q = q.filter(models.Ferme.owner_id == user.id)
+    return q
+
+
 @router.get("/", response_model=List[schemas.FermeOut])
-def list_fermes(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    return db.query(models.Ferme).all()
+def list_fermes(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    return _ferme_query(db, user).all()
 
 
 @router.post("/", response_model=schemas.FermeOut)
-def create_ferme(ferme: schemas.FermeCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    db_ferme = models.Ferme(**ferme.model_dump())
+def create_ferme(ferme: schemas.FermeCreate, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    db_ferme = models.Ferme(**ferme.model_dump(), owner_id=user.id)
     db.add(db_ferme)
     db.commit()
     db.refresh(db_ferme)
@@ -31,16 +39,16 @@ def create_ferme(ferme: schemas.FermeCreate, db: Session = Depends(get_db), user
 
 
 @router.get("/{ferme_id}", response_model=schemas.FermeOut)
-def get_ferme(ferme_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
+def get_ferme(ferme_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    ferme = _ferme_query(db, user).filter(models.Ferme.id == ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
     return ferme
 
 
 @router.delete("/{ferme_id}")
-def delete_ferme(ferme_id: int, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
+def delete_ferme(ferme_id: int, db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    ferme = _ferme_query(db, user).filter(models.Ferme.id == ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
     db.delete(ferme)
@@ -134,8 +142,8 @@ def get_planning(ferme_id: int, nb_semaines: int = 3, db: Session = Depends(get_
 
 
 @router.get("/dashboard/all", response_model=List[schemas.DashboardFerme])
-def get_dashboard(db: Session = Depends(get_db), user=Depends(get_current_user)):
-    fermes = db.query(models.Ferme).all()
+def get_dashboard(db: Session = Depends(get_db), user: models.User = Depends(get_current_user)):
+    fermes = _ferme_query(db, user).all()
     result = []
     for ferme in fermes:
         parcelles = db.query(models.Parcelle).filter(models.Parcelle.ferme_id == ferme.id).all()

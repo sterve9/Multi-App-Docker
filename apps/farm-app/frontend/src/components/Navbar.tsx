@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X, CalendarDays, Sparkles } from 'lucide-react'
+import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X, CalendarDays, Sparkles, Settings } from 'lucide-react'
 import clsx from 'clsx'
 import { useState } from 'react'
 
@@ -18,6 +18,7 @@ const moreLinks = [
   { href: '/planning', label: 'Fertilisation', icon: CalendarDays },
   { href: '/recommandations', label: 'Recommandations', icon: ClipboardList },
   { href: '/bilan', label: 'Bilan saison', icon: BarChart2 },
+  { href: '/parametres', label: 'Paramètres', icon: Settings },
 ]
 
 const allLinks = [...mainLinks, ...moreLinks]

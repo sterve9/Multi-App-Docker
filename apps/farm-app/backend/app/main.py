@@ -6,10 +6,10 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 import os
 
-from .database import engine, Base, get_db
+from .database import engine, Base, get_db, SessionLocal
 from .auth import verify_password, create_access_token, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
 from . import models, schemas
-from .routers import fermes, parcelles, traitements, recoltes, stocks, mouvements, recommandations, bilan, sessions, ai, pdf
+from .routers import fermes, parcelles, traitements, recoltes, stocks, mouvements, recommandations, bilan, sessions, ai, pdf, users
 
 # Crée toutes les tables au démarrage
 Base.metadata.create_all(bind=engine)
@@ -19,7 +19,7 @@ limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(
     title="🌿 Farm Manager API",
     description="API de gestion des fermes agrumicoles",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 app.state.limiter = limiter
@@ -47,26 +47,45 @@ app.include_router(bilan.router)
 app.include_router(sessions.router)
 app.include_router(ai.router)
 app.include_router(pdf.router)
+app.include_router(users.router)
+
+
+@app.on_event("startup")
+def startup_event():
+    """Create admin user from env vars if no users exist yet."""
+    db = SessionLocal()
+    try:
+        if db.query(models.User).count() == 0 and ADMIN_PASSWORD_HASH:
+            admin = models.User(
+                username=ADMIN_USERNAME,
+                password_hash=ADMIN_PASSWORD_HASH,
+                nom="Administrateur",
+                role=models.RoleEnum.admin,
+            )
+            db.add(admin)
+            db.commit()
+            db.refresh(admin)
+            # Assign existing fermes (owner_id=NULL) to admin
+            db.query(models.Ferme).filter(models.Ferme.owner_id.is_(None)).update(
+                {"owner_id": admin.id}
+            )
+            db.commit()
+    finally:
+        db.close()
 
 
 @app.get("/")
 def root():
-    return {"message": "🌿 Farm Manager API — opérationnelle", "version": "1.0.0"}
+    return {"message": "🌿 Farm Manager API — opérationnelle", "version": "2.0.0"}
 
 
 @app.post("/auth/login", response_model=schemas.Token)
 @limiter.limit("5/minute")
 def login(request: Request, body: schemas.LoginRequest, db: Session = Depends(get_db)):
-    if not ADMIN_PASSWORD_HASH:
-        raise HTTPException(status_code=503, detail="Configuration serveur incomplète")
-
-    if body.username != ADMIN_USERNAME:
+    user = db.query(models.User).filter(models.User.username == body.username).first()
+    if not user or not verify_password(body.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Identifiants incorrects")
-
-    if not verify_password(body.password, ADMIN_PASSWORD_HASH):
-        raise HTTPException(status_code=401, detail="Identifiants incorrects")
-
-    token = create_access_token({"sub": body.username})
+    token = create_access_token({"sub": user.username})
     return {"access_token": token, "token_type": "bearer"}
 
 

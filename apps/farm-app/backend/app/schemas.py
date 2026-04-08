@@ -4,7 +4,8 @@ from datetime import date, datetime
 from .models import (
     VarieteEnum, StatutParcelleEnum, TypeTraitementEnum,
     QualiteRecolteEnum, CategorieStockEnum,
-    PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum, StatutSessionEnum
+    PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum, StatutSessionEnum,
+    RoleEnum
 )
 
 
@@ -16,6 +17,30 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+# ─── USERS ──────────────────────────────────────────────
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    nom: str = ""
+    role: RoleEnum = RoleEnum.gestionnaire
+
+class UserUpdate(BaseModel):
+    nom: Optional[str] = None
+    role: Optional[RoleEnum] = None
+
+class PasswordChange(BaseModel):
+    password: str
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    nom: str
+    role: RoleEnum
+    created_at: datetime
+    class Config:
+        from_attributes = True
 
 
 # ─── FERME ──────────────────────────────────────────────
