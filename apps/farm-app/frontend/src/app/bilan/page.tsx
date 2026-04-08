@@ -78,6 +78,7 @@ export default function BilanPage() {
             onChange={e => setSelectedFerme(Number(e.target.value))}
             className="border border-slate-200 bg-white rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500/20 transition"
           >
+            {selectedFerme === '' && <option value="" disabled>-- Sélectionner une ferme --</option>}
             {fermes.map(f => <option key={f.id} value={f.id}>🏡 {f.nom}</option>)}
           </select>
           <select

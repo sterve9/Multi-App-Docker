@@ -1,11 +1,29 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from .. import models, schemas
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..auth import get_current_user
+from ..services.webhook import trigger_stock_alerte
 
 router = APIRouter(prefix="/mouvements", tags=["mouvements"])
+
+
+def _check_stock_alerte(stock_id: int):
+    db = SessionLocal()
+    try:
+        s = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
+        if s and s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte:
+            ferme = db.query(models.Ferme).filter(models.Ferme.id == s.ferme_id).first()
+            trigger_stock_alerte(
+                stock_nom=s.nom,
+                quantite=s.quantite,
+                unite=s.unite or "",
+                seuil=s.seuil_alerte,
+                ferme_nom=ferme.nom if ferme else "Ferme inconnue",
+            )
+    finally:
+        db.close()
 
 
 @router.get("/", response_model=List[schemas.MouvementOut])
@@ -23,6 +41,7 @@ def list_mouvements(
 @router.post("/", response_model=schemas.MouvementOut)
 def create_mouvement(
     m: schemas.MouvementCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
@@ -40,6 +59,11 @@ def create_mouvement(
     db.add(db_m)
     db.commit()
     db.refresh(db_m)
+
+    # Déclencher alerte N8N si sortie sous le seuil
+    if m.type_mouvement == models.TypeMouvementEnum.sortie:
+        background_tasks.add_task(_check_stock_alerte, m.stock_id)
+
     return db_m
 
 

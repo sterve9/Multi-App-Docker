@@ -2,25 +2,29 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from .. import models, schemas
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..auth import get_current_user
 from ..services.webhook import trigger_stock_alerte
 
 router = APIRouter(prefix="/traitements", tags=["traitements"])
 
 
-def _check_stock_alerte(stock_id: int, db: Session):
-    """Vérifie le seuil du stock après une sortie et déclenche le webhook si nécessaire."""
-    s = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
-    if s and s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte:
-        ferme_nom = s.ferme.nom if s.ferme else "Ferme inconnue"
-        trigger_stock_alerte(
-            stock_nom=s.nom,
-            quantite=s.quantite,
-            unite=s.unite or "",
-            seuil=s.seuil_alerte,
-            ferme_nom=ferme_nom,
-        )
+def _check_stock_alerte(stock_id: int):
+    """Background task — ouvre sa propre session DB pour éviter les conflits."""
+    db = SessionLocal()
+    try:
+        s = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
+        if s and s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte:
+            ferme = db.query(models.Ferme).filter(models.Ferme.id == s.ferme_id).first()
+            trigger_stock_alerte(
+                stock_nom=s.nom,
+                quantite=s.quantite,
+                unite=s.unite or "",
+                seuil=s.seuil_alerte,
+                ferme_nom=ferme.nom if ferme else "Ferme inconnue",
+            )
+    finally:
+        db.close()
 
 
 @router.get("/", response_model=List[schemas.TraitementOut])
@@ -72,8 +76,8 @@ def create_traitement(
         db.commit()
         db.refresh(db_t)
 
-        # Vérifier le seuil en background
-        background_tasks.add_task(_check_stock_alerte, t.stock_id, db)
+        # Vérifier le seuil en background (session DB indépendante)
+        background_tasks.add_task(_check_stock_alerte, t.stock_id)
     else:
         db.commit()
         db.refresh(db_t)

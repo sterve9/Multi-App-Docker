@@ -3,26 +3,31 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
 from .. import models, schemas
-from ..database import get_db
+from ..database import get_db, SessionLocal
 from ..auth import get_current_user
 from ..services.webhook import trigger_stock_alerte
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
-def _check_and_alert(stock_id: int, db: Session):
-    stock = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
-    if not stock or stock.seuil_alerte <= 0:
-        return
-    if stock.quantite <= stock.seuil_alerte:
-        ferme = db.query(models.Ferme).filter(models.Ferme.id == stock.ferme_id).first()
-        trigger_stock_alerte(
-            stock_nom=stock.nom,
-            quantite=stock.quantite,
-            unite=stock.unite or "unité(s)",
-            seuil=stock.seuil_alerte,
-            ferme_nom=ferme.nom if ferme else "Inconnue",
-        )
+def _check_and_alert(stock_id: int):
+    """Background task — ouvre sa propre session DB pour éviter les conflits."""
+    db = SessionLocal()
+    try:
+        stock = db.query(models.Stock).filter(models.Stock.id == stock_id).first()
+        if not stock or stock.seuil_alerte <= 0:
+            return
+        if stock.quantite <= stock.seuil_alerte:
+            ferme = db.query(models.Ferme).filter(models.Ferme.id == stock.ferme_id).first()
+            trigger_stock_alerte(
+                stock_nom=stock.nom,
+                quantite=stock.quantite,
+                unite=stock.unite or "unité(s)",
+                seuil=stock.seuil_alerte,
+                ferme_nom=ferme.nom if ferme else "Inconnue",
+            )
+    finally:
+        db.close()
 
 
 @router.get("/", response_model=List[schemas.SessionOut])
@@ -83,7 +88,7 @@ def confirmer_session(session_id: int, background_tasks: BackgroundTasks, db: Se
             type_mouvement=models.TypeMouvementEnum.sortie,
             quantite=qte,
             cout_unitaire=stock.cout_unitaire or 0,
-            notes=f"Session irrigation {session.date.strftime('%d/%m/%Y')}",
+            notes=f"Session fertilisation {session.date.strftime('%d/%m/%Y')}",
         )
         db.add(mouvement)
         stock.quantite = max(0, (stock.quantite or 0) - qte)
@@ -95,9 +100,9 @@ def confirmer_session(session_id: int, background_tasks: BackgroundTasks, db: Se
     db.commit()
     db.refresh(session)
 
-    # Déclencher alertes N8N en background
+    # Déclencher alertes N8N en background (session DB indépendante)
     for stock_id in alertes_ids:
-        background_tasks.add_task(_check_and_alert, stock_id, db)
+        background_tasks.add_task(_check_and_alert, stock_id)
 
     return schemas.ConfirmerSessionOut(
         session=session,

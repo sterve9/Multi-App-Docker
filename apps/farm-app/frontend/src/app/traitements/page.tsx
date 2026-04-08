@@ -78,8 +78,8 @@ export default function TraitementsPage() {
   }, [parcelles, editId])
 
   // Filtrer les stocks selon la ferme de la parcelle sélectionnée
-  const selectedParcelle = parcelles.find(p => p.id === parseInt(form.parcelle_id))
-  const stocksFerme = stocks.filter(s => selectedParcelle ? s.ferme_id === selectedParcelle.ferme_id : true)
+  const selectedParcelle = form.parcelle_id ? parcelles.find(p => p.id === parseInt(form.parcelle_id)) : undefined
+  const stocksFerme = selectedParcelle ? stocks.filter(s => s.ferme_id === selectedParcelle.ferme_id) : []
 
   // Stock sélectionné pour afficher le stock disponible
   const selectedStock = stocks.find(s => s.id === parseInt(form.stock_id))
