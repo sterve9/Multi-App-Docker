@@ -259,3 +259,20 @@ class ConfirmerSessionOut(BaseModel):
     session: SessionOut
     mouvements_crees: int
     alertes_declenchees: int
+
+
+# ─── AI CHAT ────────────────────────────────────────────
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str
+
+class ChatRequest(BaseModel):
+    ferme_id: int
+    messages: List[ChatMessage]
+
+class ChatResponse(BaseModel):
+    reply: str
+
+class AnalyseResponse(BaseModel):
+    nb_recommandations: int
+    recommandations: List[str]
