@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X, CalendarDays, Sparkles, Settings } from 'lucide-react'
 import clsx from 'clsx'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import api from '@/lib/api'
 
 const mainLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -27,13 +28,31 @@ export default function Navbar() {
   const pathname = usePathname()
   const router = useRouter()
   const [showMore, setShowMore] = useState(false)
+  const [stocksAlerte, setStocksAlerte] = useState(0)
+
+  const isMoreActive = moreLinks.some(l => l.href === pathname)
 
   const logout = () => {
     localStorage.removeItem('farm_token')
     router.push('/login')
   }
 
-  const isMoreActive = moreLinks.some(l => l.href === pathname)
+  const fetchAlerts = useCallback(async () => {
+    const token = localStorage.getItem('farm_token')
+    if (!token) return
+    try {
+      const r = await api.get('/fermes/dashboard/all')
+      const total = r.data.reduce((sum: number, f: any) => sum + (f.stocks_alerte || 0), 0)
+      setStocksAlerte(total)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    fetchAlerts()
+    // Rafraîchir toutes les 2 minutes
+    const interval = setInterval(fetchAlerts, 120000)
+    return () => clearInterval(interval)
+  }, [fetchAlerts])
 
   return (
     <>
@@ -58,6 +77,7 @@ export default function Navbar() {
         <nav className="flex-1 px-3 space-y-0.5">
           {allLinks.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
+            const hasAlert = href === '/stocks' && stocksAlerte > 0
             return (
               <Link
                 key={href}
@@ -72,8 +92,18 @@ export default function Navbar() {
                 {active && (
                   <span className="nav-active-dot absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-white rounded-r-full" />
                 )}
-                <Icon size={17} strokeWidth={active ? 2.5 : 2} />
+                <span className="relative">
+                  <Icon size={17} strokeWidth={active ? 2.5 : 2} />
+                  {hasAlert && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-1 ring-[#071c10]" />
+                  )}
+                </span>
                 {label}
+                {hasAlert && (
+                  <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                    {stocksAlerte}
+                  </span>
+                )}
               </Link>
             )
           })}
@@ -97,6 +127,7 @@ export default function Navbar() {
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#071c10] border-t border-white/10 flex justify-around py-1.5 z-50">
         {mainLinks.map(({ href, label, icon: Icon }) => {
           const active = pathname === href
+          const hasAlert = href === '/stocks' && stocksAlerte > 0
           return (
             <Link
               key={href}
@@ -106,7 +137,12 @@ export default function Navbar() {
                 active ? 'text-emerald-400 font-semibold' : 'text-white/40'
               )}
             >
-              <Icon size={19} strokeWidth={active ? 2.5 : 2} />
+              <span className="relative">
+                <Icon size={19} strokeWidth={active ? 2.5 : 2} />
+                {hasAlert && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-1 ring-[#071c10]" />
+                )}
+              </span>
               <span className="text-[10px]">{label}</span>
             </Link>
           )
