@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import Link from 'next/link'
-import { Plus, Pencil, Trash2, X, MapPin, Trees } from 'lucide-react'
+import { Plus, Pencil, Trash2, X, MapPin, Trees, LayoutGrid, List } from 'lucide-react'
 
 interface Ferme { id: number; nom: string }
 interface Parcelle {
@@ -27,6 +27,18 @@ const STATUT_STYLE: Record<string, string> = {
   replantation: 'text-orange-500',
 }
 
+const VARIETE_MAP: Record<string, { fill: string; border: string; emoji: string }> = {
+  citron:     { fill: 'bg-yellow-100',  border: 'border-yellow-300', emoji: '🍋' },
+  orange:     { fill: 'bg-orange-100',  border: 'border-orange-300', emoji: '🟠' },
+  clementine: { fill: 'bg-amber-100',   border: 'border-amber-300',  emoji: '🍊' },
+  mixte:      { fill: 'bg-emerald-100', border: 'border-emerald-300',emoji: '🌿' },
+}
+const STATUT_FILL: Record<string, string> = {
+  active:       'opacity-100',
+  repos:        'opacity-40',
+  replantation: 'opacity-60',
+}
+
 const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition'
 
 export default function ParcellesPage() {
@@ -37,6 +49,7 @@ export default function ParcellesPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [form, setForm] = useState({ nom: '', ferme_id: '', variete: 'citron', nb_arbres: '', surface_ha: '', annee_plantation: '', statut: 'active', notes: '' })
   const [filterFerme, setFilterFerme] = useState('')
+  const [viewMode, setViewMode] = useState<'plan' | 'liste'>('plan')
 
   useEffect(() => {
     const token = localStorage.getItem('farm_token')
@@ -101,16 +114,35 @@ export default function ParcellesPage() {
           </button>
         </div>
 
-        {/* Filter */}
-        <div className="mb-5">
+        {/* Filter + Toggle */}
+        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <select value={filterFerme} onChange={e => setFilterFerme(e.target.value)} className="border border-slate-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition">
             <option value="">Toutes les fermes</option>
             {fermes.map(f => <option key={f.id} value={f.id}>{f.nom}</option>)}
           </select>
+          <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setViewMode('plan')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${viewMode === 'plan' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              <LayoutGrid size={13} /> Plan
+            </button>
+            <button
+              onClick={() => setViewMode('liste')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition ${viewMode === 'liste' ? 'bg-emerald-600 text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
+              <List size={13} /> Liste
+            </button>
+          </div>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Plan de ferme */}
+        {viewMode === 'plan' && filtered.length > 0 && (
+          <PlanFerme parcelles={filtered} fermes={fermes} onEdit={openEdit} />
+        )}
+
+        {/* Grid — visible en mode liste uniquement */}
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 ${viewMode === 'plan' ? 'hidden' : ''}`}>
           {filtered.map(p => {
             const vs = VARIETE_STYLE[p.variete] || { bg: 'bg-slate-50', text: 'text-slate-600', dot: 'bg-slate-400' }
             return (
@@ -242,6 +274,97 @@ export default function ParcellesPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function PlanFerme({ parcelles, fermes, onEdit }: {
+  parcelles: Parcelle[]
+  fermes: Ferme[]
+  onEdit: (p: Parcelle) => void
+}) {
+  const [tooltip, setTooltip] = useState<Parcelle | null>(null)
+
+  // Grouper par ferme
+  const byFerme: Record<number, Parcelle[]> = {}
+  for (const p of parcelles) {
+    if (!byFerme[p.ferme_id]) byFerme[p.ferme_id] = []
+    byFerme[p.ferme_id].push(p)
+  }
+
+  return (
+    <div className="space-y-5 mb-6">
+      {Object.entries(byFerme).map(([fermeId, fps]) => {
+        const ferme = fermes.find(f => f.id === parseInt(fermeId))
+        const totalSurface = fps.reduce((s, p) => s + (p.surface_ha || 1), 0)
+
+        return (
+          <div key={fermeId} className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            {/* Header ferme */}
+            <div className="bg-gradient-to-r from-emerald-700 to-green-600 px-5 py-3.5 flex items-center justify-between">
+              <span className="text-white font-bold text-sm">{ferme?.nom || 'Ferme'}</span>
+              <span className="text-emerald-200 text-xs">{fps.length} parcelle{fps.length > 1 ? 's' : ''} · {totalSurface.toFixed(1)} ha total</span>
+            </div>
+
+            {/* Plan visuel */}
+            <div className="p-4">
+              {/* Grille de rectangles */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                {fps.map(p => {
+                  const meta = VARIETE_MAP[p.variete] || { fill: 'bg-slate-100', border: 'border-slate-300', emoji: '🌿' }
+                  const opacity = STATUT_FILL[p.statut] || 'opacity-100'
+                  // Taille proportionnelle à la surface (min 80px, max 200px)
+                  const surface = p.surface_ha || 1
+                  const ratio = surface / Math.max(totalSurface, 1)
+                  const w = Math.max(80, Math.min(200, Math.round(ratio * 500)))
+                  const h = Math.max(64, Math.min(120, Math.round(ratio * 300)))
+
+                  return (
+                    <div
+                      key={p.id}
+                      className={`relative rounded-xl border-2 ${meta.fill} ${meta.border} ${opacity} cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md flex flex-col items-center justify-center gap-1 p-2`}
+                      style={{ width: `${w}px`, height: `${h}px` }}
+                      onClick={() => onEdit(p)}
+                      onMouseEnter={() => setTooltip(p)}
+                      onMouseLeave={() => setTooltip(null)}
+                    >
+                      <span className="text-xl leading-none">{meta.emoji}</span>
+                      <span className="text-xs font-bold text-slate-700 text-center leading-tight truncate w-full px-1">{p.nom}</span>
+                      {p.surface_ha > 0 && (
+                        <span className="text-[10px] text-slate-500">{p.surface_ha} ha</span>
+                      )}
+                      {p.statut === 'repos' && (
+                        <span className="absolute top-1 right-1 text-[9px] bg-slate-200 text-slate-500 px-1 rounded">repos</span>
+                      )}
+                      {p.statut === 'replantation' && (
+                        <span className="absolute top-1 right-1 text-[9px] bg-orange-200 text-orange-600 px-1 rounded">🌱</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Légende */}
+              <div className="flex flex-wrap gap-3 pt-3 border-t border-slate-50">
+                {Array.from(new Set(fps.map(p => p.variete))).map(v => {
+                  const meta = VARIETE_MAP[v] || { fill: '', border: '', emoji: '🌿' }
+                  const count = fps.filter(p => p.variete === v).length
+                  return (
+                    <div key={v} className="flex items-center gap-1.5 text-xs text-slate-500">
+                      <span>{meta.emoji}</span>
+                      <span className="capitalize font-medium text-slate-600">{v}</span>
+                      <span className="text-slate-400">({count})</span>
+                    </div>
+                  )
+                })}
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 ml-auto">
+                  <span className="text-[10px]">Cliquer pour modifier</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
