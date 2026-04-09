@@ -1,11 +1,34 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, extract
 from typing import List, Optional
 from datetime import date, timedelta
+from pydantic import BaseModel
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
+
+
+class VarieteStat(BaseModel):
+    variete: str
+    kg: float
+    valeur: float
+    pct: float  # % du total
+
+class StockStat(BaseModel):
+    nom: str
+    quantite: float
+    seuil: float
+    unite: str
+    pct_seuil: float  # % restant vs seuil (>100 = ok, <100 = alerte)
+    en_alerte: bool
+
+class FermeStats(BaseModel):
+    annee: int
+    total_kg: float
+    total_valeur: float
+    par_variete: List[VarieteStat]
+    stocks: List[StockStat]
 
 JOURS_ISO = {
     "lundi": 0, "mardi": 1, "mercredi": 2, "jeudi": 3,
@@ -180,3 +203,76 @@ def get_dashboard(db: Session = Depends(get_db), user: models.User = Depends(get
             stocks_alerte=stocks_alerte,
         ))
     return result
+
+
+@router.get("/{ferme_id}/stats", response_model=FermeStats)
+def get_ferme_stats(
+    ferme_id: int,
+    annee: int = Query(default=None),
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user)
+):
+    if annee is None:
+        annee = date.today().year
+
+    ferme = _ferme_query(db, user).filter(models.Ferme.id == ferme_id).first()
+    if not ferme:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+
+    parcelles = db.query(models.Parcelle).filter(models.Parcelle.ferme_id == ferme_id).all()
+    parcelle_ids = [p.id for p in parcelles]
+
+    # Récoltes par variété
+    par_variete: dict = {}
+    if parcelle_ids:
+        recoltes = db.query(models.Recolte).filter(
+            models.Recolte.parcelle_id.in_(parcelle_ids),
+            extract("year", models.Recolte.date) == annee
+        ).all()
+        for r in recoltes:
+            p = next((x for x in parcelles if x.id == r.parcelle_id), None)
+            if not p:
+                continue
+            v = p.variete.value
+            if v not in par_variete:
+                par_variete[v] = {"kg": 0.0, "valeur": 0.0}
+            par_variete[v]["kg"] += r.quantite_kg
+            par_variete[v]["valeur"] += r.quantite_kg * (r.prix_kg or 0)
+
+    total_kg = sum(v["kg"] for v in par_variete.values())
+    total_valeur = sum(v["valeur"] for v in par_variete.values())
+
+    variete_stats = []
+    for v, d in sorted(par_variete.items(), key=lambda x: x[1]["kg"], reverse=True):
+        pct = round(d["kg"] / total_kg * 100, 1) if total_kg > 0 else 0
+        variete_stats.append(VarieteStat(
+            variete=v,
+            kg=round(d["kg"], 1),
+            valeur=round(d["valeur"], 2),
+            pct=pct,
+        ))
+
+    # Stocks
+    stocks = db.query(models.Stock).filter(models.Stock.ferme_id == ferme_id).order_by(models.Stock.quantite).all()
+    stock_stats = []
+    for s in stocks:
+        if s.seuil_alerte > 0:
+            pct = round(s.quantite / s.seuil_alerte * 100, 0)
+        else:
+            pct = 100.0
+        stock_stats.append(StockStat(
+            nom=s.nom,
+            quantite=round(s.quantite, 1),
+            seuil=s.seuil_alerte,
+            unite=s.unite or "",
+            pct_seuil=pct,
+            en_alerte=s.seuil_alerte > 0 and s.quantite <= s.seuil_alerte,
+        ))
+
+    return FermeStats(
+        annee=annee,
+        total_kg=round(total_kg, 1),
+        total_valeur=round(total_valeur, 2),
+        par_variete=variete_stats,
+        stocks=stock_stats,
+    )

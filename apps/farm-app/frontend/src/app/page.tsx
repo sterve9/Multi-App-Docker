@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { Trees, Apple, Syringe, TriangleAlert, MapPin, Plus, X, CheckCircle, Trash2 } from 'lucide-react'
+import { Trees, Apple, Syringe, TriangleAlert, MapPin, Plus, X, CheckCircle, Trash2, BarChart2, Package } from 'lucide-react'
 
 // ─── Météo ──────────────────────────────────────────────
 const WMO: Record<number, { label: string; emoji: string }> = {
@@ -146,6 +146,17 @@ interface DashboardFerme {
   recolte_total_kg: number
   dernier_traitement: string | null
   stocks_alerte: number
+}
+
+interface VarieteStat { variete: string; kg: number; valeur: number; pct: number }
+interface StockStat { nom: string; quantite: number; seuil: number; unite: string; pct_seuil: number; en_alerte: boolean }
+interface FermeStats { annee: number; total_kg: number; total_valeur: number; par_variete: VarieteStat[]; stocks: StockStat[] }
+
+const VARIETE_META: Record<string, { emoji: string; color: string; bar: string }> = {
+  citron:     { emoji: '🍋', color: 'text-yellow-700', bar: 'bg-yellow-400' },
+  orange:     { emoji: '🟠', color: 'text-orange-600', bar: 'bg-orange-400' },
+  clementine: { emoji: '🍊', color: 'text-orange-500', bar: 'bg-orange-300' },
+  mixte:      { emoji: '🌿', color: 'text-emerald-700', bar: 'bg-emerald-400' },
 }
 
 const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition'
@@ -379,6 +390,94 @@ export default function DashboardPage() {
   )
 }
 
+function StatsSection({ fermeId }: { fermeId: number }) {
+  const [stats, setStats] = useState<FermeStats | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    api.get(`/fermes/${fermeId}/stats`).then(r => {
+      setStats(r.data)
+      setTimeout(() => setMounted(true), 80)
+    }).catch(() => {})
+  }, [fermeId])
+
+  if (!stats) return null
+
+  const hasRecoltes = stats.par_variete.length > 0
+  const alertStocks = stats.stocks.filter(s => s.en_alerte)
+  const okStocks = stats.stocks.filter(s => !s.en_alerte).slice(0, 3)
+  const displayStocks = [...alertStocks, ...okStocks].slice(0, 5)
+
+  if (!hasRecoltes && displayStocks.length === 0) return null
+
+  return (
+    <div className="px-5 pb-5 pt-1 border-t border-slate-50 space-y-4">
+
+      {/* Récoltes par variété */}
+      {hasRecoltes && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <BarChart2 size={13} className="text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Récoltes {stats.annee} · {stats.total_kg.toLocaleString('fr-FR')} kg</span>
+          </div>
+          <div className="space-y-2.5">
+            {stats.par_variete.map((v, i) => {
+              const meta = VARIETE_META[v.variete] || { emoji: '🌿', color: 'text-slate-600', bar: 'bg-slate-400' }
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-slate-600">{meta.emoji} {v.variete.charAt(0).toUpperCase() + v.variete.slice(1)}</span>
+                    <span className="text-xs font-bold text-slate-700 tabular-nums">{v.kg.toLocaleString('fr-FR')} kg</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${meta.bar}`}
+                      style={{ width: mounted ? `${v.pct}%` : '0%' }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* État des stocks */}
+      {displayStocks.length > 0 && (
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Package size={13} className="text-slate-400" />
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Stocks</span>
+          </div>
+          <div className="space-y-2">
+            {displayStocks.map((s, i) => {
+              const pct = Math.min(s.pct_seuil, 200)
+              const barPct = Math.min(pct / 2, 100)
+              const barColor = s.en_alerte ? 'bg-red-400' : pct < 150 ? 'bg-amber-400' : 'bg-emerald-400'
+              return (
+                <div key={i} className="flex items-center gap-3">
+                  <span className={`text-xs truncate w-28 shrink-0 ${s.en_alerte ? 'text-red-600 font-semibold' : 'text-slate-600'}`}>
+                    {s.en_alerte ? '⚠️ ' : ''}{s.nom}
+                  </span>
+                  <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-1000 ease-out ${barColor}`}
+                      style={{ width: mounted ? `${barPct}%` : '0%' }}
+                    />
+                  </div>
+                  <span className="text-xs text-slate-500 tabular-nums w-16 text-right shrink-0">
+                    {s.quantite} {s.unite}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function FermeCard({ d, index, animated, onDelete }: { d: DashboardFerme; index: number; animated: boolean; onDelete: () => void }) {
   const parcelles = useCountUp(d.nb_parcelles, 700, animated)
   const arbres = useCountUp(d.nb_arbres_total, 900, animated)
@@ -453,6 +552,8 @@ function FermeCard({ d, index, animated, onDelete }: { d: DashboardFerme; index:
           alert={alertes > 0}
         />
       </div>
+
+      <StatsSection fermeId={d.ferme.id} />
 
       {d.dernier_traitement && (
         <div className="px-5 pb-4 flex items-center gap-2 text-xs text-slate-400 border-t border-slate-50 pt-3">
