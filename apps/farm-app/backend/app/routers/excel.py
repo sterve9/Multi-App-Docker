@@ -10,6 +10,7 @@ from openpyxl.utils import get_column_letter
 from .. import models
 from ..database import get_db
 from ..auth import get_current_user
+from ..deps import check_ferme_access
 
 router = APIRouter(prefix="/excel", tags=["excel"])
 
@@ -237,6 +238,7 @@ def export_excel(
     ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
+    check_ferme_access(ferme_id, user, db)
 
     parcelles = db.query(models.Parcelle).filter(models.Parcelle.ferme_id == ferme_id).all()
     parcelle_ids = [p.id for p in parcelles]

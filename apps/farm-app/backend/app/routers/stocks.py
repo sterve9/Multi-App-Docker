@@ -7,6 +7,7 @@ from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
 from ..services.webhook import trigger_stock_alerte
+from ..deps import get_accessible_ferme_ids, check_ferme_access
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
@@ -54,9 +55,14 @@ def list_stocks(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    accessible = get_accessible_ferme_ids(user, db)
     q = db.query(models.Stock)
     if ferme_id:
+        if accessible is not None and ferme_id not in accessible:
+            return []
         q = q.filter(models.Stock.ferme_id == ferme_id)
+    elif accessible is not None:
+        q = q.filter(models.Stock.ferme_id.in_(accessible))
     stocks = q.order_by(models.Stock.nom).all()
     result = []
     for s in stocks:
@@ -76,12 +82,15 @@ def list_alertes(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    accessible = get_accessible_ferme_ids(user, db)
     q = db.query(models.Stock).filter(
         models.Stock.quantite <= models.Stock.seuil_alerte,
         models.Stock.seuil_alerte > 0
     )
     if ferme_id:
         q = q.filter(models.Stock.ferme_id == ferme_id)
+    if accessible is not None:
+        q = q.filter(models.Stock.ferme_id.in_(accessible))
     return q.all()
 
 
@@ -94,6 +103,7 @@ def create_stock(
     ferme = db.query(models.Ferme).filter(models.Ferme.id == s.ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
+    check_ferme_access(s.ferme_id, user, db)
     db_s = models.Stock(**s.model_dump())
     db.add(db_s)
     db.commit()

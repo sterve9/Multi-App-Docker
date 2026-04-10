@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
+from ..deps import check_ferme_access
 
 router = APIRouter(prefix="/bilan", tags=["bilan"])
 
@@ -37,6 +38,7 @@ def get_bilan(
     ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
+    check_ferme_access(ferme_id, user, db)
 
     # IDs des parcelles de la ferme
     parcelle_ids = [p.id for p in ferme.parcelles]
@@ -110,6 +112,7 @@ def get_comparaison(
     ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
+    check_ferme_access(ferme_id, user, db)
 
     parcelle_ids = [p.id for p in ferme.parcelles]
     annee_n1 = annee - 1

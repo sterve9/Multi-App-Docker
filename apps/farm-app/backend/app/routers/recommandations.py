@@ -4,6 +4,7 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
+from ..deps import get_accessible_ferme_ids, check_ferme_access
 
 router = APIRouter(prefix="/recommandations", tags=["recommandations"])
 
@@ -15,9 +16,14 @@ def list_recommandations(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
+    accessible = get_accessible_ferme_ids(user, db)
     q = db.query(models.Recommandation)
     if ferme_id:
+        if accessible is not None and ferme_id not in accessible:
+            return []
         q = q.filter(models.Recommandation.ferme_id == ferme_id)
+    elif accessible is not None:
+        q = q.filter(models.Recommandation.ferme_id.in_(accessible))
     if statut:
         q = q.filter(models.Recommandation.statut == statut)
     return q.order_by(models.Recommandation.date.desc()).all()
@@ -32,6 +38,7 @@ def create_recommandation(
     ferme = db.query(models.Ferme).filter(models.Ferme.id == r.ferme_id).first()
     if not ferme:
         raise HTTPException(status_code=404, detail="Ferme introuvable")
+    check_ferme_access(r.ferme_id, user, db)
     db_r = models.Recommandation(**r.model_dump())
     db.add(db_r)
     db.commit()
@@ -49,6 +56,7 @@ def update_recommandation(
     r = db.query(models.Recommandation).filter(models.Recommandation.id == rec_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Recommandation introuvable")
+    check_ferme_access(r.ferme_id, user, db)
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(r, key, value)
     db.commit()
@@ -65,6 +73,7 @@ def delete_recommandation(
     r = db.query(models.Recommandation).filter(models.Recommandation.id == rec_id).first()
     if not r:
         raise HTTPException(status_code=404, detail="Recommandation introuvable")
+    check_ferme_access(r.ferme_id, user, db)
     db.delete(r)
     db.commit()
     return {"message": "Recommandation supprimée"}

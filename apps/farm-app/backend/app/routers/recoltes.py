@@ -4,15 +4,19 @@ from typing import List, Optional
 from .. import models, schemas
 from ..database import get_db
 from ..auth import get_current_user
+from ..deps import get_accessible_ferme_ids, check_ferme_access
 
 router = APIRouter(prefix="/recoltes", tags=["récoltes"])
 
 
 @router.get("/", response_model=List[schemas.RecolteOut])
 def list_recoltes(parcelle_id: Optional[int] = None, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    query = db.query(models.Recolte).order_by(models.Recolte.date.desc())
+    accessible = get_accessible_ferme_ids(user, db)
+    query = db.query(models.Recolte).join(models.Parcelle).order_by(models.Recolte.date.desc())
     if parcelle_id:
         query = query.filter(models.Recolte.parcelle_id == parcelle_id)
+    if accessible is not None:
+        query = query.filter(models.Parcelle.ferme_id.in_(accessible))
     return query.all()
 
 
@@ -21,6 +25,7 @@ def create_recolte(r: schemas.RecolteCreate, db: Session = Depends(get_db), user
     parcelle = db.query(models.Parcelle).filter(models.Parcelle.id == r.parcelle_id).first()
     if not parcelle:
         raise HTTPException(status_code=404, detail="Parcelle introuvable")
+    check_ferme_access(parcelle.ferme_id, user, db)
     db_r = models.Recolte(**r.model_dump())
     db.add(db_r)
     db.commit()

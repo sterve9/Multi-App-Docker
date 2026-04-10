@@ -5,6 +5,7 @@ from .. import models, schemas
 from ..database import get_db, SessionLocal
 from ..auth import get_current_user
 from ..services.webhook import trigger_stock_alerte
+from ..deps import get_accessible_ferme_ids, check_ferme_access
 
 router = APIRouter(prefix="/traitements", tags=["traitements"])
 
@@ -33,9 +34,12 @@ def list_traitements(
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
-    query = db.query(models.Traitement).order_by(models.Traitement.date.desc())
+    accessible = get_accessible_ferme_ids(user, db)
+    query = db.query(models.Traitement).join(models.Parcelle).order_by(models.Traitement.date.desc())
     if parcelle_id:
         query = query.filter(models.Traitement.parcelle_id == parcelle_id)
+    if accessible is not None:
+        query = query.filter(models.Parcelle.ferme_id.in_(accessible))
     return query.all()
 
 
@@ -49,6 +53,7 @@ def create_traitement(
     parcelle = db.query(models.Parcelle).filter(models.Parcelle.id == t.parcelle_id).first()
     if not parcelle:
         raise HTTPException(status_code=404, detail="Parcelle introuvable")
+    check_ferme_access(parcelle.ferme_id, user, db)
 
     # Créer le traitement
     db_t = models.Traitement(**t.model_dump())
