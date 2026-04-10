@@ -71,7 +71,7 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-64 min-h-screen fixed left-0 top-0 bg-gradient-to-b from-[#071c10] to-[#0f3320] shadow-xl z-40">
+      <aside className="hidden md:flex flex-col w-64 h-screen fixed left-0 top-0 bg-gradient-to-b from-[#071c10] to-[#0f3320] shadow-xl z-40">
         {/* Logo */}
         <div className="px-5 py-7">
           <div className="flex items-center gap-3">
@@ -88,7 +88,7 @@ export default function Navbar() {
         <div className="mx-5 h-px bg-white/8 mb-3" />
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 space-y-0.5">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           {allLinks.map(({ href, label, icon: Icon }) => {
             const active = pathname === href
             const hasAlert = href === '/stocks' && stocksAlerte > 0
