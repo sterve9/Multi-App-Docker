@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Plus, Pencil, Trash2, X, Package, TriangleAlert, ArrowDown, ArrowUp, History, CheckCircle } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Ferme { id: number; nom: string; nb_vannes: number; jours_irrigation: string }
 interface Stock {
@@ -170,23 +171,22 @@ export default function StocksPage() {
       <Navbar />
       <main className="p-5 md:p-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 fade-in-up">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Stocks</h1>
-              <p className="text-slate-400 text-sm mt-0.5">{stocks.length} article{stocks.length !== 1 ? 's' : ''} · {selectedFermeName}</p>
-            </div>
-            {alertCount > 0 && (
-              <span className="bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-red-100 alert-pulse">
-                <TriangleAlert size={13} /> {alertCount} alerte{alertCount > 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm hover:shadow active:scale-95">
-            <Plus size={16} /> Ajouter
-          </button>
-        </div>
+        <PageHeader
+          icon={Package}
+          title="Stocks"
+          subtitle={selectedFermeName || 'Intrants et produits agricoles'}
+          gradient="from-slate-700 to-slate-600"
+          stats={[
+            { label: 'articles', value: stocks.length, color: 'slate' },
+            { label: alertCount > 0 ? `alerte${alertCount > 1 ? 's' : ''}` : 'alertes', value: alertCount, color: alertCount > 0 ? 'red' : 'slate' },
+            { label: 'ok', value: stocks.length - alertCount, color: 'emerald' },
+          ]}
+          action={
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+              <Plus size={16} /> Ajouter
+            </button>
+          }
+        />
 
         {/* Filtres */}
         <div className="flex items-center gap-3 mb-5 flex-wrap fade-in-up" style={{ animationDelay: '60ms' }}>

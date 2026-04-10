@@ -5,6 +5,7 @@ import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import Link from 'next/link'
 import { Plus, Pencil, Trash2, X, MapPin, Trees, LayoutGrid, List } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Ferme { id: number; nom: string }
 interface Parcelle {
@@ -103,16 +104,22 @@ export default function ParcellesPage() {
     <div className="md:ml-64 min-h-screen pb-24 md:pb-0">
       <Navbar />
       <main className="p-5 md:p-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Parcelles</h1>
-            <p className="text-slate-400 text-sm mt-0.5">{parcelles.length} parcelle{parcelles.length !== 1 ? 's' : ''} au total</p>
-          </div>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm hover:shadow">
-            <Plus size={16} /> Ajouter
-          </button>
-        </div>
+        <PageHeader
+          icon={MapPin}
+          title="Parcelles"
+          subtitle="Plan et gestion des parcelles agrumicoles"
+          gradient="from-green-700 to-emerald-600"
+          stats={[
+            { label: 'parcelles', value: parcelles.length, color: 'slate' },
+            { label: 'en production', value: parcelles.filter(p => p.statut === 'en_production').length, color: 'emerald' },
+            { label: 'arbres total', value: parcelles.reduce((s, p) => s + (p.nb_arbres || 0), 0).toLocaleString('fr-FR'), color: 'blue' },
+          ]}
+          action={
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+              <Plus size={16} /> Ajouter
+            </button>
+          }
+        />
 
         {/* Filter + Toggle */}
         <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">

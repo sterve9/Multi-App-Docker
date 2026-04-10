@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download, ArrowUp, ArrowDown, Minus, FileSpreadsheet } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Ferme { id: number; nom: string }
 interface DepenseItem { stock_nom: string; categorie: string; cout_total: number }
@@ -141,41 +142,29 @@ export default function BilanPage() {
       <Navbar />
       <main className="p-5 md:p-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 fade-in-up">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Bilan de saison</h1>
-            <p className="text-slate-400 text-sm mt-0.5">Coûts, récoltes et marge brute</p>
-          </div>
-          {bilan && (
+        <PageHeader
+          icon={BarChart2}
+          title="Bilan de saison"
+          subtitle={`Coûts, récoltes et marge brute · ${selectedAnnee}`}
+          gradient="from-indigo-700 to-blue-600"
+          stats={bilan ? [
+            { label: 'kg récoltés', value: `${bilan.total_kg.toLocaleString('fr-FR')} kg`, color: 'emerald' },
+            { label: 'chiffre d\'affaires', value: `${bilan.ca_total.toLocaleString('fr-FR')} TND`, color: 'blue' },
+            { label: bilan.marge_brute >= 0 ? 'marge brute' : 'déficit', value: `${bilan.marge_brute >= 0 ? '+' : ''}${bilan.marge_brute.toLocaleString('fr-FR')} TND`, color: bilan.marge_brute >= 0 ? 'emerald' : 'red' },
+          ] : []}
+          action={bilan ? (
             <div className="flex items-center gap-2">
-              <button
-                onClick={downloadExcel}
-                disabled={downloadingXls}
-                className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm"
-              >
-                {downloadingXls ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <FileSpreadsheet size={15} />
-                )}
-                {downloadingXls ? 'Export...' : 'Excel'}
+              <button onClick={downloadExcel} disabled={downloadingXls} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white px-3 py-2 rounded-xl text-sm font-semibold transition">
+                {downloadingXls ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FileSpreadsheet size={14} />}
+                Excel
               </button>
-              <button
-                onClick={downloadPdf}
-                disabled={downloadingPdf}
-                className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm"
-              >
-                {downloadingPdf ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <Download size={15} />
-                )}
-                {downloadingPdf ? 'Génération...' : 'PDF'}
+              <button onClick={downloadPdf} disabled={downloadingPdf} className="flex items-center gap-1.5 bg-white/20 hover:bg-white/30 disabled:opacity-50 text-white px-3 py-2 rounded-xl text-sm font-semibold transition">
+                {downloadingPdf ? <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={14} />}
+                PDF
               </button>
             </div>
-          )}
-        </div>
+          ) : undefined}
+        />
 
         {/* Sélecteurs */}
         <div className="flex items-center gap-3 mb-8 flex-wrap fade-in-up" style={{ animationDelay: '60ms' }}>

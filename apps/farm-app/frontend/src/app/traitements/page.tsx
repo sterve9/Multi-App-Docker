@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Plus, Pencil, Trash2, X, Syringe, Package, CheckCircle } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Parcelle { id: number; nom: string; ferme_id: number }
 interface Ferme { id: number; nom: string }
@@ -138,15 +139,23 @@ export default function TraitementsPage() {
     <div className="md:ml-64 min-h-screen pb-24 md:pb-0">
       <Navbar />
       <main className="p-5 md:p-8">
-        <div className="flex items-center justify-between mb-6 fade-in-up">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Traitements</h1>
-            <p className="text-slate-400 text-sm mt-0.5">{traitements.length} traitement{traitements.length !== 1 ? 's' : ''} enregistré{traitements.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm hover:shadow active:scale-95">
-            <Plus size={16} /> Ajouter
-          </button>
-        </div>
+        <PageHeader
+          icon={Syringe}
+          title="Traitements"
+          subtitle="Pesticides, engrais, irrigation et tailles"
+          gradient="from-teal-700 to-emerald-600"
+          stats={[
+            { label: 'total', value: traitements.length, color: 'slate' },
+            { label: 'pesticides', value: traitements.filter(t => t.type_traitement === 'pesticide').length, color: 'red' },
+            { label: 'engrais', value: traitements.filter(t => t.type_traitement === 'engrais').length, color: 'emerald' },
+            { label: 'irrigation', value: traitements.filter(t => t.type_traitement === 'irrigation').length, color: 'blue' },
+          ]}
+          action={
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+              <Plus size={16} /> Ajouter
+            </button>
+          }
+        />
 
         <div className="mb-5 fade-in-up" style={{ animationDelay: '60ms' }}>
           <select value={filterParcelle} onChange={e => setFilterParcelle(e.target.value)} className="border border-slate-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition">

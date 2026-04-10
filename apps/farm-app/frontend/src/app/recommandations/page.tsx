@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Plus, X, ClipboardList, CheckCircle, Clock, ShieldCheck, FlaskConical, Sparkles } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Ferme { id: number; nom: string }
 interface Recommandation {
@@ -154,25 +155,22 @@ export default function RecommandationsPage() {
       <Navbar />
       <main className="p-5 md:p-8">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 fade-in-up">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Recommandations</h1>
-              <p className="text-slate-400 text-sm mt-0.5">Directives et conseils agronomiques</p>
-            </div>
-            {enAttente > 0 && (
-              <span className="bg-amber-50 text-amber-600 text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-amber-200">
-                <Clock size={13} /> {enAttente} en attente
-              </span>
-            )}
-          </div>
-          {canEdit && (
-            <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm hover:shadow active:scale-95">
+        <PageHeader
+          icon={ClipboardList}
+          title="Recommandations"
+          subtitle="Directives patron · Conseils ingénieur · IA"
+          gradient="from-violet-700 to-purple-600"
+          stats={[
+            { label: 'total', value: recs.length, color: 'slate' },
+            { label: 'en attente', value: enAttente, color: enAttente > 0 ? 'amber' : 'slate' },
+            { label: 'appliquées', value: recs.filter(r => r.statut === 'appliquee').length, color: 'emerald' },
+          ]}
+          action={canEdit ? (
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
               <Plus size={16} /> Nouvelle
             </button>
-          )}
-        </div>
+          ) : undefined}
+        />
 
         {/* Légende */}
         <div className="flex items-center gap-3 mb-5 flex-wrap fade-in-up" style={{ animationDelay: '40ms' }}>

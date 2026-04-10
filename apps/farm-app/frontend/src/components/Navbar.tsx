@@ -1,10 +1,18 @@
 'use client'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X, CalendarDays, Sparkles, Settings } from 'lucide-react'
+import { LayoutDashboard, MapPin, Syringe, Apple, Package, LogOut, Leaf, ClipboardList, BarChart2, MoreHorizontal, X, CalendarDays, Sparkles, Settings, ShieldCheck, FlaskConical, User } from 'lucide-react'
 import clsx from 'clsx'
 import { useState, useEffect, useCallback } from 'react'
 import api from '@/lib/api'
+
+interface Me { id: number; username: string; nom: string; role: 'admin' | 'ingenieur' | 'gestionnaire' }
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: 'Administrateur',
+  ingenieur: 'Ingénieur',
+  gestionnaire: 'Gestionnaire',
+}
 
 const mainLinks = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -29,6 +37,7 @@ export default function Navbar() {
   const router = useRouter()
   const [showMore, setShowMore] = useState(false)
   const [stocksAlerte, setStocksAlerte] = useState(0)
+  const [me, setMe] = useState<Me | null>(null)
 
   const isMoreActive = moreLinks.some(l => l.href === pathname)
 
@@ -48,11 +57,16 @@ export default function Navbar() {
   }, [])
 
   useEffect(() => {
+    const token = localStorage.getItem('farm_token')
+    if (!token) return
+    api.get('/users/me').then(r => setMe(r.data)).catch(() => {})
     fetchAlerts()
-    // Rafraîchir toutes les 2 minutes
     const interval = setInterval(fetchAlerts, 120000)
     return () => clearInterval(interval)
   }, [fetchAlerts])
+
+  const initials = me ? (me.nom || me.username).slice(0, 2).toUpperCase() : '?'
+  const RoleIcon = me?.role === 'admin' ? ShieldCheck : me?.role === 'ingenieur' ? FlaskConical : User
 
   return (
     <>
@@ -111,8 +125,22 @@ export default function Navbar() {
 
         <div className="mx-5 h-px bg-white/8 mt-3" />
 
-        {/* Logout */}
-        <div className="px-3 py-4">
+        {/* User card + logout */}
+        <div className="px-3 py-4 space-y-1">
+          {me && (
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl mb-1">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/20 flex items-center justify-center shrink-0 text-xs font-bold text-emerald-300">
+                {initials}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-white/80 text-xs font-semibold truncate">{me.nom || me.username}</div>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <RoleIcon size={10} className="text-white/30" />
+                  <span className="text-white/30 text-[10px]">{ROLE_LABEL[me.role]}</span>
+                </div>
+              </div>
+            </div>
+          )}
           <button
             onClick={logout}
             className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-white/40 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all duration-150"

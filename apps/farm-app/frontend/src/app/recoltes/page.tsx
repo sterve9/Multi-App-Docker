@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
 import { Plus, Pencil, Trash2, X, Apple, CheckCircle } from 'lucide-react'
+import PageHeader from '@/components/PageHeader'
 
 interface Parcelle { id: number; nom: string; ferme_id: number; variete: string }
 interface Ferme { id: number; nom: string }
@@ -115,15 +116,22 @@ export default function RecoltesPage() {
     <div className="md:ml-64 min-h-screen pb-24 md:pb-0">
       <Navbar />
       <main className="p-5 md:p-8">
-        <div className="flex items-center justify-between mb-6 fade-in-up">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">Récoltes</h1>
-            <p className="text-slate-400 text-sm mt-0.5">{recoltes.length} récolte{recoltes.length !== 1 ? 's' : ''} enregistrée{recoltes.length !== 1 ? 's' : ''}</p>
-          </div>
-          <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition shadow-sm hover:shadow active:scale-95">
-            <Plus size={16} /> Ajouter
-          </button>
-        </div>
+        <PageHeader
+          icon={Apple}
+          title="Récoltes"
+          subtitle="Suivi des productions par parcelle"
+          gradient="from-orange-600 to-amber-500"
+          stats={[
+            { label: 'entrées', value: recoltes.length, color: 'slate' },
+            { label: 'kg récoltés', value: totalKg > 0 ? `${totalKg.toLocaleString('fr-FR')} kg` : '0 kg', color: 'emerald' },
+            { label: 'valeur totale', value: totalValeur > 0 ? `${totalValeur.toLocaleString('fr-FR')} TND` : '0 TND', color: 'amber' },
+          ]}
+          action={
+            <button onClick={openAdd} className="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition active:scale-95">
+              <Plus size={16} /> Ajouter
+            </button>
+          }
+        />
 
         <div className="flex items-center gap-3 mb-5 flex-wrap fade-in-up" style={{ animationDelay: '60ms' }}>
           <select value={filterParcelle} onChange={e => setFilterParcelle(e.target.value)} className="border border-slate-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition">
