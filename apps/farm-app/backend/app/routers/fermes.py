@@ -94,6 +94,29 @@ def update_ferme_config(ferme_id: int, config: schemas.FermeConfigUpdate, db: Se
     return ferme
 
 
+@router.put("/{ferme_id}/assigner")
+def assigner_ferme(
+    ferme_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+):
+    """Admin only — assigne ou réassigne une ferme à un utilisateur (owner_id)."""
+    if user.role != models.RoleEnum.admin:
+        raise HTTPException(status_code=403, detail="Réservé à l'administrateur")
+    ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()
+    if not ferme:
+        raise HTTPException(status_code=404, detail="Ferme introuvable")
+    new_owner_id = body.get("owner_id")  # peut être None pour désassigner
+    if new_owner_id is not None:
+        owner = db.query(models.User).filter(models.User.id == new_owner_id).first()
+        if not owner:
+            raise HTTPException(status_code=404, detail="Utilisateur introuvable")
+    ferme.owner_id = new_owner_id
+    db.commit()
+    return {"ok": True, "ferme_id": ferme_id, "owner_id": new_owner_id}
+
+
 @router.get("/{ferme_id}/planning", response_model=schemas.PlanningFerme)
 def get_planning(ferme_id: int, nb_semaines: int = 3, db: Session = Depends(get_db), user=Depends(get_current_user)):
     ferme = db.query(models.Ferme).filter(models.Ferme.id == ferme_id).first()

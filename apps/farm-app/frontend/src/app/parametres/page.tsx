@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { Users, Plus, Trash2, KeyRound, X, ShieldCheck, User, FlaskConical } from 'lucide-react'
+import { Users, Plus, Trash2, KeyRound, X, ShieldCheck, User, FlaskConical, Tractor, ChevronDown } from 'lucide-react'
 
 interface UserItem {
   id: number
@@ -10,6 +10,13 @@ interface UserItem {
   nom: string
   role: 'admin' | 'ingenieur' | 'gestionnaire'
   created_at: string
+}
+
+interface FermeItem {
+  id: number
+  nom: string
+  localisation?: string
+  owner_id?: number | null
 }
 
 const ROLE_LABEL: Record<string, string> = {
@@ -29,6 +36,7 @@ const INPUT = 'w-full border border-slate-200 bg-slate-50 rounded-xl px-3 py-2.5
 export default function ParametresPage() {
   const [me, setMe] = useState<UserItem | null>(null)
   const [userList, setUserList] = useState<UserItem[]>([])
+  const [fermeList, setFermeList] = useState<FermeItem[]>([])
   const [loading, setLoading] = useState(true)
 
   // Create user modal
@@ -43,21 +51,24 @@ export default function ParametresPage() {
   const [pwdError, setPwdError] = useState<string | null>(null)
   const [pwdSubmitting, setPwdSubmitting] = useState(false)
 
-  useEffect(() => {
-    loadAll()
-  }, [])
+  // Assign farm modal
+  const [assignTarget, setAssignTarget] = useState<FermeItem | null>(null)
+  const [assignOwnerId, setAssignOwnerId] = useState<string>('')
+  const [assignSubmitting, setAssignSubmitting] = useState(false)
+
+  useEffect(() => { loadAll() }, [])
 
   const loadAll = async () => {
     setLoading(true)
     try {
-      const [meRes, listRes] = await Promise.all([
+      const [meRes, listRes, fermesRes] = await Promise.all([
         api.get('/users/me'),
-        api.get('/users/').catch(() => ({ data: [] }))
+        api.get('/users/').catch(() => ({ data: [] })),
+        api.get('/fermes/').catch(() => ({ data: [] })),
       ])
       setMe(meRes.data)
       setUserList(listRes.data)
-    } catch {
-      // non-admin: only /me worked
+      setFermeList(fermesRes.data)
     } finally {
       setLoading(false)
     }
@@ -101,21 +112,47 @@ export default function ParametresPage() {
     }
   }
 
+  const openAssign = (ferme: FermeItem) => {
+    setAssignTarget(ferme)
+    setAssignOwnerId(ferme.owner_id ? String(ferme.owner_id) : '')
+  }
+
+  const handleAssign = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!assignTarget) return
+    setAssignSubmitting(true)
+    try {
+      await api.put(`/fermes/${assignTarget.id}/assigner`, {
+        owner_id: assignOwnerId ? Number(assignOwnerId) : null,
+      })
+      setAssignTarget(null)
+      loadAll()
+    } finally {
+      setAssignSubmitting(false)
+    }
+  }
+
+  const getOwnerName = (owner_id?: number | null) => {
+    if (!owner_id) return null
+    const u = userList.find(u => u.id === owner_id)
+    return u ? (u.nom || u.username) : null
+  }
+
   const isAdmin = me?.role === 'admin'
 
   return (
     <div className="md:ml-64 min-h-screen bg-slate-50">
       <Navbar />
-      <main className="p-4 md:p-8 pb-28 max-w-2xl mx-auto">
+      <main className="p-4 md:p-8 pb-28 max-w-2xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-6">
+        <div>
           <h1 className="text-xl font-bold text-slate-800">Paramètres</h1>
           <p className="text-slate-500 text-sm mt-0.5">Gestion du compte et des utilisateurs</p>
         </div>
 
         {/* Mon compte */}
         {me && (
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
             <div className="bg-gradient-to-r from-emerald-700 to-green-600 px-6 py-5 rounded-t-2xl">
               <h2 className="text-white font-bold text-base">Mon compte</h2>
             </div>
@@ -202,6 +239,61 @@ export default function ParametresPage() {
             )}
           </div>
         )}
+
+        {/* Assignation des fermes — admin only */}
+        {isAdmin && (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100">
+            <div className="bg-gradient-to-r from-amber-600 to-amber-500 px-6 py-5 rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <Tractor size={18} className="text-white/80" />
+                <h2 className="text-white font-bold text-base">Fermes — Responsables</h2>
+              </div>
+              <p className="text-white/70 text-xs mt-1">Associez chaque ferme à un gestionnaire</p>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-slate-400 text-sm">Chargement...</div>
+            ) : (
+              <div className="divide-y divide-slate-50">
+                {fermeList.map(ferme => {
+                  const ownerName = getOwnerName(ferme.owner_id)
+                  return (
+                    <div key={ferme.id} className="flex items-center px-6 py-4 gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center shrink-0">
+                        <Tractor size={16} className="text-amber-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-slate-800 truncate">{ferme.nom}</div>
+                        <div className="text-xs text-slate-400">
+                          {ferme.localisation || 'Aucune localisation'}
+                        </div>
+                      </div>
+                      <div className="text-right mr-2">
+                        {ownerName ? (
+                          <span className="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                            {ownerName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">Non assignée</span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => openAssign(ferme)}
+                        className="flex items-center gap-1 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition p-1.5 rounded-lg text-xs font-medium"
+                        title="Modifier le responsable"
+                      >
+                        <ChevronDown size={15} />
+                      </button>
+                    </div>
+                  )
+                })}
+                {fermeList.length === 0 && (
+                  <div className="p-8 text-center text-slate-400 text-sm">Aucune ferme</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </main>
 
       {/* Modal créer utilisateur */}
@@ -277,6 +369,50 @@ export default function ParametresPage() {
                 <button type="button" onClick={() => setPwdTarget(null)} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition">Annuler</button>
                 <button type="submit" disabled={pwdSubmitting} className="flex-1 bg-slate-700 hover:bg-slate-800 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-sm">
                   {pwdSubmitting ? 'Enregistrement...' : 'Modifier'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal assigner ferme */}
+      {assignTarget && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm modal-enter">
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+              <h2 className="text-base font-bold text-slate-800">Responsable de la ferme</h2>
+              <button onClick={() => setAssignTarget(null)} className="text-slate-400 hover:text-slate-600 transition">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-6 pt-4">
+              <p className="text-sm text-slate-500">Ferme : <span className="font-semibold text-slate-700">{assignTarget.nom}</span></p>
+            </div>
+            <form onSubmit={handleAssign} className="p-6 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1.5 block">Assigner à</label>
+                <select
+                  className={INPUT}
+                  value={assignOwnerId}
+                  onChange={e => setAssignOwnerId(e.target.value)}
+                >
+                  <option value="">— Aucun responsable —</option>
+                  {userList
+                    .filter(u => u.role === 'gestionnaire')
+                    .map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.nom || u.username} (@{u.username})
+                      </option>
+                    ))
+                  }
+                </select>
+                <p className="text-xs text-slate-400 mt-1.5">Seuls les gestionnaires apparaissent ici. Les admins et ingénieurs voient toutes les fermes.</p>
+              </div>
+              <div className="flex gap-3 pt-1">
+                <button type="button" onClick={() => setAssignTarget(null)} className="flex-1 border border-slate-200 text-slate-600 py-2.5 rounded-xl text-sm font-medium hover:bg-slate-50 transition">Annuler</button>
+                <button type="submit" disabled={assignSubmitting} className="flex-1 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition shadow-sm">
+                  {assignSubmitting ? 'Enregistrement...' : 'Confirmer'}
                 </button>
               </div>
             </form>
