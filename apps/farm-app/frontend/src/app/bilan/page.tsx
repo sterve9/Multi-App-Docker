@@ -148,8 +148,8 @@ export default function BilanPage() {
           subtitle={`Coûts, récoltes et marge brute · ${selectedAnnee}`}
           gradient="from-indigo-700 to-blue-600"
           stats={bilan ? [
-            { label: 'kg récoltés', value: `${bilan.total_kg.toLocaleString('fr-FR')} kg`, color: 'emerald' },
-            { label: 'chiffre d\'affaires', value: `${bilan.ca_total.toLocaleString('fr-FR')} TND`, color: 'blue' },
+            { label: 'kg récoltés', value: `${bilan.total_recolte_kg.toLocaleString('fr-FR')} kg`, color: 'emerald' },
+            { label: 'CA récoltes', value: `${bilan.total_recolte_valeur.toLocaleString('fr-FR')} TND`, color: 'blue' },
             { label: bilan.marge_brute >= 0 ? 'marge brute' : 'déficit', value: `${bilan.marge_brute >= 0 ? '+' : ''}${bilan.marge_brute.toLocaleString('fr-FR')} TND`, color: bilan.marge_brute >= 0 ? 'emerald' : 'red' },
           ] : []}
           action={bilan ? (
