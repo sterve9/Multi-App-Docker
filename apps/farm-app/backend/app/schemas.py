@@ -60,6 +60,7 @@ class FermeConfigUpdate(BaseModel):
 
 class FermeOut(FermeBase):
     id: int
+    owner_id: Optional[int] = None
     created_at: datetime
     class Config:
         from_attributes = True
