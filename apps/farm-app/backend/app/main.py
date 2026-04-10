@@ -53,16 +53,22 @@ app.include_router(excel.router)
 
 @app.on_event("startup")
 def startup_event():
-    """Add owner_id column if missing, create admin user from env vars if needed."""
+    """Add owner_id column if missing, ensure enum values exist, create admin user from env vars if needed."""
     db = SessionLocal()
     try:
+        from sqlalchemy import text as _text
         # Add owner_id column to fermes if it doesn't exist yet
-        db.execute(
-            __import__('sqlalchemy').text(
-                "ALTER TABLE fermes ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES users(id)"
-            )
-        )
+        db.execute(_text(
+            "ALTER TABLE fermes ADD COLUMN IF NOT EXISTS owner_id INTEGER REFERENCES users(id)"
+        ))
         db.commit()
+
+        # Ensure 'ingenieur' value exists in roleenum PostgreSQL type
+        try:
+            db.execute(_text("ALTER TYPE roleenum ADD VALUE IF NOT EXISTS 'ingenieur'"))
+            db.commit()
+        except Exception:
+            db.rollback()
 
         # Create admin user if no users exist
         if db.query(models.User).count() == 0 and ADMIN_PASSWORD_HASH:
@@ -78,9 +84,7 @@ def startup_event():
             db.refresh(admin)
             # Assign existing fermes (owner_id=NULL) to admin
             db.execute(
-                __import__('sqlalchemy').text(
-                    "UPDATE fermes SET owner_id = :uid WHERE owner_id IS NULL"
-                ),
+                _text("UPDATE fermes SET owner_id = :uid WHERE owner_id IS NULL"),
                 {"uid": admin.id}
             )
             db.commit()

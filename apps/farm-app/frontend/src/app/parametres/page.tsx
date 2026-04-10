@@ -84,7 +84,12 @@ export default function ParametresPage() {
       setForm({ username: '', password: '', nom: '', role: 'gestionnaire' })
       loadAll()
     } catch (err: any) {
-      setFormError(err?.response?.data?.detail || 'Erreur lors de la création')
+      const detail = err?.response?.data?.detail
+      setFormError(
+        typeof detail === 'string' ? detail
+        : Array.isArray(detail) ? detail.map((d: any) => d.msg || d).join(', ')
+        : 'Erreur lors de la création'
+      )
     } finally {
       setSubmitting(false)
     }
