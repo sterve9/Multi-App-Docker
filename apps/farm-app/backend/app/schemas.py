@@ -293,6 +293,8 @@ class ConfirmerSessionOut(BaseModel):
 class ChatMessage(BaseModel):
     role: str  # "user" | "assistant"
     content: str
+    image_data: Optional[str] = None   # base64 string (sans préfixe data:...)
+    image_type: Optional[str] = None   # "image/jpeg" | "image/png" | "image/webp"
 
 class ChatRequest(BaseModel):
     ferme_id: int

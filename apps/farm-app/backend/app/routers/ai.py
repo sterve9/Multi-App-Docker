@@ -215,7 +215,25 @@ Si une donnée manque pour répondre précisément, dis-le clairement.
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
-    messages = [{"role": m.role, "content": m.content} for m in body.messages]
+    messages = []
+    for m in body.messages:
+        if m.image_data and m.image_type:
+            messages.append({
+                "role": m.role,
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": m.image_type,
+                            "data": m.image_data,
+                        },
+                    },
+                    {"type": "text", "text": m.content or "Analyse cette image."},
+                ],
+            })
+        else:
+            messages.append({"role": m.role, "content": m.content})
 
     response = client.messages.create(
         model="claude-sonnet-4-6",

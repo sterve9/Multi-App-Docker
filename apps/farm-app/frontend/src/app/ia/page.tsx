@@ -3,21 +3,37 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { Sparkles, Send, Bot, User, CheckCircle } from 'lucide-react'
+import { Sparkles, Send, Bot, User, CheckCircle, ImagePlus, X } from 'lucide-react'
 
 interface Ferme { id: number; nom: string }
-interface Message { role: 'user' | 'assistant'; content: string }
+
+interface Message {
+  role: 'user' | 'assistant'
+  content: string
+  imagePreview?: string  // URL pour affichage uniquement
+}
+
+interface PendingImage {
+  data: string        // base64 sans préfixe
+  type: string        // image/jpeg | image/png | image/webp
+  preview: string     // data URL pour prévisualisation
+}
+
 interface ToastState { message: string; visible: boolean; exiting: boolean }
 
 const WELCOME: Message = {
   role: 'assistant',
-  content: 'Bonjour ! Je suis votre assistant agronomique. Sélectionnez une ferme puis posez-moi une question — sur vos stocks, vos récoltes, vos traitements, ou demandez-moi d\'analyser la situation.',
+  content: 'Bonjour ! Je suis votre assistant agronomique. Sélectionnez une ferme puis posez-moi une question — sur vos stocks, vos récoltes, vos traitements, ou envoyez-moi la photo d\'un arbre ou d\'une feuille pour que je l\'analyse.',
 }
+
+const ACCEPTED_TYPES = 'image/jpeg,image/png,image/webp,image/gif'
+const MAX_SIZE_MB = 5
 
 export default function IAPage() {
   const router = useRouter()
   const bottomRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [fermes, setFermes] = useState<Ferme[]>([])
   const [selectedFerme, setSelectedFerme] = useState<number | ''>('')
@@ -26,6 +42,7 @@ export default function IAPage() {
   const [loading, setLoading] = useState(false)
   const [analysing, setAnalysing] = useState(false)
   const [toast, setToast] = useState<ToastState>({ message: '', visible: false, exiting: false })
+  const [pendingImage, setPendingImage] = useState<PendingImage | null>(null)
 
   const showToast = useCallback((message: string) => {
     setToast({ message, visible: true, exiting: false })
@@ -48,7 +65,6 @@ export default function IAPage() {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, loading])
 
-  // Auto-resize textarea
   useEffect(() => {
     const ta = textareaRef.current
     if (!ta) return
@@ -56,17 +72,60 @@ export default function IAPage() {
     ta.style.height = Math.min(ta.scrollHeight, 120) + 'px'
   }, [input])
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      showToast(`Image trop lourde (max ${MAX_SIZE_MB} MB)`)
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string
+      // dataUrl = "data:image/jpeg;base64,XXXX..."
+      const [header, base64] = dataUrl.split(',')
+      const mediaType = header.match(/data:(.*);base64/)?.[1] || 'image/jpeg'
+      setPendingImage({ data: base64, type: mediaType, preview: dataUrl })
+    }
+    reader.readAsDataURL(file)
+    // Reset input so same file can be re-selected
+    e.target.value = ''
+  }
+
   const sendMessage = async () => {
-    if (!input.trim() || !selectedFerme || loading) return
-    const userMsg: Message = { role: 'user', content: input.trim() }
+    const text = input.trim()
+    if ((!text && !pendingImage) || !selectedFerme || loading) return
+
+    const userMsg: Message = {
+      role: 'user',
+      content: text || 'Analyse cette image.',
+      imagePreview: pendingImage?.preview,
+    }
     const newMessages = [...messages, userMsg]
     setMessages(newMessages)
     setInput('')
+    const imageToSend = pendingImage
+    setPendingImage(null)
     setLoading(true)
+
     try {
+      // Construction du payload — on envoie tout l'historique
+      const apiMessages = newMessages.map((m, idx) => {
+        // Seul le dernier message utilisateur peut avoir une image
+        if (idx === newMessages.length - 1 && imageToSend) {
+          return {
+            role: m.role,
+            content: m.content,
+            image_data: imageToSend.data,
+            image_type: imageToSend.type,
+          }
+        }
+        return { role: m.role, content: m.content }
+      })
+
       const r = await api.post('/ai/chat', {
         ferme_id: selectedFerme,
-        messages: newMessages,
+        messages: apiMessages,
       })
       setMessages(prev => [...prev, { role: 'assistant', content: r.data.reply }])
     } catch {
@@ -106,6 +165,7 @@ export default function IAPage() {
   }
 
   const fermeName = fermes.find(f => f.id === selectedFerme)?.nom
+  const canSend = (!!input.trim() || !!pendingImage) && !!selectedFerme && !loading
 
   return (
     <div className="md:ml-64 min-h-screen pb-24 md:pb-0 flex flex-col">
@@ -176,27 +236,70 @@ export default function IAPage() {
           {!selectedFerme && (
             <p className="text-xs text-slate-400 text-center mb-2">Sélectionnez une ferme pour commencer</p>
           )}
+
+          {/* Preview image en attente */}
+          {pendingImage && (
+            <div className="relative inline-block mb-2">
+              <img
+                src={pendingImage.preview}
+                alt="Image à envoyer"
+                className="h-20 w-auto rounded-xl border border-slate-200 object-cover"
+              />
+              <button
+                onClick={() => setPendingImage(null)}
+                className="absolute -top-2 -right-2 w-5 h-5 bg-slate-700 hover:bg-slate-900 text-white rounded-full flex items-center justify-center transition"
+              >
+                <X size={11} />
+              </button>
+            </div>
+          )}
+
           <div className="flex items-end gap-2">
+            {/* Bouton image */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={ACCEPTED_TYPES}
+              onChange={handleImageSelect}
+              className="hidden"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!selectedFerme || loading}
+              title="Envoyer une photo"
+              className="w-11 h-11 flex items-center justify-center border border-slate-200 bg-slate-50 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed text-slate-500 rounded-xl transition shrink-0"
+            >
+              <ImagePlus size={17} />
+            </button>
+
             <textarea
               ref={textareaRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={!selectedFerme || loading}
-              placeholder={selectedFerme ? 'Posez une question sur votre ferme... (Entrée pour envoyer)' : 'Sélectionnez une ferme d\'abord'}
+              placeholder={
+                pendingImage
+                  ? 'Ajoutez un contexte ou envoyez directement...'
+                  : selectedFerme
+                  ? 'Posez une question ou envoyez une photo... (Entrée pour envoyer)'
+                  : 'Sélectionnez une ferme d\'abord'
+              }
               rows={1}
               className="flex-1 border border-slate-200 bg-slate-50 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 focus:bg-white transition disabled:opacity-50"
               style={{ minHeight: '44px', maxHeight: '120px' }}
             />
             <button
               onClick={sendMessage}
-              disabled={!input.trim() || !selectedFerme || loading}
+              disabled={!canSend}
               className="w-11 h-11 flex items-center justify-center bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl transition shadow-sm shrink-0"
             >
               <Send size={16} />
             </button>
           </div>
-          <p className="text-[10px] text-slate-300 text-center mt-2">Shift+Entrée pour saut de ligne</p>
+          <p className="text-[10px] text-slate-300 text-center mt-2">
+            Shift+Entrée pour saut de ligne · Photos JPG/PNG/WebP jusqu&apos;à {MAX_SIZE_MB} MB
+          </p>
         </div>
       </div>
 
@@ -216,12 +319,10 @@ export default function IAPage() {
 function MessageBubble({ msg }: { msg: Message }) {
   const isAI = msg.role === 'assistant'
 
-  // Rendre le texte avec support markdown basique (gras, listes numérotées)
   const formatContent = (text: string) => {
     return text
       .split('\n')
       .map((line, i) => {
-        // Gras **text**
         const formatted = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
         return <p key={i} className={line === '' ? 'mt-2' : 'leading-relaxed'} dangerouslySetInnerHTML={{ __html: formatted || '&nbsp;' }} />
       })
@@ -242,7 +343,14 @@ function MessageBubble({ msg }: { msg: Message }) {
 
   return (
     <div className="flex items-start gap-3 justify-end max-w-2xl ml-auto">
-      <div className="bg-slate-100 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-slate-800">
+      <div className="bg-slate-100 rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-slate-800 max-w-xs md:max-w-md">
+        {msg.imagePreview && (
+          <img
+            src={msg.imagePreview}
+            alt="Photo envoyée"
+            className="rounded-xl mb-2 max-h-48 w-auto object-cover"
+          />
+        )}
         {formatContent(msg.content)}
       </div>
       <div className="w-8 h-8 rounded-xl bg-slate-200 flex items-center justify-center shrink-0 mt-0.5">
