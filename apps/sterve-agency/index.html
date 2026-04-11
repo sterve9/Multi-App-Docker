@@ -44,8 +44,14 @@
       padding: 14px 20px;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .nav-logo { font-weight: 800; font-size: 1rem; color: var(--dark); }
-    .nav-logo span { color: var(--green); }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-icon {
+      width: 36px; height: 36px; background: var(--green);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); line-height: 1.1; }
+    .nav-logo-text span { color: var(--green); display: block; font-size: 0.65rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
     .nav-cta {
       background: var(--green); color: white;
       border: none; border-radius: 50px;
@@ -335,17 +341,89 @@
       .packs-grid { flex-direction: row; }
       .pack-card { flex: 1; }
     }
+
+    /* ── FORMULAIRE MODAL ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 500;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 24px;
+      width: 100%; max-width: 480px;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.25);
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      padding: 24px 24px 0;
+      display: flex; align-items: flex-start; justify-content: space-between;
+    }
+    .modal-header h3 { font-size: 1.1rem; font-weight: 800; color: var(--dark); margin-bottom: 4px; }
+    .modal-header p { font-size: 0.82rem; color: var(--muted); }
+    .modal-close {
+      background: #f1f5f9; border: none; border-radius: 50%;
+      width: 32px; height: 32px; font-size: 1rem;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-left: 12px; margin-top: -4px;
+    }
+    .modal-form { padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 0.82rem; font-weight: 700; color: var(--text); }
+    .form-group input, .form-group select, .form-group textarea {
+      border: 1.5px solid var(--border); border-radius: 12px;
+      padding: 12px 14px; font-size: 0.9rem; font-family: inherit;
+      color: var(--text); background: #f8fafc;
+      outline: none; transition: border-color 0.15s, background 0.15s;
+      width: 100%;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--green); background: white;
+    }
+    .form-group textarea { resize: vertical; min-height: 90px; }
+    .form-submit {
+      background: var(--green); color: white; border: none;
+      border-radius: 14px; padding: 16px;
+      font-size: 1rem; font-weight: 800; cursor: pointer;
+      transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .form-submit:hover { background: #15803d; }
+    .form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+    .form-success {
+      padding: 32px 24px; text-align: center;
+      display: none; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .form-success.show { display: flex; }
+    .success-icon { font-size: 3rem; }
+    .form-success h4 { font-size: 1.1rem; font-weight: 800; color: var(--dark); }
+    .form-success p { font-size: 0.88rem; color: var(--muted); }
+    .form-error { font-size: 0.82rem; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 14px; display: none; }
+    .form-error.show { display: block; }
   </style>
 </head>
 <body>
 
 <!-- NAVBAR -->
 <nav>
-  <div class="nav-logo">Sterve <span>Digital</span> Agency</div>
-  <a class="nav-cta" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-    Démarrer
+  <a class="nav-logo" href="#">
+    <div class="nav-logo-icon">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="nav-logo-text">
+      Sterve <span style="color:var(--green)">Digital</span>
+      <span>Systèmes de vente</span>
+    </div>
   </a>
+  <button class="nav-cta" onclick="openModal()">
+    Diagnostic gratuit →
+  </button>
 </nav>
 
 <!-- HERO -->
@@ -355,11 +433,11 @@
     <h1>Tu perds des clients<br /><span>tous les jours</span> sans le savoir…</h1>
     <p>Des prospects te contactent, posent des questions… puis disparaissent. Parce que tu réponds manuellement, lentement — ou pas du tout.</p>
     <div class="hero-btns">
-      <a class="btn-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Lancer ma machine de vente →
-      </a>
-      <p class="hero-sub">⚡ Réponse en moins de 2h · Acompte 30% seulement</p>
+      <button class="btn-wa" onclick="openModal()" style="border:none;cursor:pointer;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        Obtenir mon diagnostic gratuit →
+      </button>
+      <p class="hero-sub">⚡ Analyse personnalisée · Réponse en moins de 2h</p>
     </div>
     <div class="hero-visual">
       <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775911548578-cuuxscp7qem.jpg" alt="Entrepreneur africain avec système de vente WhatsApp" loading="eager" />
@@ -680,6 +758,129 @@
 <footer>
   <p>© 2026 <span>Sterve Digital Agency</span> · Systèmes de vente automatisés · Afrique francophone</p>
 </footer>
+
+<!-- MODAL DIAGNOSTIC -->
+<div class="modal-overlay" id="diagModal" onclick="closeModalOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h3>🎯 Diagnostic gratuit</h3>
+        <p>Décris ton activité — on t'envoie une stratégie sur WhatsApp</p>
+      </div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div class="modal-form" id="diagForm">
+      <div class="form-error" id="formError"></div>
+
+      <div class="form-group">
+        <label>Ton prénom *</label>
+        <input type="text" id="f_name" placeholder="Ex: Kofi" required />
+      </div>
+
+      <div class="form-group">
+        <label>Ton WhatsApp (avec indicatif) *</label>
+        <input type="tel" id="f_phone" placeholder="Ex: +225 07 00 00 00" required />
+      </div>
+
+      <div class="form-group">
+        <label>Ton pays *</label>
+        <select id="f_country">
+          <option value="">-- Sélectionne ton pays --</option>
+          <option>Côte d'Ivoire</option>
+          <option>Sénégal</option>
+          <option>Cameroun</option>
+          <option>Mali</option>
+          <option>Burkina Faso</option>
+          <option>Guinée</option>
+          <option>Togo</option>
+          <option>Bénin</option>
+          <option>Niger</option>
+          <option>Congo</option>
+          <option>RDC</option>
+          <option>Tunisie</option>
+          <option>Maroc</option>
+          <option>Algérie</option>
+          <option>France</option>
+          <option>Autre</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Qu'est-ce que tu vends en ligne ? *</label>
+        <input type="text" id="f_product" placeholder="Ex: Formation en couture, coaching, vêtements..." required />
+      </div>
+
+      <div class="form-group">
+        <label>C'est quoi le problème selon toi ? *</label>
+        <textarea id="f_problem" placeholder="Ex: J'ai des visiteurs mais personne n'achète. Je réponds manuellement et les prospects disparaissent..."></textarea>
+      </div>
+
+      <button class="form-submit" id="submitBtn" onclick="submitDiag()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" fill="white" stroke="white" stroke-width="1.5" stroke-linejoin="round"/></svg>
+        Envoyer mon diagnostic →
+      </button>
+    </div>
+
+    <div class="form-success" id="diagSuccess">
+      <div class="success-icon">✅</div>
+      <h4>Diagnostic reçu !</h4>
+      <p>On analyse ton activité et on te contacte sur WhatsApp<br />avec une stratégie personnalisée dans les 2h.</p>
+      <a class="btn-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20j%27ai%20soumis%20mon%20diagnostic%20%F0%9F%9A%80" target="_blank" style="margin-top:8px;width:100%;max-width:300px;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Confirmer sur WhatsApp
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+function openModal() {
+  document.getElementById('diagModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal() {
+  document.getElementById('diagModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeModalOutside(e) {
+  if (e.target === document.getElementById('diagModal')) closeModal();
+}
+
+async function submitDiag() {
+  const name = document.getElementById('f_name').value.trim();
+  const phone = document.getElementById('f_phone').value.trim();
+  const country = document.getElementById('f_country').value;
+  const product = document.getElementById('f_product').value.trim();
+  const problem = document.getElementById('f_problem').value.trim();
+  const err = document.getElementById('formError');
+  const btn = document.getElementById('submitBtn');
+
+  if (!name || !phone || !country || !product) {
+    err.textContent = 'Merci de remplir tous les champs obligatoires.';
+    err.classList.add('show');
+    return;
+  }
+  err.classList.remove('show');
+  btn.disabled = true;
+  btn.textContent = 'Envoi en cours…';
+
+  try {
+    await fetch('https://automation.sterveshop.cloud/webhook/sterve-agency', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone, country, product, problem, source: 'sterveshop.cloud', date: new Date().toISOString() })
+    });
+    document.getElementById('diagForm').style.display = 'none';
+    document.getElementById('diagSuccess').classList.add('show');
+  } catch(e) {
+    err.textContent = 'Erreur réseau. Contacte-nous directement sur WhatsApp.';
+    err.classList.add('show');
+    btn.disabled = false;
+    btn.textContent = 'Envoyer mon diagnostic →';
+  }
+}
+</script>
 
 <!-- STICKY WHATSAPP -->
 <a class="sticky-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
