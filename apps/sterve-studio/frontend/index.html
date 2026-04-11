@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sterve Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #1c2128;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --green: #3fb950;
+      --green-dark: #238636;
+      --blue: #58a6ff;
+      --purple: #bc8cff;
+      --red: #f85149;
+      --yellow: #d29922;
+      --radius: 10px;
+    }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 50;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; }
+    .logo-icon {
+      width: 32px; height: 32px; background: linear-gradient(135deg, #3fb950, #58a6ff);
+      border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--text); }
+    .logo-text span { color: var(--green); }
+    .header-credits { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── LAYOUT ── */
+    .app { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── SIDEBAR ── */
+    aside {
+      width: 240px; min-width: 240px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .sidebar-section {
+      padding: 16px 12px 8px;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .type-btn {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px; margin: 2px 8px;
+      border-radius: 8px; cursor: pointer;
+      font-size: 0.875rem; font-weight: 500; color: var(--muted);
+      transition: all 0.15s; border: none; background: none;
+      text-align: left; width: calc(100% - 16px);
+    }
+    .type-btn:hover { background: var(--surface2); color: var(--text); }
+    .type-btn.active { background: rgba(63,185,80,0.15); color: var(--green); font-weight: 600; }
+    .type-btn .type-icon { font-size: 1.1rem; width: 22px; text-align: center; }
+    .type-tag {
+      margin-left: auto; font-size: 0.65rem; font-weight: 700;
+      padding: 2px 6px; border-radius: 4px;
+    }
+    .tag-img { background: rgba(88,166,255,0.15); color: var(--blue); }
+    .tag-vid { background: rgba(188,140,255,0.15); color: var(--purple); }
+
+    /* History */
+    .sidebar-history { flex: 1; overflow-y: auto; padding-bottom: 16px; }
+    .history-item {
+      display: flex; align-items: flex-start; gap: 8px;
+      padding: 8px 14px; margin: 2px 8px;
+      border-radius: 8px; cursor: pointer;
+      transition: background 0.1s;
+    }
+    .history-item:hover { background: var(--surface2); }
+    .history-thumb {
+      width: 36px; height: 36px; border-radius: 6px;
+      object-fit: cover; background: var(--border); flex-shrink: 0;
+    }
+    .history-thumb.video-thumb {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; background: rgba(188,140,255,0.15);
+    }
+    .history-info { flex: 1; min-width: 0; }
+    .history-label {
+      font-size: 0.78rem; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .history-meta { font-size: 0.68rem; color: var(--muted); margin-top: 2px; }
+    .history-delete {
+      background: none; border: none; color: var(--muted);
+      cursor: pointer; padding: 2px; font-size: 0.8rem;
+      opacity: 0; transition: opacity 0.1s;
+    }
+    .history-item:hover .history-delete { opacity: 1; }
+    .history-delete:hover { color: var(--red); }
+    .history-status {
+      font-size: 0.65rem; font-weight: 700; padding: 1px 5px;
+      border-radius: 3px; display: inline-block; margin-top: 2px;
+    }
+    .status-processing { background: rgba(210,153,34,0.2); color: var(--yellow); }
+    .status-success { background: rgba(63,185,80,0.15); color: var(--green); }
+    .status-failed { background: rgba(248,81,73,0.15); color: var(--red); }
+
+    /* ── MAIN CONTENT ── */
+    main { flex: 1; overflow-y: auto; padding: 28px; }
+    .panel { max-width: 780px; margin: 0 auto; }
+
+    .panel-title {
+      font-size: 1.1rem; font-weight: 700; color: var(--text);
+      margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .panel-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+
+    /* Form */
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block; font-size: 0.78rem; font-weight: 600;
+      color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+    textarea, input[type="text"], select {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-family: inherit; font-size: 0.9rem;
+      padding: 10px 14px;
+      transition: border-color 0.15s;
+      resize: vertical;
+    }
+    textarea:focus, input[type="text"]:focus, select:focus {
+      outline: none; border-color: var(--green);
+    }
+    textarea { min-height: 90px; }
+    select { cursor: pointer; }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--green);
+      background: rgba(63,185,80,0.05);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-text { font-size: 0.85rem; color: var(--muted); }
+    .upload-text strong { color: var(--text); }
+    .upload-preview {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;
+    }
+    .upload-preview img {
+      width: 80px; height: 80px; object-fit: cover;
+      border-radius: 8px; border: 1px solid var(--border);
+    }
+    .upload-preview .remove-img {
+      position: relative; display: inline-block;
+    }
+    .upload-preview .remove-img button {
+      position: absolute; top: -6px; right: -6px;
+      background: var(--red); color: white; border: none;
+      border-radius: 50%; width: 18px; height: 18px;
+      cursor: pointer; font-size: 0.7rem; line-height: 18px; text-align: center;
+    }
+
+    /* Before/After grid */
+    .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* Generate button */
+    .btn-generate {
+      width: 100%; padding: 14px;
+      background: var(--green-dark); color: white;
+      border: none; border-radius: var(--radius);
+      font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 8px;
+    }
+    .btn-generate:hover:not(:disabled) { background: #2ea043; }
+    .btn-generate:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-generate .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Progress */
+    .progress-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .progress-title {
+      font-size: 0.85rem; font-weight: 600; color: var(--text);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .progress-steps { display: flex; flex-direction: column; gap: 10px; }
+    .progress-step {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.82rem; color: var(--muted);
+    }
+    .step-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--surface2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; flex-shrink: 0;
+    }
+    .step-dot.done { background: var(--green); border-color: var(--green); color: white; }
+    .step-dot.active {
+      border-color: var(--blue); color: var(--blue);
+      animation: pulse-border 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(88,166,255,0.4); }
+      50% { box-shadow: 0 0 0 4px rgba(88,166,255,0); }
+    }
+    .step-dot.fail { background: var(--red); border-color: var(--red); color: white; }
+
+    /* Result */
+    .result-card {
+      background: var(--surface);
+      border: 1px solid rgba(63,185,80,0.3);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    .result-title {
+      font-size: 0.85rem; font-weight: 600; color: var(--green);
+      margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
+    .result-media { display: flex; flex-wrap: wrap; gap: 12px; }
+    .result-media img, .result-media video {
+      max-width: 100%; border-radius: 8px;
+      border: 1px solid var(--border);
+      max-height: 400px;
+    }
+    .result-media .media-wrapper { position: relative; }
+    .result-media .media-label {
+      font-size: 0.7rem; color: var(--muted); text-align: center; margin-top: 4px;
+    }
+    .btn-download {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface2); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 14px; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; text-decoration: none; margin-top: 12px;
+      transition: border-color 0.15s;
+    }
+    .btn-download:hover { border-color: var(--green); color: var(--green); }
+
+    .error-card {
+      background: rgba(248,81,73,0.1);
+      border: 1px solid rgba(248,81,73,0.3);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-top: 20px;
+      font-size: 0.85rem; color: var(--red);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      aside { display: none; }
+      main { padding: 16px; }
+      .form-row, .form-row-3, .ba-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎨</div>
+    <div class="logo-text">Sterve <span>Studio</span></div>
+  </div>
+  <div class="header-credits">Outil interne · KIE AI</div>
+</header>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-section">Générer</div>
+    <button class="type-btn active" data-type="image-text" onclick="switchType('image-text')">
+      <span class="type-icon">🖼️</span>
+      Image depuis texte
+      <span class="type-tag tag-img">IMG</span>
+    </button>
+    <button class="type-btn" data-type="image-image" onclick="switchType('image-image')">
+      <span class="type-icon">🔄</span>
+      Image depuis image
+      <span class="type-tag tag-img">IMG</span>
+    </button>
+    <button class="type-btn" data-type="animate" onclick="switchType('animate')">
+      <span class="type-icon">✨</span>
+      Animer une image
+      <span class="type-tag tag-vid">VID</span>
+    </button>
+    <button class="type-btn" data-type="before-after" onclick="switchType('before-after')">
+      <span class="type-icon">⚡</span>
+      Avant / Après
+      <span class="type-tag tag-vid">VID</span>
+    </button>
+
+    <div class="sidebar-section" style="margin-top:16px;">Historique</div>
+    <div class="sidebar-history" id="history-list">
+      <div style="padding:12px 14px;font-size:0.78rem;color:var(--muted);">Aucune génération</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+    <div class="panel">
+
+      <!-- IMAGE DEPUIS TEXTE -->
+      <div id="panel-image-text" class="panel-content">
+        <div class="panel-title">🖼️ Image depuis texte</div>
+        <div class="panel-sub">Nano Banana 2 — génère une image à partir de votre description</div>
+        <div class="form-group">
+          <label>Prompt</label>
+          <textarea id="it-prompt" placeholder="Décrivez l'image que vous voulez générer...
+Ex: Professional product mockup, MacBook Pro showing a green dashboard app, dark wooden table, golden hour lighting, photorealistic, 4K"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Format</label>
+            <select id="it-ratio">
+              <option value="16:9">16:9 — Paysage (landing page)</option>
+              <option value="9:16">9:16 — Portrait (mobile, Reel)</option>
+              <option value="1:1">1:1 — Carré (réseaux sociaux)</option>
+              <option value="3:2">3:2 — Standard</option>
+              <option value="4:5">4:5 — Instagram portrait</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Résolution</label>
+            <select id="it-resolution">
+              <option value="2K">2K</option>
+              <option value="4K">4K</option>
+              <option value="1K">1K (rapide)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateImageText()">
+          <span>✨ Générer l'image</span>
+        </button>
+      </div>
+
+      <!-- IMAGE DEPUIS IMAGE -->
+      <div id="panel-image-image" class="panel-content" style="display:none;">
+        <div class="panel-title">🔄 Image depuis image</div>
+        <div class="panel-sub">Nano Banana 2 — transforme ou utilise vos images comme référence (personal branding, style transfer...)</div>
+        <div class="form-group">
+          <label>Images de référence (max 14)</label>
+          <div class="upload-zone" id="ii-upload-zone">
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple onchange="handleUpload(event, 'ii')">
+            <div class="upload-icon">📁</div>
+            <div class="upload-text"><strong>Cliquez ou glissez vos images</strong><br>JPG, PNG, WebP · Max 30MB</div>
+            <div class="upload-preview" id="ii-preview"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Prompt</label>
+          <textarea id="ii-prompt" placeholder="Décrivez la transformation désirée...
+Ex: Professional headshot, studio lighting, confident pose, clean background, business attire, ultra realistic"></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Format</label>
+            <select id="ii-ratio">
+              <option value="1:1">1:1 — Carré</option>
+              <option value="16:9">16:9 — Paysage</option>
+              <option value="9:16">9:16 — Portrait</option>
+              <option value="3:2">3:2 — Standard</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Résolution</label>
+            <select id="ii-resolution">
+              <option value="2K">2K</option>
+              <option value="4K">4K</option>
+              <option value="1K">1K (rapide)</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateImageImage()">
+          <span>✨ Générer</span>
+        </button>
+      </div>
+
+      <!-- ANIMER UNE IMAGE -->
+      <div id="panel-animate" class="panel-content" style="display:none;">
+        <div class="panel-title">✨ Animer une image</div>
+        <div class="panel-sub">Kling 2.6 — donne vie à une image statique (vidéo 5 ou 10 secondes)</div>
+        <div class="form-group">
+          <label>Image à animer</label>
+          <div class="upload-zone" id="an-upload-zone">
+            <input type="file" accept="image/jpeg,image/png,image/webp" onchange="handleUpload(event, 'an')">
+            <div class="upload-icon">🎬</div>
+            <div class="upload-text"><strong>Cliquez pour choisir une image</strong><br>JPG, PNG, WebP · Max 10MB</div>
+            <div class="upload-preview" id="an-preview"></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Prompt d'animation</label>
+          <textarea id="an-prompt" placeholder="Décrivez comment l'image doit s'animer...
+Ex: WhatsApp notifications appearing one by one, green glow from screen, cinematic movement, smooth loop"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Durée</label>
+          <select id="an-duration">
+            <option value="5">5 secondes</option>
+            <option value="10">10 secondes</option>
+          </select>
+        </div>
+        <button class="btn-generate" onclick="generateAnimate()">
+          <span>🎬 Animer</span>
+        </button>
+      </div>
+
+      <!-- AVANT / APRÈS -->
+      <div id="panel-before-after" class="panel-content" style="display:none;">
+        <div class="panel-title">⚡ Avant / Après</div>
+        <div class="panel-sub">Pipeline complet : génère 2 images (Nano Banana) puis anime l'image "après" (Kling 2.6) — idéal pour landing pages</div>
+        <div class="ba-grid">
+          <div>
+            <div class="form-group">
+              <label>🔴 Prompt AVANT (situation problème)</label>
+              <textarea id="ba-avant" rows="5" placeholder="Ex: Stressed African entrepreneur at desk, phone showing 127 unread WhatsApp messages, overwhelmed, warm chaotic lighting, photorealistic"></textarea>
+            </div>
+          </div>
+          <div>
+            <div class="form-group">
+              <label>🟢 Prompt APRÈS (situation idéale)</label>
+              <textarea id="ba-apres" rows="5" placeholder="Ex: Same person relaxed and smiling, phone showing organized CRM dashboard with green checkmarks, notification showing payment received, clean modern desk"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Prompt d'animation (comment l'image "après" s'anime)</label>
+          <textarea id="ba-anim" rows="3" placeholder="Ex: Smooth cinematic camera movement, notification animations appearing, dynamic professional atmosphere, satisfying reveal">Smooth cinematic camera movement, dynamic professional atmosphere, satisfying reveal, premium feel</textarea>
+        </div>
+        <div class="form-row-3">
+          <div class="form-group">
+            <label>Format</label>
+            <select id="ba-ratio">
+              <option value="16:9">16:9 — Paysage</option>
+              <option value="9:16">9:16 — Portrait</option>
+              <option value="1:1">1:1 — Carré</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Résolution</label>
+            <select id="ba-resolution">
+              <option value="2K">2K</option>
+              <option value="4K">4K</option>
+              <option value="1K">1K (rapide)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Durée vidéo</label>
+            <select id="ba-duration">
+              <option value="5">5 secondes</option>
+              <option value="10">10 secondes</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-generate" onclick="generateBeforeAfter()">
+          <span>⚡ Lancer le pipeline</span>
+        </button>
+      </div>
+
+      <!-- PROGRESS + RESULT (shared) -->
+      <div id="progress-area"></div>
+      <div id="result-area"></div>
+
+    </div>
+  </main>
+</div>
+
+<script>
+const API = window.location.origin.includes('localhost')
+  ? 'http://localhost:8000'
+  : '/api';
+
+// Uploaded image URLs per zone
+const uploadedUrls = { ii: [], an: [] };
+let currentJobId = null;
+let pollInterval = null;
+
+// ── Type switching ──────────────────────────────────────────────────────────
+function switchType(type) {
+  document.querySelectorAll('.panel-content').forEach(p => p.style.display = 'none');
+  document.getElementById(`panel-${type}`).style.display = 'block';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-type="${type}"]`).classList.add('active');
+  document.getElementById('progress-area').innerHTML = '';
+  document.getElementById('result-area').innerHTML = '';
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+}
+
+// ── File upload ─────────────────────────────────────────────────────────────
+async function handleUpload(event, zone) {
+  const files = Array.from(event.target.files);
+  const preview = document.getElementById(`${zone}-preview`);
+  for (const file of files) {
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const r = await fetch(`${API}/upload`, { method: 'POST', body: formData });
+      const data = await r.json();
+      if (!r.ok) { alert(`Erreur upload: ${data.detail || 'inconnue'}`); continue; }
+      uploadedUrls[zone].push(data.url);
+      const wrapper = document.createElement('div');
+      wrapper.className = 'remove-img';
+      const img = document.createElement('img');
+      img.src = data.url;
+      const btn = document.createElement('button');
+      btn.textContent = '×';
+      const urlToRemove = data.url;
+      btn.onclick = () => {
+        uploadedUrls[zone] = uploadedUrls[zone].filter(u => u !== urlToRemove);
+        wrapper.remove();
+      };
+      wrapper.appendChild(img);
+      wrapper.appendChild(btn);
+      preview.appendChild(wrapper);
+      // Hide drop text
+      document.querySelector(`#${zone}-upload-zone .upload-icon`).style.display = 'none';
+      document.querySelector(`#${zone}-upload-zone .upload-text`).style.display = 'none';
+    } catch(e) { alert(`Erreur upload: ${e.message}`); }
+  }
+}
+
+// ── Generate functions ───────────────────────────────────────────────────────
+async function generateImageText() {
+  const prompt = document.getElementById('it-prompt').value.trim();
+  if (!prompt) { alert('Écrivez un prompt'); return; }
+  const body = {
+    prompt,
+    aspect_ratio: document.getElementById('it-ratio').value,
+    resolution: document.getElementById('it-resolution').value,
+  };
+  await startJob('/generate/image-text', body, [
+    { label: 'Nano Banana 2 génère l\'image', key: 'generating' }
+  ]);
+}
+
+async function generateImageImage() {
+  const prompt = document.getElementById('ii-prompt').value.trim();
+  if (!prompt) { alert('Écrivez un prompt'); return; }
+  if (uploadedUrls.ii.length === 0) { alert('Uploadez au moins une image de référence'); return; }
+  const body = {
+    prompt,
+    image_urls: uploadedUrls.ii,
+    aspect_ratio: document.getElementById('ii-ratio').value,
+    resolution: document.getElementById('ii-resolution').value,
+  };
+  await startJob('/generate/image-image', body, [
+    { label: 'Nano Banana 2 transforme l\'image', key: 'generating' }
+  ]);
+}
+
+async function generateAnimate() {
+  const prompt = document.getElementById('an-prompt').value.trim();
+  if (!prompt) { alert('Écrivez un prompt d\'animation'); return; }
+  if (uploadedUrls.an.length === 0) { alert('Uploadez une image à animer'); return; }
+  const body = {
+    prompt,
+    image_url: uploadedUrls.an[0],
+    duration: document.getElementById('an-duration').value,
+  };
+  await startJob('/generate/animate', body, [
+    { label: 'Kling 2.6 anime l\'image', key: 'generating' }
+  ]);
+}
+
+async function generateBeforeAfter() {
+  const avant = document.getElementById('ba-avant').value.trim();
+  const apres = document.getElementById('ba-apres').value.trim();
+  const anim  = document.getElementById('ba-anim').value.trim();
+  if (!avant || !apres) { alert('Écrivez les deux prompts'); return; }
+  const body = {
+    prompt_avant: avant,
+    prompt_apres: apres,
+    animate_prompt: anim || 'Smooth cinematic transition, satisfying reveal',
+    duration: document.getElementById('ba-duration').value,
+    aspect_ratio: document.getElementById('ba-ratio').value,
+    resolution: document.getElementById('ba-resolution').value,
+  };
+  await startJob('/generate/before-after', body, [
+    { label: 'Génération image AVANT (Nano Banana)', key: 'step1_avant' },
+    { label: 'Génération image APRÈS (Nano Banana)', key: 'step2_apres' },
+    { label: 'Animation de l\'image (Kling 2.6)', key: 'step3_animate' },
+  ], true);
+}
+
+// ── Job management ──────────────────────────────────────────────────────────
+async function startJob(endpoint, body, steps, isMultiStep = false) {
+  // Disable button
+  const btn = document.querySelector('.panel-content:not([style*="none"]) .btn-generate');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div><span>Envoi en cours...</span>';
+
+  document.getElementById('progress-area').innerHTML = '';
+  document.getElementById('result-area').innerHTML = '';
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
+
+  try {
+    const r = await fetch(`${API}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.detail || JSON.stringify(data));
+
+    currentJobId = data.job_id;
+    showProgress(steps, null);
+    btn.innerHTML = '<div class="spinner"></div><span>Génération en cours...</span>';
+    pollJob(currentJobId, steps, btn, isMultiStep);
+
+  } catch(e) {
+    showError(e.message);
+    btn.disabled = false;
+    btn.innerHTML = '<span>✨ Réessayer</span>';
+  }
+}
+
+function pollJob(jobId, steps, btn, isMultiStep) {
+  let attempts = 0;
+  pollInterval = setInterval(async () => {
+    attempts++;
+    if (attempts > 200) { // ~20 min max
+      clearInterval(pollInterval);
+      showError('Timeout — la génération a pris trop longtemps. Vérifiez votre dashboard KIE.');
+      btn.disabled = false;
+      btn.innerHTML = '<span>✨ Réessayer</span>';
+      return;
+    }
+    try {
+      const r = await fetch(`${API}/jobs/${jobId}`);
+      const job = await r.json();
+
+      // Update progress for multi-step
+      if (isMultiStep) {
+        const stepMap = {
+          'processing': 0, 'step1_avant': 0, 'step2_apres': 1, 'step3_animate': 2,
+          'success': 3, 'failed': -1
+        };
+        const currentStep = stepMap[job.status] ?? 0;
+        showProgress(steps, currentStep, job.status === 'failed' ? job.fail_msg : null);
+      } else {
+        const state = job.kie_state || job.status;
+        showProgress(steps, state === 'success' ? 1 : 0);
+      }
+
+      if (job.status === 'success') {
+        clearInterval(pollInterval);
+        showResult(job);
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Nouvelle génération</span>';
+        loadHistory();
+      } else if (job.status === 'failed') {
+        clearInterval(pollInterval);
+        showError(job.fail_msg || 'La génération a échoué');
+        btn.disabled = false;
+        btn.innerHTML = '<span>✨ Réessayer</span>';
+        loadHistory();
+      }
+    } catch(e) {
+      console.warn('Poll error:', e);
+    }
+  }, 4000);
+}
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
+function showProgress(steps, currentStep, errorMsg = null) {
+  const html = `
+    <div class="progress-card">
+      <div class="progress-title">
+        <div class="spinner" style="width:14px;height:14px;border-width:2px;border-top-color:var(--blue);border-color:rgba(88,166,255,0.3);display:${errorMsg ? 'none' : 'block'}"></div>
+        ${errorMsg ? '❌ Erreur' : '⏳ Génération en cours…'}
+      </div>
+      <div class="progress-steps">
+        ${steps.map((s, i) => {
+          let cls = '';
+          if (errorMsg && i === currentStep) cls = 'fail';
+          else if (i < currentStep) cls = 'done';
+          else if (i === currentStep) cls = 'active';
+          const icon = cls === 'done' ? '✓' : cls === 'fail' ? '✕' : i + 1;
+          return `<div class="progress-step">
+            <div class="step-dot ${cls}">${icon}</div>
+            <span style="color:${cls === 'active' ? 'var(--text)' : cls === 'done' ? 'var(--green)' : 'var(--muted)'}">${s.label}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      ${errorMsg ? `<div style="margin-top:12px;font-size:0.82rem;color:var(--red);">${errorMsg}</div>` : ''}
+    </div>`;
+  document.getElementById('progress-area').innerHTML = html;
+}
+
+function showResult(job) {
+  const urls = job.result_urls || [];
+  if (!urls.length) return;
+
+  const isBeforeAfter = job.type === 'before-after';
+  let mediaHtml = '';
+
+  if (isBeforeAfter) {
+    // urls[0]=avant image, urls[1]=après image, urls[2]=video
+    const labels = ['🔴 Image AVANT', '🟢 Image APRÈS', '🎬 Vidéo animée'];
+    urls.forEach((url, i) => {
+      const isVideo = i === 2;
+      mediaHtml += `<div class="media-wrapper">
+        ${isVideo
+          ? `<video src="${url}" controls autoplay muted loop style="max-width:100%"></video>`
+          : `<img src="${url}" alt="${labels[i]}">`}
+        <div class="media-label">${labels[i]}</div>
+        <a class="btn-download" href="${url}" download target="_blank">⬇ Télécharger ${labels[i]}</a>
+      </div>`;
+    });
+  } else {
+    urls.forEach((url, i) => {
+      const isVideo = job.type === 'animate';
+      mediaHtml += `<div class="media-wrapper">
+        ${isVideo
+          ? `<video src="${url}" controls autoplay muted loop style="max-width:100%"></video>`
+          : `<img src="${url}" alt="Résultat">`}
+        <a class="btn-download" href="${url}" download target="_blank">⬇ Télécharger</a>
+      </div>`;
+    });
+  }
+
+  document.getElementById('result-area').innerHTML = `
+    <div class="result-card">
+      <div class="result-title">✅ Génération terminée</div>
+      <div class="result-media">${mediaHtml}</div>
+    </div>`;
+  document.getElementById('progress-area').innerHTML = '';
+}
+
+function showError(msg) {
+  document.getElementById('result-area').innerHTML = `
+    <div class="error-card">❌ ${msg}</div>`;
+  document.getElementById('progress-area').innerHTML = '';
+}
+
+// ── History ──────────────────────────────────────────────────────────────────
+async function loadHistory() {
+  try {
+    const r = await fetch(`${API}/history`);
+    const jobs = await r.json();
+    const el = document.getElementById('history-list');
+    if (!jobs.length) {
+      el.innerHTML = '<div style="padding:12px 14px;font-size:0.78rem;color:var(--muted);">Aucune génération</div>';
+      return;
+    }
+    el.innerHTML = jobs.map(job => {
+      const firstUrl = job.result_urls?.[0] || '';
+      const isVideo = ['animate', 'before-after'].includes(job.type) && job.status === 'success';
+      const isImg = ['image-text', 'image-image'].includes(job.type) && job.status === 'success';
+      const thumb = isImg
+        ? `<img src="${firstUrl}" class="history-thumb" alt="">`
+        : `<div class="history-thumb video-thumb">${isVideo ? '🎬' : job.status === 'failed' ? '❌' : '⏳'}</div>`;
+      const statusClass = { success: 'status-success', failed: 'status-failed', processing: 'status-processing' }[job.status] || 'status-processing';
+      const statusLabel = { success: '✓ Terminé', failed: '✕ Échec', processing: '… En cours' }[job.status] || job.status;
+      const timeAgo = formatTimeAgo(job.created_at);
+      return `<div class="history-item" onclick="viewJob('${job.id}', '${job.type}')">
+        ${thumb}
+        <div class="history-info">
+          <div class="history-label" title="${job.label}">${job.label}</div>
+          <div class="history-meta">${timeAgo}</div>
+          <span class="history-status ${statusClass}">${statusLabel}</span>
+        </div>
+        <button class="history-delete" onclick="deleteJob(event, '${job.id}')" title="Supprimer">🗑</button>
+      </div>`;
+    }).join('');
+  } catch(e) { console.warn('History error', e); }
+}
+
+function viewJob(jobId, type) {
+  fetch(`${API}/jobs/${jobId}`)
+    .then(r => r.json())
+    .then(job => {
+      document.getElementById('progress-area').innerHTML = '';
+      if (job.status === 'success') showResult(job);
+      else if (job.status === 'failed') showError(job.fail_msg || 'Échec');
+      else {
+        // Still processing — start polling
+        switchType(type);
+        currentJobId = jobId;
+        const steps = getStepsForType(type);
+        showProgress(steps, 0);
+        const btn = document.querySelector('.panel-content:not([style*="none"]) .btn-generate');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<div class="spinner"></div><span>En cours...</span>'; }
+        pollJob(jobId, steps, btn || {disabled:false, innerHTML:''}, type === 'before-after');
+      }
+    });
+}
+
+function getStepsForType(type) {
+  const map = {
+    'image-text': [{ label: 'Nano Banana 2 génère l\'image' }],
+    'image-image': [{ label: 'Nano Banana 2 transforme l\'image' }],
+    'animate': [{ label: 'Kling 2.6 anime l\'image' }],
+    'before-after': [
+      { label: 'Génération image AVANT' },
+      { label: 'Génération image APRÈS' },
+      { label: 'Animation (Kling 2.6)' },
+    ],
+  };
+  return map[type] || [{ label: 'Génération' }];
+}
+
+async function deleteJob(event, jobId) {
+  event.stopPropagation();
+  if (!confirm('Supprimer cette génération de l\'historique ?')) return;
+  await fetch(`${API}/history/${jobId}`, { method: 'DELETE' });
+  loadHistory();
+}
+
+function formatTimeAgo(isoStr) {
+  const diff = Date.now() - new Date(isoStr + 'Z').getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'à l\'instant';
+  if (mins < 60) return `il y a ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `il y a ${hrs}h`;
+  return `il y a ${Math.floor(hrs / 24)}j`;
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+loadHistory();
+setInterval(loadHistory, 15000);
+</script>
+</body>
+</html>
