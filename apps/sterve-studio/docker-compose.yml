@@ -11,48 +11,25 @@ services:
       - studio-data:/data
       - studio-uploads:/uploads
     networks:
-      - traefik-network
-    labels:
-      - "traefik.enable=true"
-
-      # API routes — /api/* stripped to /* before hitting backend
-      - "traefik.http.routers.studio-api.rule=Host(`tools.sterveshop.cloud`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.studio-api.priority=20"
-      - "traefik.http.routers.studio-api.entrypoints=websecure"
-      - "traefik.http.routers.studio-api.tls=true"
-      - "traefik.http.routers.studio-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.studio-api.middlewares=studio-strip-api"
-      - "traefik.http.routers.studio-api.service=studio-backend"
-      - "traefik.http.middlewares.studio-strip-api.stripprefix.prefixes=/api"
-
-      # /uploads served directly by backend (StaticFiles mount)
-      - "traefik.http.routers.studio-uploads.rule=Host(`tools.sterveshop.cloud`) && PathPrefix(`/uploads`)"
-      - "traefik.http.routers.studio-uploads.priority=20"
-      - "traefik.http.routers.studio-uploads.entrypoints=websecure"
-      - "traefik.http.routers.studio-uploads.tls=true"
-      - "traefik.http.routers.studio-uploads.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.studio-uploads.service=studio-backend"
-
-      # Service backend (partagé par les deux routers)
-      - "traefik.http.services.studio-backend.loadbalancer.server.port=8000"
+      - studio-internal
 
   sterve-studio-frontend:
     build: ./frontend
     container_name: sterve-studio-frontend
     restart: unless-stopped
+    depends_on:
+      - sterve-studio-backend
     networks:
       - traefik-network
+      - studio-internal
     labels:
       - "traefik.enable=true"
-
-      # Main frontend — catches everything else on the domain
-      - "traefik.http.routers.studio-frontend.rule=Host(`tools.sterveshop.cloud`)"
-      - "traefik.http.routers.studio-frontend.entrypoints=websecure"
-      - "traefik.http.routers.studio-frontend.tls=true"
-      - "traefik.http.routers.studio-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.studio-frontend.loadbalancer.server.port=80"
-
-      # HTTP → HTTPS redirect
+      - "traefik.http.routers.studio.rule=Host(`tools.sterveshop.cloud`)"
+      - "traefik.http.routers.studio.entrypoints=websecure"
+      - "traefik.http.routers.studio.tls=true"
+      - "traefik.http.routers.studio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.studio.loadbalancer.server.port=80"
+      # HTTP → HTTPS
       - "traefik.http.routers.studio-http.rule=Host(`tools.sterveshop.cloud`)"
       - "traefik.http.routers.studio-http.entrypoints=web"
       - "traefik.http.routers.studio-http.middlewares=studio-redirect-https"
@@ -64,5 +41,6 @@ volumes:
   studio-uploads:
 
 networks:
+  studio-internal:
   traefik-network:
     external: true
