@@ -97,6 +97,7 @@ class Ferme(Base):
     stocks = relationship("Stock", back_populates="ferme", cascade="all, delete-orphan")
     recommandations = relationship("Recommandation", back_populates="ferme", cascade="all, delete-orphan")
     sessions = relationship("SessionIrrigation", back_populates="ferme", cascade="all, delete-orphan")
+    depenses = relationship("Depense", back_populates="ferme", cascade="all, delete-orphan")
 
 
 class Parcelle(Base):
@@ -193,6 +194,31 @@ class Recommandation(Base):
     statut = Column(Enum(StatutRecommandationEnum), default=StatutRecommandationEnum.en_attente)
 
     ferme = relationship("Ferme", back_populates="recommandations")
+
+
+class CategorieDepenseEnum(str, enum.Enum):
+    irrigation = "irrigation"
+    construction = "construction"
+    renovation = "renovation"
+    alimentation = "alimentation"
+    main_oeuvre = "main_oeuvre"
+    carburant = "carburant"
+    materiel = "materiel"
+    autre = "autre"
+
+
+class Depense(Base):
+    __tablename__ = "depenses"
+    id = Column(Integer, primary_key=True, index=True)
+    ferme_id = Column(Integer, ForeignKey("fermes.id", ondelete="CASCADE"), nullable=False)
+    date = Column(Date, nullable=False)
+    categorie = Column(Enum(CategorieDepenseEnum), nullable=False)
+    montant = Column(Float, nullable=False)
+    description = Column(String(500))
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    ferme = relationship("Ferme", back_populates="depenses")
 
 
 class SessionIrrigation(Base):

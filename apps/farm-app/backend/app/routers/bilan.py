@@ -87,7 +87,26 @@ def get_bilan(
 
     top_depenses = sorted(couts_par_stock.values(), key=lambda x: x["cout_total"], reverse=True)
 
+    # ── Dépenses diverses ──────────────────────────────────
+    depenses_diverses_rows = db.query(models.Depense).filter(
+        models.Depense.ferme_id == ferme_id,
+        extract("year", models.Depense.date) == annee
+    ).all()
+
+    total_depenses_diverses = sum(d.montant for d in depenses_diverses_rows)
+
+    # Regrouper par catégorie
+    dep_par_cat: dict = {}
+    for d in depenses_diverses_rows:
+        cat = d.categorie.value
+        dep_par_cat[cat] = dep_par_cat.get(cat, 0) + d.montant
+    depenses_diverses = [
+        schemas.DepenseDiverseItem(categorie=cat, total=round(total, 2))
+        for cat, total in sorted(dep_par_cat.items(), key=lambda x: x[1], reverse=True)
+    ]
+
     marge_brute = total_recolte_valeur - total_couts
+    marge_nette = total_recolte_valeur - total_couts - total_depenses_diverses
 
     return schemas.BilanSaison(
         ferme=schemas.FermeOut.model_validate(ferme),
@@ -95,10 +114,13 @@ def get_bilan(
         total_recolte_kg=round(total_recolte_kg, 2),
         total_recolte_valeur=round(total_recolte_valeur, 2),
         total_couts=round(total_couts, 2),
+        total_depenses_diverses=round(total_depenses_diverses, 2),
         marge_brute=round(marge_brute, 2),
+        marge_nette=round(marge_nette, 2),
         nb_recoltes=nb_recoltes,
         nb_traitements=nb_traitements,
         top_depenses=[schemas.DepenseItem(**d) for d in top_depenses],
+        depenses_diverses=depenses_diverses,
     )
 
 

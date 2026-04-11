@@ -5,7 +5,7 @@ from .models import (
     VarieteEnum, StatutParcelleEnum, TypeTraitementEnum,
     QualiteRecolteEnum, CategorieStockEnum,
     PrioriteEnum, StatutRecommandationEnum, TypeMouvementEnum, StatutSessionEnum,
-    RoleEnum
+    RoleEnum, CategorieDepenseEnum
 )
 
 
@@ -215,11 +215,41 @@ class RecommandationOut(RecommandationBase):
         from_attributes = True
 
 
+# ─── DEPENSE ────────────────────────────────────────────
+class DepenseBase(BaseModel):
+    ferme_id: int
+    date: date
+    categorie: CategorieDepenseEnum
+    montant: float
+    description: Optional[str] = None
+    notes: Optional[str] = None
+
+class DepenseCreate(DepenseBase):
+    pass
+
+class DepenseUpdate(BaseModel):
+    date: Optional[date] = None
+    categorie: Optional[CategorieDepenseEnum] = None
+    montant: Optional[float] = None
+    description: Optional[str] = None
+    notes: Optional[str] = None
+
+class DepenseOut(DepenseBase):
+    id: int
+    created_at: datetime
+    class Config:
+        from_attributes = True
+
+
 # ─── BILAN SAISON ───────────────────────────────────────
 class DepenseItem(BaseModel):
     stock_nom: str
     categorie: str
     cout_total: float
+
+class DepenseDiverseItem(BaseModel):
+    categorie: str
+    total: float
 
 class BilanSaison(BaseModel):
     ferme: FermeOut
@@ -227,10 +257,13 @@ class BilanSaison(BaseModel):
     total_recolte_kg: float
     total_recolte_valeur: float
     total_couts: float
+    total_depenses_diverses: float
+    marge_nette: float
     marge_brute: float
     nb_recoltes: int
     nb_traitements: int
     top_depenses: List[DepenseItem]
+    depenses_diverses: List[DepenseDiverseItem]
 
 
 # ─── DASHBOARD ──────────────────────────────────────────

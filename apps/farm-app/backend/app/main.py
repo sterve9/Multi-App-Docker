@@ -9,7 +9,7 @@ import os
 from .database import engine, Base, get_db, SessionLocal
 from .auth import verify_password, create_access_token, ADMIN_USERNAME, ADMIN_PASSWORD_HASH
 from . import models, schemas
-from .routers import fermes, parcelles, traitements, recoltes, stocks, mouvements, recommandations, bilan, sessions, ai, pdf, users, excel
+from .routers import fermes, parcelles, traitements, recoltes, stocks, mouvements, recommandations, bilan, sessions, ai, pdf, users, excel, depenses
 
 # Crée toutes les tables au démarrage
 Base.metadata.create_all(bind=engine)
@@ -49,6 +49,7 @@ app.include_router(ai.router)
 app.include_router(pdf.router)
 app.include_router(users.router)
 app.include_router(excel.router)
+app.include_router(depenses.router)
 
 
 @app.on_event("startup")
@@ -69,6 +70,21 @@ def startup_event():
             db.commit()
         except Exception:
             db.rollback()
+
+        # Create depenses table if not exists (for existing DBs)
+        db.execute(_text("""
+            CREATE TABLE IF NOT EXISTS depenses (
+                id SERIAL PRIMARY KEY,
+                ferme_id INTEGER NOT NULL REFERENCES fermes(id) ON DELETE CASCADE,
+                date DATE NOT NULL,
+                categorie VARCHAR(50) NOT NULL,
+                montant FLOAT NOT NULL,
+                description VARCHAR(500),
+                notes TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        """))
+        db.commit()
 
         # Create admin user if no users exist
         if db.query(models.User).count() == 0 and ADMIN_PASSWORD_HASH:

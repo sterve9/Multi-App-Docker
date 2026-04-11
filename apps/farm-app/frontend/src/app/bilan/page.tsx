@@ -3,21 +3,25 @@ import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import api from '@/lib/api'
-import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download, ArrowUp, ArrowDown, Minus, FileSpreadsheet } from 'lucide-react'
+import { BarChart2, TrendingUp, TrendingDown, Leaf, Syringe, Package, Download, ArrowUp, ArrowDown, Minus, FileSpreadsheet, Wallet } from 'lucide-react'
 import PageHeader from '@/components/PageHeader'
 
 interface Ferme { id: number; nom: string }
 interface DepenseItem { stock_nom: string; categorie: string; cout_total: number }
+interface DepenseDiverseItem { categorie: string; total: number }
 interface Bilan {
   ferme: Ferme
   annee: number
   total_recolte_kg: number
   total_recolte_valeur: number
   total_couts: number
+  total_depenses_diverses: number
   marge_brute: number
+  marge_nette: number
   nb_recoltes: number
   nb_traitements: number
   top_depenses: DepenseItem[]
+  depenses_diverses: DepenseDiverseItem[]
 }
 interface VarieteComp {
   variete: string
@@ -150,7 +154,7 @@ export default function BilanPage() {
           stats={bilan ? [
             { label: 'kg récoltés', value: `${bilan.total_recolte_kg.toLocaleString('fr-FR')} kg`, color: 'emerald' },
             { label: 'CA récoltes', value: `${bilan.total_recolte_valeur.toLocaleString('fr-FR')} TND`, color: 'blue' },
-            { label: bilan.marge_brute >= 0 ? 'marge brute' : 'déficit', value: `${bilan.marge_brute >= 0 ? '+' : ''}${bilan.marge_brute.toLocaleString('fr-FR')} TND`, color: bilan.marge_brute >= 0 ? 'emerald' : 'red' },
+            { label: bilan.marge_nette >= 0 ? 'marge nette' : 'déficit', value: `${bilan.marge_nette >= 0 ? '+' : ''}${bilan.marge_nette.toLocaleString('fr-FR')} TND`, color: bilan.marge_nette >= 0 ? 'emerald' : 'red' },
           ] : []}
           action={bilan ? (
             <div className="flex items-center gap-2">
@@ -211,7 +215,7 @@ export default function BilanPage() {
                 <div className="text-xs text-slate-400 mt-1">Valeur récoltes · {fmt(bilan.total_recolte_kg)} kg</div>
               </div>
 
-              {/* Total dépenses */}
+              {/* Total dépenses stocks */}
               <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 fade-in-up" style={{ animationDelay: '80ms' }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
@@ -220,14 +224,14 @@ export default function BilanPage() {
                   <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">{bilan.nb_traitements} traitements</span>
                 </div>
                 <div className="text-2xl font-bold text-slate-800 tabular-nums">{fmt(bilan.total_couts)} TND</div>
-                <div className="text-xs text-slate-400 mt-1">Total des dépenses</div>
+                <div className="text-xs text-slate-400 mt-1">Dépenses produits & stocks</div>
               </div>
 
-              {/* Marge brute */}
-              <div className={`rounded-2xl shadow-sm border p-6 fade-in-up ${bilan.marge_brute >= 0 ? 'bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-400'}`} style={{ animationDelay: '160ms' }}>
+              {/* Marge nette */}
+              <div className={`rounded-2xl shadow-sm border p-6 fade-in-up ${bilan.marge_nette >= 0 ? 'bg-gradient-to-br from-emerald-600 to-green-700 border-emerald-500' : 'bg-gradient-to-br from-red-500 to-red-700 border-red-400'}`} style={{ animationDelay: '160ms' }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                    {bilan.marge_brute >= 0
+                    {bilan.marge_nette >= 0
                       ? <TrendingUp size={20} className="text-white" />
                       : <TrendingDown size={20} className="text-white" />}
                   </div>
@@ -235,10 +239,53 @@ export default function BilanPage() {
                     {bilan.annee}
                   </span>
                 </div>
-                <div className="text-2xl font-bold text-white tabular-nums">{fmt(bilan.marge_brute)} TND</div>
-                <div className="text-xs text-white/70 mt-1">Marge brute</div>
+                <div className="text-2xl font-bold text-white tabular-nums">{fmt(bilan.marge_nette)} TND</div>
+                <div className="text-xs text-white/70 mt-1">Marge nette (toutes charges)</div>
               </div>
             </div>
+
+            {/* Dépenses diverses */}
+            {(bilan.total_depenses_diverses > 0 || bilan.depenses_diverses.length > 0) && (
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 mb-6 fade-in-up" style={{ animationDelay: '190ms' }}>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                    <Wallet size={16} className="text-orange-500" />
+                    Dépenses diverses
+                  </h2>
+                  <span className="text-sm font-bold text-orange-700">{fmt(bilan.total_depenses_diverses)} TND</span>
+                </div>
+                <div className="space-y-2">
+                  {bilan.depenses_diverses.map((d, i) => {
+                    const pct = bilan.total_depenses_diverses > 0 ? Math.round(d.total / bilan.total_depenses_diverses * 100) : 0
+                    const CAT_LABELS: Record<string, string> = { irrigation: '💧 Irrigation', construction: '🏗️ Construction', renovation: '🔨 Rénovation', alimentation: '🐕 Alimentation', main_oeuvre: "👷 Main d'œuvre", carburant: '⛽ Carburant', materiel: '🔧 Matériel', autre: '📋 Autre' }
+                    return (
+                      <div key={i} className="flex items-center gap-3">
+                        <span className="text-xs text-slate-600 w-36 shrink-0">{CAT_LABELS[d.categorie] || d.categorie}</span>
+                        <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div className="bg-amber-500 h-full rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700 w-24 text-right tabular-nums">{fmt(d.total)} TND</span>
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Récap total charges */}
+                <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-xs text-slate-400">Produits & stocks</div>
+                    <div className="text-sm font-bold text-slate-700 tabular-nums">{fmt(bilan.total_couts)} TND</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Dépenses diverses</div>
+                    <div className="text-sm font-bold text-orange-700 tabular-nums">{fmt(bilan.total_depenses_diverses)} TND</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-400">Total charges</div>
+                    <div className="text-sm font-bold text-red-600 tabular-nums">{fmt(bilan.total_couts + bilan.total_depenses_diverses)} TND</div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Top dépenses */}
             {bilan.top_depenses.length > 0 && (
