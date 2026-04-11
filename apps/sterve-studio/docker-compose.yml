@@ -24,6 +24,7 @@ services:
       - studio-internal
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.studio.rule=Host(`tools.sterveshop.cloud`)"
       - "traefik.http.routers.studio.entrypoints=websecure"
       - "traefik.http.routers.studio.tls=true"
