@@ -757,7 +757,7 @@ function showResult(job) {
           : `<img src="${url}" alt="${labels[i]}">`}
         <div class="media-label">${labels[i]}</div>
         <a class="btn-download" href="${url}" download target="_blank">⬇ Télécharger ${labels[i]}</a>
-        <button onclick="navigator.clipboard.writeText('${url}').then(()=>{this.textContent='✓ Copié !';setTimeout(()=>this.textContent='📋 Copier l\'URL',2000)})" style="margin-top:6px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:6px 12px;border-radius:8px;font-size:0.8rem;cursor:pointer;width:100%">📋 Copier l'URL</button>
+        <a href="${url}" target="_blank" style="display:block;margin-top:6px;background:#21262d;border:1px solid #30363d;color:#58a6ff;padding:6px 12px;border-radius:8px;font-size:0.75rem;word-break:break-all;text-decoration:none;text-align:center">${url}</a>
       </div>`;
     });
   } else {
@@ -768,7 +768,7 @@ function showResult(job) {
           ? `<video src="${url}" controls autoplay muted loop style="max-width:100%"></video>`
           : `<img src="${url}" alt="Résultat">`}
         <a class="btn-download" href="${url}" download target="_blank">⬇ Télécharger</a>
-        <button onclick="navigator.clipboard.writeText('${url}').then(()=>{this.textContent='✓ Copié !';setTimeout(()=>this.textContent='📋 Copier l\'URL',2000)})" style="margin-top:6px;background:#21262d;border:1px solid #30363d;color:#8b949e;padding:6px 12px;border-radius:8px;font-size:0.8rem;cursor:pointer;width:100%">📋 Copier l'URL</button>
+        <a href="${url}" target="_blank" style="display:block;margin-top:6px;background:#21262d;border:1px solid #30363d;color:#58a6ff;padding:6px 12px;border-radius:8px;font-size:0.75rem;word-break:break-all;text-decoration:none;text-align:center">${url}</a>
       </div>`;
     });
   }
