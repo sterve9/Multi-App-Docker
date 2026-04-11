@@ -17,6 +17,7 @@ services:
 
       # API routes — /api/* stripped to /* before hitting backend
       - "traefik.http.routers.studio-api.rule=Host(`tools.sterveshop.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.studio-api.priority=20"
       - "traefik.http.routers.studio-api.entrypoints=websecure"
       - "traefik.http.routers.studio-api.tls=true"
       - "traefik.http.routers.studio-api.tls.certresolver=letsencrypt"
@@ -26,6 +27,7 @@ services:
 
       # /uploads served directly by backend (StaticFiles mount)
       - "traefik.http.routers.studio-uploads.rule=Host(`tools.sterveshop.cloud`) && PathPrefix(`/uploads`)"
+      - "traefik.http.routers.studio-uploads.priority=20"
       - "traefik.http.routers.studio-uploads.entrypoints=websecure"
       - "traefik.http.routers.studio-uploads.tls=true"
       - "traefik.http.routers.studio-uploads.tls.certresolver=letsencrypt"
