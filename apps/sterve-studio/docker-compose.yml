@@ -22,8 +22,8 @@ services:
       - "traefik.http.routers.studio-api.tls=true"
       - "traefik.http.routers.studio-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.studio-api.middlewares=studio-strip-api"
+      - "traefik.http.routers.studio-api.service=studio-backend"
       - "traefik.http.middlewares.studio-strip-api.stripprefix.prefixes=/api"
-      - "traefik.http.services.studio-api.loadbalancer.server.port=8000"
 
       # /uploads served directly by backend (StaticFiles mount)
       - "traefik.http.routers.studio-uploads.rule=Host(`tools.sterveshop.cloud`) && PathPrefix(`/uploads`)"
@@ -31,7 +31,10 @@ services:
       - "traefik.http.routers.studio-uploads.entrypoints=websecure"
       - "traefik.http.routers.studio-uploads.tls=true"
       - "traefik.http.routers.studio-uploads.tls.certresolver=letsencrypt"
-      - "traefik.http.services.studio-uploads.loadbalancer.server.port=8000"
+      - "traefik.http.routers.studio-uploads.service=studio-backend"
+
+      # Service backend (partagé par les deux routers)
+      - "traefik.http.services.studio-backend.loadbalancer.server.port=8000"
 
   sterve-studio-frontend:
     build: ./frontend
