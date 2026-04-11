@@ -32,7 +32,8 @@ Elle couvre l'ensemble du cycle opérationnel : parcelles, traitements phytosani
 - Fin des tableaux Excel non partagés et perdus
 - Suivi en temps réel des stocks de produits (engrais, pesticides, fertilisants)
 - Alertes automatiques au patron quand un stock est critique
-- Bilan financier de chaque saison calculé automatiquement
+- Traçabilité de **toutes** les charges (produits + irrigation + construction + main d'œuvre + carburant…)
+- Bilan financier complet avec marge nette réelle (toutes charges déduites)
 - Assistant IA qui analyse les données réelles de la ferme
 - Analyse d'images terrain : photo d'une feuille ou d'un arbre → diagnostic Claude
 - Gestion multi-utilisateurs avec accès cloisonné par ferme
@@ -88,6 +89,7 @@ Traefik (HTTPS + reverse proxy)
 | `/mouvements` | `mouvements.py` | Historique entrées/sorties stock |
 | `/sessions` | `sessions.py` | Confirmation session fertilisation |
 | `/recommandations` | `recommandations.py` | CRUD recommandations |
+| `/depenses` | `depenses.py` | CRUD dépenses diverses par ferme |
 | `/bilan` | `bilan.py` | Bilan saison + comparaison N-1 |
 | `/ai` | `ai.py` | Chat IA + analyse + analyse image |
 | `/users` | `users.py` | Gestion utilisateurs (admin) |
@@ -187,16 +189,30 @@ Trois sources distinctes, visuellement différenciées :
 
 ---
 
+### 💸 Dépenses (`/depenses`)
+
+- Registre de **toutes les charges** de l'exploitation (au-delà des produits consommables)
+- 8 catégories : Irrigation / Construction / Rénovation / Alimentation / Main d'œuvre / Carburant / Matériel / Autre
+- Saisie : date, catégorie, montant (TND), description libre, notes
+- Vue annuelle avec résumé par catégorie + barres de progression et pourcentages
+- Filtre par ferme et par année
+- CRUD complet respectant les droits d'accès par ferme
+
+---
+
 ### 📊 Bilan de saison (`/bilan`)
 
 - Par ferme et par année (sélecteurs)
-- KPIs : total récoltes (kg + TND), total dépenses, marge brute (avec couleur selon positif/négatif)
+- KPIs : total récoltes (kg + TND), dépenses produits & stocks, **marge nette** (toutes charges)
+- **Deux niveaux de marge :**
+  - `marge_brute` = CA récoltes − coûts stocks/produits
+  - `marge_nette` = CA récoltes − coûts stocks − dépenses diverses
+- Bloc "Dépenses diverses" : répartition par catégorie avec barres proportionnelles + total charges récapitulatif
 - Top dépenses par produit avec barres proportionnelles
-- Récoltes par variété
 - **Comparaison N-1** : tableau variété par variété avec évolution en % (flèches haut/bas/stable)
 - Export **PDF** immédiat (bouton)
 - Export **Excel** (.xlsx, 5 feuilles : Résumé, Récoltes, Traitements, Stocks, Recommandations)
-- Header avec stats : kg récoltés / CA / marge brute
+- Header avec stats : kg récoltés / CA / marge nette
 
 ---
 
@@ -435,7 +451,7 @@ Features non développées, identifiées comme valeur ajoutée pour les clients 
 | Notifications push mobile (PWA) | Élevé | Moyen |
 | Rapport hebdomadaire email automatique | Moyen | Faible (N8N) |
 | Arabe dans l'interface | Élevé (Tunisie) | Moyen |
-| Profitabilité par parcelle | Élevé | Faible |
+| Profitabilité par parcelle (marge nette par parcelle) | Élevé | Moyen |
 | Capteurs IoT (humidité sol) | Élevé | Fort |
 | Marketplace fournisseurs | Fort | Fort |
 | Traçabilité certifiable (GlobalGAP) | Moyen | Fort |
@@ -443,4 +459,4 @@ Features non développées, identifiées comme valeur ajoutée pour les clients 
 ---
 
 *Farm Manager — Développé par Sterve / SterveAI Systems*  
-*Document mis à jour le 10 Avril 2026*
+*Document mis à jour le 11 Avril 2026*
