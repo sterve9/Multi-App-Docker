@@ -85,6 +85,13 @@
       font-size: 1.05rem; color: var(--muted);
       max-width: 480px; margin: 0 auto 32px;
     }
+    .hero-visual {
+      margin: 32px auto 0;
+      max-width: 600px; border-radius: 20px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+    }
+    .hero-visual img { width: 100%; display: block; }
+
     .hero-btns { display: flex; flex-direction: column; gap: 12px; align-items: center; }
     .btn-wa {
       display: inline-flex; align-items: center; gap: 10px;
@@ -97,6 +104,39 @@
     }
     .btn-wa:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37,211,102,0.45); }
     .hero-sub { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── RÉSULTAT VISUEL ── */
+    .result-visual {
+      margin: 32px auto 0; max-width: 480px;
+      border-radius: 20px; overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+    }
+    .result-visual img { width: 100%; display: block; }
+
+    /* ── PROCESS VISUEL ── */
+    .process-visual {
+      margin: 28px auto 0; max-width: 500px;
+      border-radius: 16px; overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    }
+    .process-visual img { width: 100%; display: block; }
+
+    /* ── AVANT / APRÈS ── */
+    .before-after {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+      margin-top: 32px;
+    }
+    .ba-card { border-radius: 16px; overflow: hidden; }
+    .ba-label {
+      text-align: center; padding: 10px;
+      font-size: 0.82rem; font-weight: 700;
+    }
+    .ba-label.before { background: #fff1f2; color: #be123c; }
+    .ba-label.after { background: #f0fdf4; color: #16a34a; }
+    .ba-card img, .ba-card video { width: 100%; display: block; }
+    @media (max-width: 480px) {
+      .before-after { grid-template-columns: 1fr; }
+    }
 
     /* ── PROBLÈME ── */
     .section-label {
@@ -321,6 +361,9 @@
       </a>
       <p class="hero-sub">⚡ Réponse en moins de 2h · Acompte 30% seulement</p>
     </div>
+    <div class="hero-visual">
+      <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775911548578-cuuxscp7qem.jpg" alt="Entrepreneur africain avec système de vente WhatsApp" loading="eager" />
+    </div>
   </div>
 </section>
 
@@ -354,6 +397,17 @@
           <span>Tu passes du temps à répondre aux mêmes questions au lieu de te concentrer sur ton business</span>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- RÉSULTAT VISUEL -->
+<section style="background:#f8fafc;padding:40px 20px;">
+  <div class="container" style="text-align:center;">
+    <div class="section-label">Ce que ça donne en vrai</div>
+    <h2 class="section-title">Tes messages WhatsApp qui s'enchaînent 📱</h2>
+    <div class="result-visual">
+      <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775912288892-qr4mpqdj7ss.jpg" alt="WhatsApp Business notifications clients" loading="lazy" />
     </div>
   </div>
 </section>
@@ -410,6 +464,28 @@
     </div>
     <div class="solution-result">
       <p>👉 Tu n'interviens que pour encaisser.</p>
+    </div>
+    <div class="process-visual">
+      <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775913059344-vp58o6hv189.jpg" alt="Funnel de vente automatisé" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<!-- AVANT / APRÈS -->
+<section style="background:white;">
+  <div class="container">
+    <div class="section-label">Transformation</div>
+    <h2 class="section-title">Avant vs Après le système ⚡</h2>
+    <p class="section-sub">Une seule décision change tout.</p>
+    <div class="before-after">
+      <div class="ba-card">
+        <div class="ba-label before">😓 AVANT — Sans système</div>
+        <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775918544676-qe1notv7l5n.jpg" alt="Avant — sans système de vente" loading="lazy" />
+      </div>
+      <div class="ba-card">
+        <div class="ba-label after">🚀 APRÈS — Avec le système</div>
+        <video src="https://tempfile.aiquickdraw.com/k/753ed3d64a7ab9635441eff442487597_1_1775913324_1534.mp4" autoplay muted loop playsinline></video>
+      </div>
     </div>
   </div>
 </section>
@@ -589,6 +665,7 @@
 <!-- CTA FINAL -->
 <section class="cta-section">
   <div class="container">
+    <img src="https://tempfile.aiquickdraw.com/image-format-converter/1775919124043-2gac3ijxzbw.jpg" alt="Entrepreneur avec résultats WhatsApp" loading="lazy" style="width:100%;max-width:480px;border-radius:20px;margin:0 auto 32px;display:block;box-shadow:0 20px 50px rgba(0,0,0,0.3);" />
     <div class="cta-urgency">🔥 Places limitées ce mois-ci</div>
     <h2>Prêt à passer au<br /><span>niveau supérieur ?</span></h2>
     <p>Clique sur le bouton, envoie un message et on lance<br />ta machine de vente immédiatement.</p>
