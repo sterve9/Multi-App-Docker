@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sterve Digital Agency — Machine de Vente Automatisée</title>
+  <meta name="description" content="On construit les systèmes qui te ramènent des clients sur WhatsApp. Landing page + automatisation + CRM — clé en main en 72h." />
+  <meta property="og:title" content="Sterve Digital Agency" />
+  <meta property="og:description" content="Ta machine de vente automatisée — prospects capturés, relancés et convertis 24h/24." />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #16a34a;
+      --green-light: #22c55e;
+      --green-bg: #f0fdf4;
+      --dark: #0f172a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --white: #ffffff;
+      --radius: 16px;
+      --wa: #25D366;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f8fafc;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAVBAR ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-weight: 800; font-size: 1rem; color: var(--dark); }
+    .nav-logo span { color: var(--green); }
+    .nav-cta {
+      background: var(--green); color: white;
+      border: none; border-radius: 50px;
+      padding: 10px 20px; font-size: 0.85rem; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: #15803d; }
+
+    /* ── SECTIONS ── */
+    section { padding: 60px 20px; }
+    .container { max-width: 680px; margin: 0 auto; }
+
+    /* ── HERO ── */
+    .hero {
+      background: white;
+      border-bottom: 1px solid var(--border);
+      padding: 70px 20px 60px;
+      text-align: center;
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--green-bg); color: var(--green);
+      border: 1px solid #bbf7d0;
+      border-radius: 50px; padding: 6px 14px;
+      font-size: 0.8rem; font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 6vw, 2.8rem);
+      font-weight: 900; line-height: 1.15;
+      color: var(--dark); margin-bottom: 16px;
+    }
+    .hero h1 span { color: var(--green); }
+    .hero p {
+      font-size: 1.05rem; color: var(--muted);
+      max-width: 480px; margin: 0 auto 32px;
+    }
+    .hero-btns { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+    .btn-wa {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--wa); color: white;
+      border-radius: 50px; padding: 16px 32px;
+      font-size: 1rem; font-weight: 800;
+      text-decoration: none; transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.35);
+      width: 100%; max-width: 340px; justify-content: center;
+    }
+    .btn-wa:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37,211,102,0.45); }
+    .hero-sub { font-size: 0.8rem; color: var(--muted); }
+
+    /* ── PROBLÈME ── */
+    .section-label {
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--green);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 800; color: var(--dark);
+      margin-bottom: 12px; line-height: 1.25;
+    }
+    .section-sub { color: var(--muted); margin-bottom: 32px; font-size: 0.95rem; }
+
+    .problem-list { display: flex; flex-direction: column; gap: 12px; }
+    .problem-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      background: #fff1f2; border: 1px solid #fecdd3;
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .problem-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .problem-item p { font-size: 0.95rem; color: #be123c; font-weight: 600; }
+    .problem-item span { font-size: 0.85rem; color: #9f1239; font-weight: 400; }
+
+    /* ── SOLUTION ── */
+    .solution-bg { background: var(--dark); color: white; }
+    .solution-bg .section-label { color: var(--green-light); }
+    .solution-bg .section-title { color: white; }
+    .solution-bg .section-sub { color: #94a3b8; }
+
+    .steps { display: flex; flex-direction: column; gap: 0; position: relative; }
+    .step {
+      display: flex; align-items: flex-start; gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--green); color: white;
+      font-weight: 800; font-size: 0.85rem;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .step-title { font-size: 0.95rem; font-weight: 700; color: white; margin-bottom: 2px; }
+    .step-desc { font-size: 0.85rem; color: #94a3b8; }
+
+    .solution-result {
+      margin-top: 28px;
+      background: rgba(22,163,74,0.15);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: var(--radius); padding: 20px;
+      text-align: center;
+    }
+    .solution-result p { color: var(--green-light); font-weight: 700; font-size: 1rem; }
+
+    /* ── PACKS ── */
+    .packs-grid { display: flex; flex-direction: column; gap: 16px; }
+    .pack-card {
+      background: white; border: 2px solid var(--border);
+      border-radius: var(--radius); padding: 24px;
+      position: relative; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .pack-card:hover { border-color: var(--green); box-shadow: 0 8px 30px rgba(22,163,74,0.1); }
+    .pack-card.featured {
+      border-color: var(--green);
+      box-shadow: 0 8px 30px rgba(22,163,74,0.15);
+    }
+    .pack-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--green); color: white;
+      border-radius: 50px; padding: 4px 14px;
+      font-size: 0.72rem; font-weight: 800;
+      white-space: nowrap;
+    }
+    .pack-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .pack-emoji { font-size: 1.6rem; }
+    .pack-name { font-size: 1rem; font-weight: 800; color: var(--dark); }
+    .pack-tagline { font-size: 0.85rem; color: var(--muted); margin-bottom: 14px; }
+    .pack-price {
+      font-size: 1.8rem; font-weight: 900; color: var(--green);
+      margin-bottom: 4px;
+    }
+    .pack-price span { font-size: 1rem; font-weight: 600; color: var(--muted); }
+    .pack-result {
+      background: var(--green-bg); border-radius: 10px;
+      padding: 10px 14px; margin-bottom: 16px;
+      font-size: 0.85rem; font-weight: 600; color: var(--green);
+    }
+    .pack-features { list-style: none; display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .pack-features li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: 0.875rem; color: var(--text);
+    }
+    .pack-features li::before {
+      content: "✓"; color: var(--green); font-weight: 800;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .pack-btn {
+      display: block; width: 100%;
+      background: var(--green); color: white;
+      border: none; border-radius: 12px; padding: 14px;
+      font-size: 0.95rem; font-weight: 700;
+      text-decoration: none; text-align: center;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .pack-btn:hover { background: #15803d; }
+    .pack-btn.outline {
+      background: transparent; color: var(--green);
+      border: 2px solid var(--green);
+    }
+    .pack-btn.outline:hover { background: var(--green-bg); }
+
+    /* ── POUR QUI ── */
+    .who-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .who-card {
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 18px 16px;
+      text-align: center;
+    }
+    .who-emoji { font-size: 1.8rem; margin-bottom: 8px; }
+    .who-title { font-size: 0.9rem; font-weight: 700; color: var(--dark); margin-bottom: 4px; }
+    .who-desc { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── STATS ── */
+    .stats-bg { background: var(--green); }
+    .stats-bg .section-label { color: rgba(255,255,255,0.7); }
+    .stats-bg .section-title { color: white; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .stat-card {
+      background: rgba(255,255,255,0.15); border-radius: var(--radius);
+      padding: 20px 16px; text-align: center; border: 1px solid rgba(255,255,255,0.2);
+    }
+    .stat-number { font-size: 2rem; font-weight: 900; color: white; line-height: 1; }
+    .stat-label { font-size: 0.8rem; color: rgba(255,255,255,0.8); margin-top: 6px; }
+
+    /* ── PAIEMENT ── */
+    .payment-grid { display: flex; flex-direction: column; gap: 12px; }
+    .payment-item {
+      display: flex; align-items: center; gap: 14px;
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 16px 18px;
+    }
+    .payment-item .icon { font-size: 1.4rem; flex-shrink: 0; }
+    .payment-item strong { font-size: 0.9rem; color: var(--dark); display: block; }
+    .payment-item span { font-size: 0.82rem; color: var(--muted); }
+
+    /* ── CTA FINAL ── */
+    .cta-section {
+      background: var(--dark); text-align: center; padding: 70px 20px;
+    }
+    .cta-section h2 {
+      font-size: clamp(1.5rem, 5vw, 2.2rem);
+      font-weight: 900; color: white; margin-bottom: 12px; line-height: 1.2;
+    }
+    .cta-section h2 span { color: var(--green-light); }
+    .cta-section p { color: #94a3b8; margin-bottom: 32px; font-size: 0.95rem; }
+    .cta-urgency {
+      display: inline-block;
+      background: rgba(239,68,68,0.15); color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 50px; padding: 6px 16px;
+      font-size: 0.8rem; font-weight: 600; margin-bottom: 24px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0f172a; border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 24px 20px; text-align: center;
+    }
+    footer p { color: #475569; font-size: 0.8rem; }
+    footer span { color: var(--green); }
+
+    /* ── STICKY WA ── */
+    .sticky-wa {
+      position: fixed; bottom: 20px; right: 20px; z-index: 999;
+      background: var(--wa); color: white;
+      border-radius: 50px; padding: 14px 20px;
+      font-weight: 700; font-size: 0.9rem;
+      text-decoration: none;
+      display: flex; align-items: center; gap: 8px;
+      box-shadow: 0 4px 24px rgba(37,211,102,0.5);
+      transition: transform 0.15s; animation: pulse 2s infinite;
+    }
+    .sticky-wa:hover { transform: scale(1.05); }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 24px rgba(37,211,102,0.5); }
+      50% { box-shadow: 0 4px 40px rgba(37,211,102,0.8); }
+    }
+    .sticky-wa svg { width: 20px; height: 20px; fill: white; flex-shrink: 0; }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: var(--border); margin: 0; }
+
+    @media (min-width: 600px) {
+      .packs-grid { flex-direction: row; }
+      .pack-card { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-logo">Sterve <span>Digital</span> Agency</div>
+  <a class="nav-cta" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Démarrer
+  </a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">🚀 Système clé en main · Livraison 72h</div>
+    <h1>Tu perds des clients<br /><span>tous les jours</span> sans le savoir…</h1>
+    <p>Des prospects te contactent, posent des questions… puis disparaissent. Parce que tu réponds manuellement, lentement — ou pas du tout.</p>
+    <div class="hero-btns">
+      <a class="btn-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Lancer ma machine de vente →
+      </a>
+      <p class="hero-sub">⚡ Réponse en moins de 2h · Acompte 30% seulement</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PROBLÈME -->
+<section style="background:#fff;">
+  <div class="container">
+    <div class="section-label">Le problème</div>
+    <h2 class="section-title">Pourquoi tu perds des ventes chaque jour 😔</h2>
+    <p class="section-sub">Ce n'est pas un manque de prospects. C'est un manque de système.</p>
+    <div class="problem-list">
+      <div class="problem-item">
+        <div class="problem-icon">⏳</div>
+        <div>
+          <p>Tu réponds en retard</p>
+          <span>Un prospect contacté après 5 minutes a 80% moins de chances d'acheter</span>
+        </div>
+      </div>
+      <div class="problem-item">
+        <div class="problem-icon">🗂️</div>
+        <div>
+          <p>Tu perds le suivi de tes prospects</p>
+          <span>Sans CRM, tu oublies de relancer et le prospect achète chez quelqu'un d'autre</span>
+        </div>
+      </div>
+      <div class="problem-item">
+        <div class="problem-icon">😓</div>
+        <div>
+          <p>Tu fais tout manuellement</p>
+          <span>Tu passes du temps à répondre aux mêmes questions au lieu de te concentrer sur ton business</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTION -->
+<section class="solution-bg">
+  <div class="container">
+    <div class="section-label">La solution</div>
+    <h2 class="section-title">Comment ça marche ⚙️</h2>
+    <p class="section-sub">Ton système travaille à ta place, 24h/24.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div>
+          <div class="step-title">Un prospect voit ton contenu ou ta pub</div>
+          <div class="step-desc">Il arrive sur ta landing page optimisée pour convertir</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div>
+          <div class="step-title">Il remplit un formulaire simple</div>
+          <div class="step-desc">Nom, numéro WhatsApp, besoin — en 30 secondes</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div>
+          <div class="step-title">Ses infos sont enregistrées automatiquement</div>
+          <div class="step-desc">Dans ton CRM en temps réel — tu vois tout depuis ton téléphone</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div>
+          <div class="step-title">Il reçoit une réponse instantanée sur WhatsApp</div>
+          <div class="step-desc">Message personnalisé, professionnel, envoyé en secondes</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <div>
+          <div class="step-title">Il reçoit ton offre automatiquement</div>
+          <div class="step-desc">PDF, lien, message — ton offre livrée sans que tu bouges</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <div>
+          <div class="step-title">Il est relancé sans effort</div>
+          <div class="step-desc">Rappels automatiques jusqu'à la décision d'achat</div>
+        </div>
+      </div>
+    </div>
+    <div class="solution-result">
+      <p>👉 Tu n'interviens que pour encaisser.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PACKS -->
+<section style="background:#f8fafc;">
+  <div class="container">
+    <div class="section-label">Les offres</div>
+    <h2 class="section-title">Choisis ton pack 📦</h2>
+    <p class="section-sub">Trois niveaux selon là où tu en es.</p>
+    <div class="packs-grid">
+
+      <!-- PACK SOLO -->
+      <div class="pack-card">
+        <div class="pack-header">
+          <div class="pack-emoji">🥉</div>
+          <div class="pack-name">Pack Solo</div>
+        </div>
+        <div class="pack-tagline">Capture &amp; organisation des prospects</div>
+        <div class="pack-price">35 000 <span>FCFA</span></div>
+        <div class="pack-result">👉 Tu ne perds plus aucun prospect</div>
+        <ul class="pack-features">
+          <li>Formulaire de capture optimisé</li>
+          <li>Collecte automatique des leads</li>
+          <li>CRM organisé (tableau de suivi)</li>
+          <li>Accès en temps réel depuis ton téléphone</li>
+        </ul>
+        <a class="pack-btn outline" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20Pack%20Solo%20%E2%80%94%2035%20000%20FCFA%20%F0%9F%9A%80" target="_blank" rel="noopener">
+          Démarrer avec ce pack →
+        </a>
+      </div>
+
+      <!-- PACK PRO -->
+      <div class="pack-card">
+        <div class="pack-header">
+          <div class="pack-emoji">🥈</div>
+          <div class="pack-name">Pack Pro</div>
+        </div>
+        <div class="pack-tagline">Conversion automatisée WhatsApp</div>
+        <div class="pack-price">65 000 <span>FCFA</span></div>
+        <div class="pack-result">👉 Tes prospects reçoivent ton offre sans toi</div>
+        <ul class="pack-features">
+          <li>Tout le Pack Solo</li>
+          <li>Connexion de ton WhatsApp</li>
+          <li>Réponses automatiques instantanées</li>
+          <li>Envoi automatique de ton offre</li>
+          <li>Relances automatiques</li>
+        </ul>
+        <a class="pack-btn outline" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20suis%20int%C3%A9ress%C3%A9%20par%20le%20Pack%20Pro%20%E2%80%94%2065%20000%20FCFA%20%F0%9F%9A%80" target="_blank" rel="noopener">
+          Démarrer avec ce pack →
+        </a>
+      </div>
+
+      <!-- PACK COMPLET -->
+      <div class="pack-card featured" style="flex-basis:100%;">
+        <div class="pack-badge">🔥 Recommandé</div>
+        <div class="pack-header">
+          <div class="pack-emoji">🥇</div>
+          <div class="pack-name">Pack Complet</div>
+        </div>
+        <div class="pack-tagline">Machine de vente automatisée — clé en main</div>
+        <div class="pack-price">100 000 <span>FCFA</span></div>
+        <div class="pack-result">👉 Un système qui attire, qualifie et vend automatiquement</div>
+        <ul class="pack-features">
+          <li>Tout le Pack Pro</li>
+          <li>Landing page professionnelle optimisée</li>
+          <li>Tunnel de vente complet (trafic → capture → conversion)</li>
+          <li>Optimisation du parcours client</li>
+          <li>Mise en place complète en 72h</li>
+          <li>1h de formation pour prendre en main le système</li>
+        </ul>
+        <a class="pack-btn" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20le%20Pack%20Complet%20%E2%80%94%20100%20000%20FCFA%20%F0%9F%94%A5%20Je%20suis%20pr%C3%AAt%20%C3%A0%20lancer%20ma%20machine%20de%20vente%20%21" target="_blank" rel="noopener">
+          🚀 Je veux ce pack → Discutons sur WhatsApp
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- POUR QUI -->
+<section style="background:white;">
+  <div class="container">
+    <div class="section-label">Pour qui</div>
+    <h2 class="section-title">Ce service est fait pour toi si… ✅</h2>
+    <p class="section-sub">Tu vends quelque chose en ligne et tu veux vendre plus en travaillant moins.</p>
+    <div class="who-grid">
+      <div class="who-card">
+        <div class="who-emoji">🎓</div>
+        <div class="who-title">Formateur / Coach</div>
+        <div class="who-desc">Tu vends des formations, du coaching ou du mentoring</div>
+      </div>
+      <div class="who-card">
+        <div class="who-emoji">💡</div>
+        <div class="who-title">Infopreneur</div>
+        <div class="who-desc">Tu crées du contenu et tu veux le monétiser automatiquement</div>
+      </div>
+      <div class="who-card">
+        <div class="who-emoji">🛍️</div>
+        <div class="who-title">Vendeur en ligne</div>
+        <div class="who-desc">Mode, beauté, food, produits physiques ou digitaux</div>
+      </div>
+      <div class="who-card">
+        <div class="who-emoji">🏢</div>
+        <div class="who-title">Professionnel de service</div>
+        <div class="who-desc">Agence, consultant, thérapeute — tu veux plus de clients qualifiés</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-bg">
+  <div class="container">
+    <div class="section-label">Résultats</div>
+    <h2 class="section-title" style="color:white;margin-bottom:28px;">Ce que le système change 📈</h2>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number">+40%</div>
+        <div class="stat-label">de prospects traités automatiquement</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">-80%</div>
+        <div class="stat-label">de temps passé à répondre</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">3×</div>
+        <div class="stat-label">plus de relances envoyées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">système actif même quand tu dors</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PAIEMENT -->
+<section style="background:#f8fafc;">
+  <div class="container">
+    <div class="section-label">Conditions</div>
+    <h2 class="section-title">Simple et transparent 💳</h2>
+    <p class="section-sub">Pas de surprise, tout est clair dès le départ.</p>
+    <div class="payment-grid">
+      <div class="payment-item">
+        <div class="icon">⚡</div>
+        <div>
+          <strong>Livraison en 72h</strong>
+          <span>Ton système est opérationnel 3 jours après le démarrage</span>
+        </div>
+      </div>
+      <div class="payment-item">
+        <div class="icon">💰</div>
+        <div>
+          <strong>Acompte 30% · Solde 70% à la livraison</strong>
+          <span>Tu paies le reste uniquement quand tout est prêt et fonctionnel</span>
+        </div>
+      </div>
+      <div class="payment-item">
+        <div class="icon">📱</div>
+        <div>
+          <strong>Mobile Money · Virement · Orange Money</strong>
+          <span>Paiement selon ton pays et ce qui t'arrange</span>
+        </div>
+      </div>
+      <div class="payment-item">
+        <div class="icon">✅</div>
+        <div>
+          <strong>Conditions minimales</strong>
+          <span>Un produit/service à vendre · Un numéro WhatsApp actif · 30 min pour la config</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-urgency">🔥 Places limitées ce mois-ci</div>
+    <h2>Prêt à passer au<br /><span>niveau supérieur ?</span></h2>
+    <p>Clique sur le bouton, envoie un message et on lance<br />ta machine de vente immédiatement.</p>
+    <a class="btn-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20suis%20pr%C3%AAt%20%C3%A0%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80%20Pouvez-vous%20me%20d%C3%A9tailler%20les%20offres%20%3F" target="_blank" rel="noopener" style="margin:0 auto;display:inline-flex;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Lancer ma machine maintenant →
+    </a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2026 <span>Sterve Digital Agency</span> · Systèmes de vente automatisés · Afrique francophone</p>
+</footer>
+
+<!-- STICKY WHATSAPP -->
+<a class="sticky-wa" href="https://wa.me/21620706595?text=Bonjour%2C%20je%20veux%20lancer%20ma%20machine%20de%20vente%20%F0%9F%9A%80" target="_blank" rel="noopener">
+  <svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  WhatsApp
+</a>
+
+</body>
+</html>
