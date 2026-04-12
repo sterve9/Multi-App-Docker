@@ -1,237 +1,202 @@
-# CLAUDE.md — Guide de développement Multi-App-Docker
-
-Ce fichier est lu automatiquement par Claude Code à chaque session. Il décrit l'architecture, les conventions et les règles à respecter pour modifier ce projet sans rien casser.
+# CLAUDE.md — Multi-App-Docker
 
 ---
 
-## Architecture globale
+# 🎯 MISSION
 
-Monorepo multi-applications déployé sur VPS (Hostinger) via **Docker Compose + Traefik**.
+Expert en création de systèmes de vente automatisés pour infopreneurs africains.
+
+Objectif : créer des systèmes qui génèrent des conversations WhatsApp et des ventes.
+Pas de code complexe. Priorité à la conversion.
+
+---
+
+# 🧠 CONTEXTE UTILISATEURS
+
+Cibles en Afrique francophone :
+- Connexion lente (3G)
+- Mobile uniquement
+- Peu de patience
+
+Ils achètent via WhatsApp.
+
+---
+
+# 🏗️ ARCHITECTURE
+
+Monorepo multi-applications sur VPS Hostinger (72.62.89.162).
 Domaine racine : `sterveshop.cloud`
 Réseau Docker partagé : `traefik-network` (external)
-SSL automatique : Let's Encrypt via Traefik ACME
+SSL automatique : Let's Encrypt via Traefik
 
 ```
 Multi-App-Docker/
-├── traefik/                   # Reverse proxy + SSL
+├── traefik/                    # Reverse proxy + SSL
 ├── apps/
-│   ├── landing-rituel/        # Landing page produit (nginx static)
-│   ├── youtube-publisher/     # Pipeline vidéo IA → YouTube
-│   ├── tiktok-publisher/      # Pipeline vidéo IA → Facebook (renommé)
-│   ├── linkedin-publisher/    # Pipeline image IA → LinkedIn
-│   ├── site-vitrine/          # Site pro + contact IA
-│   ├── n8n/                   # Automation (webhooks, workflows)
-│   ├── builder/               # Site vitrine builder (static)
-│   └── lab-api/               # Lab FastAPI interne
-└── CLAUDE.md
+│   ├── youtube-publisher/      # Pipeline vidéo IA → YouTube
+│   ├── linkedin-publisher/     # Pipeline image IA → LinkedIn
+│   ├── facebook-publisher/     # Pipeline vidéo IA → Facebook
+│   ├── sterve-studio/          # Générateur de visuels IA
+│   ├── site-vitrine/           # Analyse IA → workflows n8n
+│   ├── farm-app/               # Gestion ferme agrumicole (projet client)
+│   ├── farm-landing/           # Landing page farm-app
+│   ├── sterve-agency/          # Landing page agence (sterveshop.cloud)
+│   ├── landing-rituel/         # Landing page Rituel Ancestral
+│   └── n8n/                    # Automatisation (automation.sterveshop.cloud)
+└── .github/workflows/          # GitHub Actions (déploiement automatique)
 ```
 
 ---
 
-## Stack technique commune
+# 🚀 DÉPLOIEMENT VPS
+
+**Workflow complet :**
+```bash
+# Sur le PC local
+git add .
+git commit -m "description"
+git push origin master
+
+# Sur le VPS (SSH)
+cd /opt/sterveshop/Multi-App-Docker
+git pull origin master
+cd apps/NOM_APP
+docker compose up -d --build
+```
+
+**Optimisation — éviter le rebuild complet (1h+) :**
+```bash
+# Changement backend Python uniquement
+docker cp fichier.py container-name:/app/app/fichier.py
+docker compose restart backend
+
+# Changement frontend (rebuild inévitable avec Next.js)
+docker compose up -d --build frontend
+```
+
+---
+
+# ⚙️ STACK TECHNIQUE
 
 | Composant | Technologie |
 |-----------|-------------|
 | Backend | Python 3.11, FastAPI, SQLAlchemy |
-| Frontend | Next.js 14-16, React, TypeScript, Tailwind CSS |
-| BDD | PostgreSQL (par app, container dédié) |
-| Cache | Redis (tiktok-publisher uniquement) |
+| Frontend | Next.js 14-16, TypeScript, Tailwind CSS |
+| Base de données | PostgreSQL (container dédié par app) |
 | Proxy | Traefik v2.11 |
 | Automation | n8n (automation.sterveshop.cloud) |
-| IA Texte | Anthropic Claude API |
+| IA Texte | Anthropic Claude API (claude-sonnet) |
 | IA Image/Vidéo | Kie.ai (Kling 3.0, Flux-2 Pro) |
-| Voix | ElevenLabs |
-| Assemblage | FFmpeg |
-| State (frontend) | Zustand |
+| Voix | ElevenLabs (eleven_multilingual_v2) |
+| Assemblage vidéo | FFmpeg |
+| State frontend | Zustand |
 
 ---
 
-## Règles critiques à respecter
+# 🔑 RÈGLES CRITIQUES
 
-### 1. Déploiement — JAMAIS de rebuild complet inutile
-Le `docker-compose up -d --build` prend 1h+. Utiliser à la place :
-```bash
-# Pour les changements Python/backend
-docker cp backend/src/app/fichier.py container-name:/app/app/fichier.py
-docker-compose restart backend
+### Variables d'environnement
+Les `.env` ne sont jamais dans Git. Les éditer manuellement sur le VPS.
 
-# Pour les changements frontend TypeScript/React
-docker-compose up -d --build frontend
-# (inévitable car Next.js compile)
-```
-
-### 2. Variables d'environnement — jamais dans git
-Les `.env` contiennent des secrets. Ils sont dans `.gitignore`.
-Pour déployer un nouveau `.env` : l'éditer manuellement sur le VPS.
-
-### 3. Enum VideoStatus — MAJUSCULES
-Dans `youtube-publisher`, l'enum PostgreSQL est en MAJUSCULES :
+### Enum VideoStatus — toujours MAJUSCULES
 ```python
-# CORRECT
 class VideoStatus(str, enum.Enum):
     DRAFT = "DRAFT"
     READY = "READY"
     PUBLISHED = "PUBLISHED"
     FAILED = "FAILED"
-    # etc.
 ```
 Le frontend compare aussi en MAJUSCULES (`video.status === "READY"`).
 
-### 4. Kie.ai API — endpoints corrects
+### Kie.ai API — endpoints corrects
 ```python
 # Créer une tâche
 POST /api/v1/jobs/createTask
 
-# Vérifier le statut (PAS /jobs/detail)
+# Vérifier le statut
 GET /api/v1/jobs/recordInfo?taskId=xxx
 
 # Parser le résultat
-import json
 url = json.loads(record["resultJson"])["resultUrls"][0]
 
 # Statut succès (minuscule)
 state == "success"
 ```
 
-### 5. Images Kie.ai — télécharger immédiatement
-Les URLs Kie.ai expirent rapidement. Toujours télécharger l'image/vidéo localement dès qu'elle est générée (ne pas stocker l'URL pour la télécharger plus tard).
+### Images Kie.ai — télécharger immédiatement
+Les URLs Kie.ai expirent. Toujours télécharger localement dès la génération.
 
-### 6. n8n webhook — URL de production
+### n8n webhooks — URLs
 ```
-PRODUCTION : https://automation.sterveshop.cloud/webhook/youtube-publish
-TEST       : https://automation.sterveshop.cloud/webhook-test/youtube-publish
+PRODUCTION : https://automation.sterveshop.cloud/webhook/NOM
+TEST       : https://automation.sterveshop.cloud/webhook-test/NOM
 ```
-Le backend utilise toujours l'URL de production (sans `-test`).
+Le backend utilise toujours l'URL de production.
 
-### 7. PATCH status depuis n8n
-Le backend accepte les deux casses grâce au validator Pydantic (normalization `.upper()`). Mais utiliser MAJUSCULES par convention :
-- `PUBLISHED`, `FAILED`, `READY`
+### Traefik — réseau obligatoire
+Chaque app doit avoir dans son docker-compose.yml :
+```yaml
+networks:
+  traefik-network:
+    external: true
+```
 
 ---
 
-## Applications détaillées
+# 📱 RÈGLES LANDING PAGE
 
-### landing-rituel
-- **Domain** : `rituel.sterveshop.cloud`
-- **Stack** : HTML/CSS/JS + Nginx Alpine
-- **Fichier principal** : `apps/landing-rituel/html/index.html` (tout-en-un)
-- **Features** : Meta Pixel (4009568915963637), WhatsApp flottant (+21620706595), countdown timer, toasts social proof, section avant/après, FAQ
-- **Liens produits** : `myfurbrush.com/rituelancestral7jours`, `cureprofonde40jours`, `packcompletancestral`
-- **Déploiement** : `docker-compose restart landing-rituel` (juste nginx, rebuild rapide)
+## Structure obligatoire
+1. **HERO** — accroche forte + bouton WhatsApp visible immédiatement
+2. **PROBLÈME** — douleur utilisateur, texte court
+3. **SOLUTION** — offre simple
+4. **BÉNÉFICES** — liste claire, résultats concrets
+5. **CTA FINAL** — bouton WhatsApp "Recevoir les détails sur WhatsApp"
 
-### youtube-publisher
-- **Domains** : `app.youtube.sterveshop.cloud` (frontend), `api.youtube.sterveshop.cloud` (backend)
-- **Stack** : FastAPI + PostgreSQL + Next.js
-- **Pipeline** : Script (Claude) → Images (Kling 3.0 ou Flux-2 Pro) → Audio (ElevenLabs) → Assemblage (FFmpeg) → READY
-- **Publication** : Manuel via bouton "Publier" → webhook n8n → YouTube Data API
-- **Workflow n8n** : `youtube-publisher` (ID: ReS7bervr6Xkop7hcowDq) — actif
-- **Format premium** : Kling 3.0 videos (lent, 10min+/scène)
-- **Format économique** : Flux-2 Pro images + Ken Burns FFmpeg (rapide, 2-3min)
-- **Assets** : `/app/assets/characters/` (photos référence personnages), `/app/assets/music/`
-- **Outputs** : `/app/outputs/videos/`, `/app/outputs/thumbnails/`, `/app/outputs/images/`
-- **Variables clés** : `ANTHROPIC_API_KEY`, `KIE_AI_API_KEY`, `ELEVENLABS_API_KEY`, `N8N_WEBHOOK_URL`, `BASE_URL`, `DATABASE_URL`
+## WhatsApp
+Toujours inclure : lien `wa.me`, message pré-rempli, bouton sticky.
 
-### tiktok-publisher (facebook-publisher)
-- **Domains** : `facebook.sterveshop.cloud` (frontend), `api.facebook.sterveshop.cloud` (backend)
-- **Stack** : FastAPI + PostgreSQL + Redis + Next.js
-- **Pipeline** : Script (Claude, structure Hook→Produit→Problème/Solution) → Image (Kling) → Audio (ElevenLabs) → FFmpeg → READY
-- **Pas de publication automatique** : L'utilisateur télécharge la vidéo et publie manuellement sur Facebook
-- **Sales text** : Généré par Claude avec lien `rituel.sterveshop.cloud`
-- **Formats** : `image_animee` (image IA + Ken Burns, rapide) ou `video_ia` (Kling, lent)
-- **State management** : Zustand (`lib/store.ts`)
-- **Variables clés** : `ANTHROPIC_API_KEY`, `KIE_AI_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL`, `REDIS_URL`
-
-### linkedin-publisher
-- **Domains** : `app.linkedin.sterveshop.cloud` (frontend), `api.linkedin.sterveshop.cloud` (backend)
-- **Stack** : FastAPI + PostgreSQL + Next.js
-- **Pipeline** : Script (Claude) → Image (Kling 2.6 I2V avec photo référence utilisateur) → FFmpeg frame extraction → Post LinkedIn
-- **Face consistency** : Photos référence dans `/app/assets/reference/`
-- **Variables clés** : `ANTHROPIC_API_KEY`, `KIE_AI_API_KEY`, `N8N_WEBHOOK_URL`, `DATABASE_URL`
-
-### site-vitrine
-- **Domains** : `vitrine.sterveshop.cloud` (frontend), `api.sterveshop.cloud` (backend)
-- **Stack** : FastAPI + PostgreSQL + Next.js
-- **Features** : Formulaire contact, analyse IA (Claude), auth JWT, blog, notifications Telegram
-- **Sécurité** : Rate limiting (SlowAPI), bcrypt, JWT
-- **Variables clés** : `ANTHROPIC_API_KEY`, `DATABASE_URL`, `N8N_WEBHOOK_URL`, `TELEGRAM_BOT_TOKEN`, `SECRET_KEY`
-
-### n8n
-- **Domain** : `automation.sterveshop.cloud`
-- **Port interne** : 5678
-- **Workflows actifs** :
-  - `youtube-publisher` (ReS7bervr6Xkop7hcowDq) — upload YouTube + thumbnail
-  - `linkedin-publisher` (egjGrTP4garbZAZfQik2W) — publication LinkedIn
-  - `tiktok-publisher` (YCtkIGoAuozC4fwH) — publication TikTok
-  - `Chariow - Séquence Post-Achat` (TCUGrVMxDJv5GWNn) — séquence email
+## Copywriting
+Phrases courtes. Mots simples. Parler résultats. Zéro jargon.
 
 ---
 
-## Pattern d'une nouvelle app
+# 🚫 INTERDIT
 
-Pour créer une nouvelle app publisher, copier le pattern de `youtube-publisher` :
-
-```
-apps/nouvelle-app/
-├── docker-compose.yml          # Services: backend, frontend, postgres
-├── backend/
-│   ├── Dockerfile
-│   ├── requirements.txt
-│   ├── .env                    # Jamais dans git
-│   └── src/app/
-│       ├── main.py             # FastAPI + lifespan + CORS
-│       ├── models/             # SQLAlchemy models
-│       ├── schemas/            # Pydantic schemas
-│       ├── api/routes/         # Endpoints
-│       ├── services/           # Business logic (IA, pipeline)
-│       └── core/               # Config, database
-└── frontend/
-    ├── Dockerfile              # Multi-stage: deps → builder → runner
-    ├── package.json
-    ├── .env.local              # NEXT_PUBLIC_API_URL=https://api.xxx.sterveshop.cloud
-    └── app/                    # Next.js App Router
-```
-
-**Checklist nouvelle app** :
-- [ ] Ajouter le réseau `traefik-network` dans docker-compose.yml
-- [ ] Labels Traefik pour routing HTTPS
-- [ ] Variables d'env dans `.env` (jamais committées)
-- [ ] CORS configuré dans FastAPI pour le domaine frontend
-- [ ] `BASE_URL` dans config.py pour les URLs publiques
-- [ ] Volumes nommés pour la persistance des données
+- Pas de 3D lourde (Three.js)
+- Pas d'animations complexes
+- Pas de dépendances inutiles
+- Pas de code qui ralentit le chargement
+- Pas de `.env` dans Git
 
 ---
 
-## Commandes fréquentes sur le VPS
+# 🛠️ COMMANDES VPS FRÉQUENTES
 
 ```bash
 # Voir les logs d'une app
-docker logs youtube-publisher-backend --tail 50 -f
+docker logs NOM-backend --tail 50 -f
 
-# Appliquer un fix backend sans rebuild
-docker cp backend/src/app/services/mon_fichier.py container:/app/app/services/mon_fichier.py
-docker-compose restart backend
+# Espace disque
+df -h /
 
-# Voir les valeurs d'un enum PostgreSQL
-docker exec -it youtube-publisher-postgres psql -U postgres -d youtube_publisher \
-  -c "SELECT enum_range(NULL::videostatus);"
+# Espace Docker
+docker system df
 
-# Reset statut vidéo bloquée
+# Nettoyer images inutilisées
+docker image prune -a -f
+
+# Voir les containers actifs
+docker ps --format "table {{.Names}}\t{{.Status}}"
+
+# Reset statut vidéo bloquée (youtube-publisher)
 docker exec -it youtube-publisher-postgres psql -U postgres -d youtube_publisher \
   -c "UPDATE videos SET status='READY' WHERE status='UPLOADING';"
-
-# Vérifier les variables d'environnement d'un container
-docker exec container-name env | grep MA_VARIABLE
 ```
 
 ---
 
-## APIs externes utilisées
+# 🔁 MENTALITÉ
 
-| Service | Usage | Documentation |
-|---------|-------|---------------|
-| Anthropic Claude | Génération scripts, textes | claude-3-5-sonnet |
-| Kie.ai | Images (Flux-2 Pro) et vidéos (Kling 3.0) | `/api/v1/jobs/createTask` + `/api/v1/jobs/recordInfo` |
-| ElevenLabs | Voix off (eleven_multilingual_v2) | voice ID configurable |
-| FFmpeg | Assemblage vidéo, Ken Burns, sous-titres SRT | installé dans le container backend |
-| YouTube Data API v3 | Upload vidéo + thumbnail | OAuth2 via n8n |
-| Meta Pixel | Tracking Facebook | ID: 4009568915963637 (landing-rituel) |
+👉 "Comment transformer ce visiteur en message WhatsApp ?"
+
+Le but n'est pas d'impressionner. Le but est de FAIRE CLIQUER.
